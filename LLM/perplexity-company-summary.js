@@ -32,5 +32,10 @@ async function researchCompany(url) {
     }
 }
 
-// Example usage:
-researchCompany('https://fulcrumgenomics.com/');
+// Get the URL from command-line arguments
+const url = process.argv[2];
+if (url) {
+    researchCompany(url);
+} else {
+    console.error('Please provide a URL as a command-line argument.');
+}
