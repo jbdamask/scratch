@@ -1,13 +1,5 @@
 #!/bin/bash
 
-# Makes a new FastMCP project
-# https://github.com/jlowin/fastmcp
-# Put under /usr/local/bin and make it executable
-# Synopsis: new-fastmcp <project-name>
-# cd <project-name>
-# source .venv/bin/activate
-# fastmcp dev <project-name>.py
-
 # Check if the project name parameter is provided
 if [ -z "$1" ]; then
     echo "Error: Please provide a project name."
@@ -47,5 +39,8 @@ def get_greeting(name: str) -> str:
     """Get a personalized greeting"""
     return f"Hello, {name}!"
 EOF
+
+mkdir instructions
+curl https://raw.githubusercontent.com/jbdamask/scratch/refs/heads/main/MCP/mcp-api-template.py > instructions/mcp-api-template.py
 
 echo "Project $PROJECT_NAME has been created successfully!"
