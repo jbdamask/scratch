@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Social Media Card Cropper</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #2563eb;
+            color: white;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        .drop-zone {
+            border: 3px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 60px 20px;
+            text-align: center;
+            margin: 24px;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #2563eb;
+            background: #eff6ff;
+        }
+
+        .drop-zone-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            color: #64748b;
+        }
+
+        .drop-zone p {
+            font-size: 18px;
+            color: #475569;
+            margin: 0;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .btn:hover {
+            background: #1d4ed8;
+        }
+
+        .top-controls {
+            padding: 16px 24px;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .image-container {
+            display: none;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .image-wrapper {
+            position: relative;
+            display: inline-block;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #f8fafc;
+        }
+
+        .main-image {
+            width: 500px;
+            height: 400px;
+            object-fit: contain;
+            display: block;
+            transform-origin: center center;
+            transition: transform 0.2s;
+        }
+
+        .viewport-overlay {
+            position: absolute;
+            border: 2px solid #2563eb;
+            background: rgba(37, 99, 235, 0.1);
+            cursor: move;
+            user-select: none;
+        }
+
+        .viewport-overlay:hover {
+            border-color: #1d4ed8;
+            background: rgba(29, 78, 216, 0.15);
+        }
+
+        .viewport-overlay::after {
+            content: 'Drag to move viewport';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(37, 99, 235, 0.9);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .viewport-overlay:hover::after {
+            opacity: 1;
+        }
+
+        .preview-section {
+            padding: 24px;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+            text-align: center;
+        }
+
+        .preview-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1e293b;
+        }
+
+        .preview-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .preview-canvas {
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            max-width: 300px;
+            background: #fff;
+        }
+
+        .dimensions-info {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .download-btn {
+            background: #059669;
+            color: white;
+            text-decoration: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: background-color 0.3s;
+            display: none;
+        }
+
+        .download-btn:hover {
+            background: #047857;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 500;
+            color: #374151;
+            white-space: nowrap;
+        }
+
+        .aspect-ratio-select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            font-size: 14px;
+            color: #374151;
+            cursor: pointer;
+        }
+
+        .aspect-ratio-select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .color-picker {
+            width: 40px;
+            height: 32px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+
+        .color-picker:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 4px;
+        }
+
+        .zoom-btn {
+            width: 36px;
+            height: 32px;
+            background: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+        }
+
+        .zoom-btn:hover {
+            background: #4b5563;
+        }
+
+        .zoom-btn:active {
+            transform: scale(0.95);
+        }
+
+        .reset-zoom-btn {
+            width: 50px;
+            height: 32px;
+            background: #6366f1;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .reset-zoom-btn:hover {
+            background: #4f46e5;
+        }
+
+        .reset-zoom-btn:active {
+            transform: scale(0.95);
+        }
+
+        .reset-btn {
+            background: #dc2626;
+        }
+
+        .reset-btn:hover {
+            background: #b91c1c;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Social Media Card Cropper</h1>
+            <p>Drop an image or click to upload, then use the movable viewport to select your crop area</p>
+        </div>
+
+        <div class="top-controls" id="topControls" style="display: none;">
+            <div class="controls">
+                <div class="control-group">
+                    <label for="aspectRatio">Aspect Ratio:</label>
+                    <select id="aspectRatio" class="aspect-ratio-select" onchange="changeAspectRatio()">
+                        <option value="2">2:1 (Twitter/LinkedIn)</option>
+                        <option value="1.91">1.91:1 (Facebook)</option>
+                        <option value="1.4">1.4:1 (Substack)</option>
+                        <option value="1">1:1 (Instagram)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="backgroundColor">Background:</label>
+                    <input type="color" id="backgroundColor" class="color-picker" value="#ffffff" onchange="updatePreview()">
+                </div>
+                <div class="control-group">
+                    <label>Zoom:</label>
+                    <div class="zoom-controls">
+                        <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">+</button>
+                        <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">-</button>
+                        <button class="reset-zoom-btn" onclick="resetZoom()" title="Reset to 100%">100%</button>
+                    </div>
+                </div>
+                <button class="btn reset-btn" onclick="resetImage()">Upload New Image</button>
+            </div>
+        </div>
+
+        <div class="drop-zone" id="dropZone">
+            <div class="drop-zone-content">
+                <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                </svg>
+                <p>Drop an image here, click to select, or paste from clipboard</p>
+                <button class="btn" onclick="event.stopPropagation(); document.getElementById('fileInput').click()">
+                    Choose File
+                </button>
+            </div>
+        </div>
+
+        <input type="file" id="fileInput" class="file-input" accept="image/*">
+
+        <div class="image-container" id="imageContainer">
+            <div class="image-wrapper" id="imageWrapper">
+                <img id="mainImage" class="main-image" alt="Image to crop">
+                <div id="viewportOverlay" class="viewport-overlay"></div>
+            </div>
+            
+            <div style="margin-top: 16px;">
+                <a href="#" id="downloadLink" class="download-btn">Download JPEG</a>
+            </div>
+        </div>
+
+        <div class="preview-section" id="previewSection" style="display: none;">
+            <h3 class="preview-title">Preview (2:1 Social Media Card)</h3>
+            <div class="preview-wrapper">
+                <canvas id="previewCanvas" class="preview-canvas"></canvas>
+                <div id="dimensionsInfo" class="dimensions-info">Output: 1200×600px</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentImage = null;
+        let currentScale = 1;
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const imageContainer = document.getElementById('imageContainer');
+        const mainImage = document.getElementById('mainImage');
+        const viewportOverlay = document.getElementById('viewportOverlay');
+        const previewSection = document.getElementById('previewSection');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const downloadLink = document.getElementById('downloadLink');
+        
+        let viewport = {
+            x: 50,
+            y: 50,
+            width: 200,
+            height: 100,
+            isDragging: false,
+            startX: 0,
+            startY: 0
+        };
+
+        // Drag and drop functionality
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                handleFile(files[0]);
+            }
+        });
+
+        // File input change
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        // Click to upload
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Paste functionality
+        document.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i];
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    handleFile(file);
+                    break;
+                }
+            }
+        });
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                initializeImage(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function initializeImage(imageSrc) {
+            currentImage = new Image();
+            currentImage.onload = () => {
+                mainImage.src = imageSrc;
+                dropZone.style.display = 'none';
+                document.getElementById('topControls').style.display = 'block';
+                imageContainer.style.display = 'block';
+                previewSection.style.display = 'block';
+                
+                // Reset scale
+                currentScale = 1;
+                mainImage.style.transform = `scale(${currentScale})`;
+                
+                // Initialize viewport
+                setupViewport();
+                updatePreview();
+            };
+            currentImage.src = imageSrc;
+        }
+
+        function setupViewport() {
+            const aspectRatio = parseFloat(document.getElementById('aspectRatio').value);
+            
+            // Fixed viewport size - independent of image zoom
+            viewport.width = 180;
+            viewport.height = viewport.width / aspectRatio;
+            
+            // Center viewport on the image display area
+            const imageRect = mainImage.getBoundingClientRect();
+            viewport.x = (imageRect.width - viewport.width) / 2;
+            viewport.y = (imageRect.height - viewport.height) / 2;
+            
+            updateViewportDisplay();
+        }
+
+        function updateViewportDisplay() {
+            viewportOverlay.style.left = viewport.x + 'px';
+            viewportOverlay.style.top = viewport.y + 'px';
+            viewportOverlay.style.width = viewport.width + 'px';
+            viewportOverlay.style.height = viewport.height + 'px';
+        }
+
+        function changeAspectRatio() {
+            if (!currentImage) return;
+            
+            const aspectRatio = parseFloat(document.getElementById('aspectRatio').value);
+            viewport.height = viewport.width / aspectRatio;
+            
+            // Keep viewport centered and within bounds
+            const imageRect = mainImage.getBoundingClientRect();
+            if (viewport.y + viewport.height > imageRect.height) {
+                viewport.y = Math.max(0, imageRect.height - viewport.height);
+            }
+            
+            updateViewportDisplay();
+            updatePreview();
+        }
+
+        // Viewport drag functionality
+        viewportOverlay.addEventListener('mousedown', (e) => {
+            viewport.isDragging = true;
+            viewport.startX = e.clientX - viewport.x;
+            viewport.startY = e.clientY - viewport.y;
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!viewport.isDragging) return;
+            
+            const newX = e.clientX - viewport.startX;
+            const newY = e.clientY - viewport.startY;
+            
+            // Get actual image bounds as rendered on screen
+            const imageRect = mainImage.getBoundingClientRect();
+            const wrapperRect = document.getElementById('imageWrapper').getBoundingClientRect();
+            
+            // Convert image bounds to wrapper-relative coordinates  
+            const imageLeft = imageRect.left - wrapperRect.left;
+            const imageTop = imageRect.top - wrapperRect.top;
+            const imageRight = imageLeft + imageRect.width;
+            const imageBottom = imageTop + imageRect.height;
+            
+            // Simple constraint: viewport must stay within the actual image area
+            const maxX = imageRight - viewport.width;
+            const maxY = imageBottom - viewport.height;
+            
+            viewport.x = Math.max(imageLeft, Math.min(newX, maxX));
+            viewport.y = Math.max(imageTop, Math.min(newY, maxY));
+            
+            updateViewportDisplay();
+            updatePreview();
+        });
+
+        document.addEventListener('mouseup', () => {
+            viewport.isDragging = false;
+        });
+
+        // Mouse wheel zoom functionality
+        const imageWrapper = document.getElementById('imageWrapper');
+        imageWrapper.addEventListener('wheel', (e) => {
+            if (!currentImage) return;
+            
+            e.preventDefault();
+            
+            // Determine zoom direction and amount
+            const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1;
+            const newScale = currentScale * zoomDelta;
+            
+            // Apply zoom limits
+            currentScale = Math.max(0.3, Math.min(5, newScale));
+            
+            mainImage.style.transform = `scale(${currentScale})`;
+            updatePreview();
+        });
+
+        function updatePreview() {
+            if (!currentImage) return;
+
+            const aspectRatioSelect = document.getElementById('aspectRatio');
+            const aspectRatio = parseFloat(aspectRatioSelect.value);
+            const previewTitle = document.querySelector('.preview-title');
+            const dimensionsInfo = document.getElementById('dimensionsInfo');
+            const backgroundColor = document.getElementById('backgroundColor').value;
+            
+            // Update title and dimensions based on selected ratio
+            if (aspectRatio === 2) {
+                previewTitle.textContent = 'Preview (2:1 Twitter/LinkedIn)';
+                dimensionsInfo.textContent = 'Output: 1200×600px';
+            } else if (aspectRatio === 1.91) {
+                previewTitle.textContent = 'Preview (1.91:1 Facebook)';
+                dimensionsInfo.textContent = 'Output: 1200×628px';
+            } else if (aspectRatio === 1.4) {
+                previewTitle.textContent = 'Preview (1.4:1 Substack)';
+                dimensionsInfo.textContent = 'Output: 1400×1000px';
+            } else if (aspectRatio === 1) {
+                previewTitle.textContent = 'Preview (1:1 Instagram)';
+                dimensionsInfo.textContent = 'Output: 1080×1080px';
+            }
+
+            // Calculate preview dimensions maintaining aspect ratio
+            let previewWidth = 300;
+            let previewHeight = Math.round(previewWidth / aspectRatio);
+            
+            // Platform-specific output dimensions
+            let outputWidth, outputHeight;
+            if (aspectRatio === 2) {
+                // 2:1 Twitter/LinkedIn
+                outputWidth = 1200;
+                outputHeight = 600;
+            } else if (aspectRatio === 1.91) {
+                // 1.91:1 Facebook
+                outputWidth = 1200;
+                outputHeight = 628;
+            } else if (aspectRatio === 1.4) {
+                // 1.4:1 Substack
+                outputWidth = 1400;
+                outputHeight = 1000;
+            } else if (aspectRatio === 1) {
+                // 1:1 Instagram
+                outputWidth = 1080;
+                outputHeight = 1080;
+            } else {
+                // Default fallback
+                outputWidth = 1200;
+                outputHeight = Math.round(1200 / aspectRatio);
+            }
+
+            // Calculate how the source image is displayed within the 500x400 container
+            const containerWidth = 500;
+            const containerHeight = 400;
+            
+            // Calculate scale factor (object-fit: contain behavior)
+            const scaleX = containerWidth / currentImage.width;
+            const scaleY = containerHeight / currentImage.height;
+            const scale = Math.min(scaleX, scaleY) * currentScale;
+            
+            // Calculate displayed image dimensions
+            const displayedWidth = currentImage.width * scale;
+            const displayedHeight = currentImage.height * scale;
+            
+            // Calculate offset to center the image in container
+            const offsetX = (containerWidth - displayedWidth) / 2;
+            const offsetY = (containerHeight - displayedHeight) / 2;
+            
+            // Viewport position relative to displayed image content
+            const relativeX = (viewport.x - offsetX) / displayedWidth;
+            const relativeY = (viewport.y - offsetY) / displayedHeight;
+            const relativeWidth = viewport.width / displayedWidth;
+            const relativeHeight = viewport.height / displayedHeight;
+            
+            // Map to source image
+            const sourceX = relativeX * currentImage.width;
+            const sourceY = relativeY * currentImage.height;
+            const sourceWidth = relativeWidth * currentImage.width;
+            const sourceHeight = relativeHeight * currentImage.height;
+
+            // Create preview canvas
+            const ctx = previewCanvas.getContext('2d');
+            previewCanvas.width = previewWidth;
+            previewCanvas.height = previewHeight;
+            previewCanvas.style.width = previewWidth + 'px';
+            previewCanvas.style.height = previewHeight + 'px';
+            
+            // Fill background
+            ctx.fillStyle = backgroundColor;
+            ctx.fillRect(0, 0, previewWidth, previewHeight);
+
+            // Draw the cropped portion to preview
+            ctx.drawImage(
+                currentImage,
+                sourceX, sourceY, sourceWidth, sourceHeight,
+                0, 0, previewWidth, previewHeight
+            );
+
+            // Create output canvas for download
+            const outputCanvas = document.createElement('canvas');
+            outputCanvas.width = outputWidth;
+            outputCanvas.height = outputHeight;
+            const outputCtx = outputCanvas.getContext('2d');
+            
+            // Fill background
+            outputCtx.fillStyle = backgroundColor;
+            outputCtx.fillRect(0, 0, outputWidth, outputHeight);
+
+            // Draw the cropped portion to output
+            outputCtx.drawImage(
+                currentImage,
+                sourceX, sourceY, sourceWidth, sourceHeight,
+                0, 0, outputWidth, outputHeight
+            );
+
+            // Create download link
+            outputCanvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                downloadLink.href = url;
+                let filename = 'social-media-card.jpg';
+                if (aspectRatio === 2) {
+                    filename = 'twitter-linkedin-card.jpg';
+                } else if (aspectRatio === 1.91) {
+                    filename = 'facebook-card.jpg';
+                } else if (aspectRatio === 1.4) {
+                    filename = 'substack-card.jpg';
+                } else if (aspectRatio === 1) {
+                    filename = 'instagram-card.jpg';
+                }
+                downloadLink.download = filename;
+                downloadLink.style.display = 'inline-block';
+            }, 'image/jpeg', 0.7);
+        }
+
+        function zoomIn() {
+            if (!currentImage) return;
+            currentScale = Math.min(currentScale * 1.1, 5);
+            mainImage.style.transform = `scale(${currentScale})`;
+            updatePreview();
+        }
+
+        function zoomOut() {
+            if (!currentImage) return;
+            currentScale = Math.max(currentScale * 0.9, 0.3);
+            mainImage.style.transform = `scale(${currentScale})`;
+            updatePreview();
+        }
+
+        function resetZoom() {
+            if (!currentImage) return;
+            currentScale = 1;
+            mainImage.style.transform = `scale(${currentScale})`;
+            updatePreview();
+        }
+
+        function resetImage() {
+            currentImage = null;
+            currentScale = 1;
+            
+            document.getElementById('topControls').style.display = 'none';
+            imageContainer.style.display = 'none';
+            previewSection.style.display = 'none';
+            dropZone.style.display = 'block';
+            fileInput.value = '';
+            downloadLink.style.display = 'none';
+            
+            // Revoke any existing blob URLs
+            if (downloadLink.href.startsWith('blob:')) {
+                URL.revokeObjectURL(downloadLink.href);
+            }
+        }
+    </script>
+</body>
+</html>
