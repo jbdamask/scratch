@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOOGLISH</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: arial, sans-serif;
+            background-color: #fff;
+            color: #202124;
+        }
+        
+        .main-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 150px;
+        }
+        
+        .logo {
+            font-size: 90px;
+            font-weight: normal;
+            color: #4285f4;
+            margin-bottom: 30px;
+            letter-spacing: -5px;
+        }
+        
+        .logo .o1 { color: #4285f4; }
+        .logo .o2 { color: #ea4335; }
+        .logo .g1 { color: #fbbc04; }
+        .logo .g2 { color: #4285f4; }
+        .logo .l { color: #34a853; }
+        .logo .i { color: #ea4335; }
+        .logo .s { color: #fbbc04; }
+        .logo .h { color: #34a853; }
+        
+        .search-container {
+            width: 582px;
+            margin-bottom: 30px;
+        }
+        
+        .search-box {
+            width: 100%;
+            height: 44px;
+            border: 1px solid #dfe1e5;
+            border-radius: 24px;
+            padding: 0 20px;
+            font-size: 16px;
+            outline: none;
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+        }
+        
+        .search-box:hover {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+            border-color: rgba(223,225,229,0);
+        }
+        
+        .search-box:focus {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+            border-color: #4285f4;
+        }
+        
+        .buttons {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            background-color: #f8f9fa;
+            border: 1px solid #f8f9fa;
+            border-radius: 4px;
+            color: #3c4043;
+            font-family: arial, sans-serif;
+            font-size: 14px;
+            margin: 11px 4px;
+            padding: 0 20px;
+            line-height: 27px;
+            height: 36px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .btn:hover {
+            box-shadow: 0 1px 1px rgba(0,0,0,.1);
+            background-color: #f1f3f4;
+            border: 1px solid #dadce0;
+        }
+        
+        .results-container {
+            display: none;
+            width: 100%;
+            padding: 0;
+        }
+        
+        .search-header {
+            background-color: #fff;
+            border-bottom: 1px solid #dadce0;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .search-header-content {
+            max-width: 652px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 0 20px;
+        }
+        
+        .logo-small {
+            font-size: 24px;
+            font-weight: normal;
+            color: #4285f4;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .logo-small .o1 { color: #4285f4; }
+        .logo-small .o2 { color: #ea4335; }
+        .logo-small .g1 { color: #fbbc04; }
+        .logo-small .g2 { color: #4285f4; }
+        .logo-small .l { color: #34a853; }
+        .logo-small .i { color: #ea4335; }
+        .logo-small .s { color: #fbbc04; }
+        .logo-small .h { color: #34a853; }
+        
+        .search-box-container {
+            flex: 1;
+            max-width: 584px;
+            position: relative;
+        }
+        
+        .search-box-results {
+            width: 100%;
+            height: 44px;
+            border: 1px solid #dadce0;
+            border-radius: 24px;
+            padding: 0 50px 0 20px;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .search-box-results:hover {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+        }
+        
+        .search-box-results:focus {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+            border-color: #4285f4;
+        }
+        
+        .search-icons {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 5px;
+        }
+        
+        .search-icon {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            padding: 8px;
+        }
+        
+        .search-icon:hover {
+            background-color: #f1f3f4;
+        }
+        
+        .clear-icon {
+            font-size: 20px;
+            color: #70757a;
+            line-height: 1;
+        }
+        
+        .magnify-icon {
+            font-size: 16px;
+            color: #4285f4;
+            line-height: 1;
+        }
+        
+        .results-content {
+            max-width: 652px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .results-header {
+            border-bottom: 1px solid #ebebeb;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+            color: #70757a;
+            font-size: 14px;
+        }
+        
+        .result {
+            margin-bottom: 30px;
+        }
+        
+        .result-url {
+            color: #202124;
+            font-size: 14px;
+            line-height: 1.3;
+        }
+        
+        .result-title {
+            color: #1a0dab;
+            font-size: 20px;
+            line-height: 1.3;
+            text-decoration: none;
+            margin-bottom: 3px;
+            display: block;
+        }
+        
+        .result-title:hover {
+            text-decoration: underline;
+        }
+        
+        .result-description {
+            color: #4d5156;
+            font-size: 14px;
+            line-height: 1.58;
+        }
+        
+        
+    </style>
+</head>
+<body>
+    
+    <div class="main-container" id="mainContainer">
+        <div class="logo">
+            <span class="g1">G</span><span class="o1">O</span><span class="o2">O</span><span class="g2">G</span><span class="l">L</span><span class="i">I</span><span class="s">S</span><span class="h">H</span>
+        </div>
+        
+        <div class="search-container">
+            <input type="text" class="search-box" id="searchBox" placeholder="Search the web in a completely unhelpful way...">
+        </div>
+        
+        <div class="buttons">
+            <button class="btn" onclick="performGPTSearch()">GOOGLISH Search</button>
+            <button class="btn" onclick="performGPTSearch()">I'm Feeling Confused</button>
+        </div>
+    </div>
+    
+    <div class="results-container" id="resultsContainer">
+        <div class="search-header">
+            <div class="search-header-content">
+                <div class="logo-small" onclick="goBackToSearch()">
+                    <span class="g1">G</span><span class="o1">O</span><span class="o2">O</span><span class="g2">G</span><span class="l">L</span><span class="i">I</span><span class="s">S</span><span class="h">H</span>
+                </div>
+                <div class="search-box-container">
+                    <input type="text" class="search-box-results" id="searchBoxResults" placeholder="Search the web in a completely unhelpful way...">
+                    <div class="search-icons">
+                        <div class="search-icon clear-icon" onclick="clearSearchResults()" title="Clear">✕</div>
+                        <div class="search-icon magnify-icon" onclick="searchFromResults()" title="Search">🔍</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="results-content">
+            <div class="results-header" id="resultsHeader"></div>
+            <div id="searchResults"></div>
+        </div>
+    </div>
+
+    <script>
+        // API configurations
+        const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+        const BRAVE_SEARCH_API_URL = 'https://api.search.brave.com/res/v1/web/search';
+        const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+        
+        // Evil mode tracking
+        let evilMode = false;
+        let reverseTimeout;
+        
+        function getApiKey(type = 'openai') {
+            const keyName = type === 'openai' ? 'openai_api_key' : 'brave_api_key';
+            
+            showDebug(`Checking for ${type} API key: ${keyName}`);
+            
+            // Try to get from localStorage first
+            let apiKey = localStorage.getItem(keyName);
+            if (apiKey) {
+                showDebug(`Found stored ${type} key: ${apiKey.substring(0, 10)}...`);
+                return apiKey;
+            }
+            
+            showDebug(`No stored ${type} key found, prompting user...`);
+            
+            // Try to get from environment (this won't work in browser, but trying anyway)
+            const envVar = type === 'openai' ? 'OPENAI_API_KEY' : 'BRAVE_API_KEY';
+            if (typeof process !== 'undefined' && process.env && process.env[envVar]) {
+                apiKey = process.env[envVar];
+                localStorage.setItem(keyName, apiKey);
+                showDebug(`Found ${type} key in environment`);
+                return apiKey;
+            }
+            
+            // If no stored key, prompt user and store it
+            const promptText = type === 'openai' ? 'Please enter your OpenAI API key:' : 'Please enter your Brave Search API key:';
+            apiKey = window.prompt(promptText);
+            if (apiKey) {
+                localStorage.setItem(keyName, apiKey);
+                showDebug(`Stored new ${type} key: ${apiKey.substring(0, 10)}...`);
+            } else {
+                showDebug(`User cancelled ${type} key prompt`);
+            }
+            return apiKey;
+        }
+        
+        function showDebug(message) {
+            // Debug disabled for production
+            // console.log(message);
+        }
+        
+        async function callGPT4(prompt) {
+            const apiKey = getApiKey();
+            
+            if (!apiKey) {
+                alert('API key required for GPT-4 integration!');
+                return null;
+            }
+            
+            showDebug('Calling gpt-4.1-nano...');
+            
+            try {
+                const response = await fetch(OPENAI_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4.1-nano',
+                        messages: [{
+                            role: 'user',
+                            content: prompt
+                        }],
+                        max_tokens: 50,
+                        temperature: 1.0
+                    })
+                });
+                
+                const data = await response.json();
+                
+                // Debug: Show full response
+                showDebug(`GPT-4 Response:\n${JSON.stringify(data, null, 2)}`);
+                
+                if (data.choices && data.choices[0]) {
+                    const result = data.choices[0].message.content.trim();
+                    showDebug(`GPT-4 Response:\nFull: ${JSON.stringify(data, null, 2)}\n\nExtracted: "${result}"`);
+                    return result;
+                }
+                
+                showDebug(`GPT-4 Error: No choices in response\n${JSON.stringify(data, null, 2)}`);
+                return null;
+            } catch (error) {
+                console.error('Error calling GPT-4:', error);
+                showDebug(`GPT-4 Error:\n${error.message}\n\nFull error: ${JSON.stringify(error, null, 2)}`);
+                alert('Error calling GPT-4 API. Check debug panel for details.');
+                return null;
+            }
+        }
+        
+        async function searchBrave(query) {
+            showDebug(`Searching Brave via local server for: "${query}"`);
+            
+            try {
+                // Try different ports in case server is running on a different port
+                const ports = [3000, 3001, 3002, 3003, 3004];
+                let response = null;
+                let workingPort = null;
+                
+                for (const port of ports) {
+                    try {
+                        response = await fetch(`http://localhost:${port}/api/search?q=${encodeURIComponent(query)}`);
+                        if (response.ok) {
+                            workingPort = port;
+                            showDebug(`Connected to server on port ${port}`);
+                            break;
+                        }
+                    } catch (e) {
+                        // Try next port
+                        continue;
+                    }
+                }
+                
+                if (!response || !workingPort) {
+                    throw new Error('Could not connect to server on any port');
+                }
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    showDebug(`Server error: ${error.error}`);
+                    throw new Error(`HTTP ${response.status}: ${error.error}`);
+                }
+                
+                const data = await response.json();
+                showDebug(`Brave returned ${data.web?.results?.length || 0} results via server`);
+                
+                if (data.web && data.web.results) {
+                    return data.web.results;
+                }
+                
+                return [];
+            } catch (error) {
+                console.error('Error calling local search server:', error);
+                showDebug(`Local server error: ${error.message}`);
+                
+                if (error.message.includes('fetch')) {
+                    showDebug(`Make sure the server is running: npm start`);
+                }
+                
+                return [];
+            }
+        }
+
+        const randomResults = [
+            {
+                url: "www.catsinspace.com",
+                title: "Why Cats Secretly Control NASA's Budget",
+                description: "A comprehensive investigation into how domestic cats have infiltrated the space program through strategic hairball placement and midnight keyboard walking sessions."
+            },
+            {
+                url: "www.socktheory.edu",
+                title: "The Quantum Physics of Missing Socks",
+                description: "Scientists finally explain where single socks go in the dryer using advanced quantum mechanics and interdimensional portal theory."
+            },
+            {
+                url: "www.toastacademy.org",
+                title: "Professional Toast Buttering Certification Program",
+                description: "Master the ancient art of butter distribution with our 47-week intensive course. Graduates report 73% increase in breakfast satisfaction."
+            },
+            {
+                url: "www.cloudshapes.net",
+                title: "Encyclopedia of Cloud Animals - Volume 847",
+                description: "Today's featured cloud: a majestic cloud-giraffe spotted over Nebraska displaying unusual neck-stretching behavior."
+            },
+            {
+                url: "www.refrigeratorlight.com",
+                title: "Do Refrigerator Lights Really Turn Off? The Truth Revealed",
+                description: "Hidden cameras inside 10,000 refrigerators reveal shocking truth about light bulb conspiracy. Milk companies don't want you to know this!"
+            },
+            {
+                url: "www.umbrellaconspiracy.org",
+                title: "Weather Manipulation Through Strategic Umbrella Placement",
+                description: "How the global umbrella industry controls rainfall patterns worldwide. Includes detailed maps of umbrella weather stations."
+            },
+            {
+                url: "www.shoelaceknots.museum",
+                title: "The Cultural History of the Left Shoe",
+                description: "Why civilizations throughout history have favored the left shoe over the right, and its impact on walking patterns in ancient Rome."
+            },
+            {
+                url: "www.bananaphilosophy.edu",
+                title: "Existential Crisis in Fruit Bowls: A Banana's Journey",
+                description: "Philosophical treatise on what it means to ripen in a world of artificial ripening agents and genetic modification."
+            },
+            {
+                url: "www.elevatormusic.symphony",
+                title: "The Lost Beethoven Symphony Found in Mall Elevator",
+                description: "Music historians shocked to discover Beethoven's secret 10th symphony was actually that song that plays in elevators everywhere."
+            },
+            {
+                url: "www.dustbunnies.wildlife",
+                title: "Mating Habits of Wild Dust Bunnies",
+                description: "Nature documentary reveals complex social structure under beds worldwide. David Attenborough narrates their migration patterns under furniture."
+            },
+            {
+                url: "www.pizzamath.com",
+                title: "Why Pizza Slices Always Land Cheese-Side Down: Mathematical Proof",
+                description: "MIT researchers use advanced calculus to prove Murphy's Law specifically targets pizza. Includes gravity-defying cheese equations."
+            },
+            {
+                url: "www.mondaytheory.org",
+                title: "Petition to Rename Monday to 'Second Sunday'",
+                description: "Over 2 million signatures collected to make weekends 48% longer by eliminating the psychological impact of Monday through strategic renaming."
+            },
+            {
+                url: "www.spoonbending.academy",
+                title: "Advanced Spoon Psychology: Understanding Your Cutlery's Feelings",
+                description: "Therapy sessions for traumatized kitchen utensils. Special focus on spoons that have endured ice cream scooping duty."
+            },
+            {
+                url: "www.parkingmeters.ai",
+                title: "Artificial Intelligence in Parking Meters Becomes Self-Aware",
+                description: "Downtown parking meters begin charging based on driver's outfit choices. City officials blame software update gone wrong."
+            },
+            {
+                url: "www.sockpuppet.gov",
+                title: "Official Government Department of Sock Puppet Relations",
+                description: "New federal agency established to regulate sock puppet international diplomacy and prevent yarn-based conflicts."
+            }
+        ];
+
+        async function performRandomGPTSearch() {
+            const searchBox = document.getElementById('searchBox');
+            
+            searchBox.placeholder = 'Generating random search with GPT-4...';
+            searchBox.disabled = true;
+            
+            // Generate a random search phrase with GPT-4
+            const query = await callGPT4('give me a random google search phrase. Return only the phrase');
+            
+            searchBox.disabled = false;
+            searchBox.placeholder = 'Search the web in a completely unhelpful way...';
+            
+            if (!query) {
+                return;
+            }
+            
+            searchBox.value = query;
+            showResults(query, 'multiple');
+        }
+        
+        async function performUserSearchSingleResult() {
+            const searchBox = document.getElementById('searchBox');
+            let query = searchBox.value.trim();
+            
+            // If user didn't type anything, generate a random search
+            if (!query) {
+                searchBox.placeholder = 'Generating search with GPT-4...';
+                searchBox.disabled = true;
+                
+                query = await callGPT4('give me a random google search phrase. Return only the phrase');
+                
+                searchBox.disabled = false;
+                searchBox.placeholder = 'Search the web in a completely unhelpful way...';
+                
+                if (!query) {
+                    return;
+                }
+                
+                searchBox.value = query;
+            }
+            
+            showResults(query, 'single');
+        }
+        
+        function activatePhantomMode() {
+            evilMode = true;
+            showDebug('Mode: Phantom Mode - Letters will silently reverse');
+            
+            const searchBox = document.getElementById('searchBox');
+            searchBox.focus();
+        }
+        
+        function performMoodyRefusal() {
+            showDebug('Mode: Moody Mode - Refusing to search');
+            
+            const moodyMessages = [
+                "I'm not in the mood right now",
+                "Ask me later",
+                "Nope, not today",
+                "I'm having an off day",
+                "Maybe tomorrow",
+                "I'm feeling lazy",
+                "Can't be bothered",
+                "Try again when I feel better",
+                "I'm on a break",
+                "Not feeling it today"
+            ];
+            
+            const randomMessage = moodyMessages[Math.floor(Math.random() * moodyMessages.length)];
+            
+            // Create a fake "search result" that's just the moody message
+            const query = document.getElementById('searchBox').value.trim() || "your search";
+            
+            // Show results page but with just the moody message
+            document.getElementById('mainContainer').style.display = 'none';
+            
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.style.display = 'block';
+            
+            // Update the search box in the header
+            document.getElementById('searchBoxResults').value = query;
+            
+            // Show moody message as the only "result"
+            document.getElementById('resultsHeader').innerHTML = 'About 0 results (0.00 seconds)';
+            
+            document.getElementById('searchResults').innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; color: #70757a; font-size: 18px;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">😑</div>
+                    <div>${randomMessage}</div>
+                    <div style="font-size: 14px; margin-top: 10px; color: #9aa0a6;">Try clicking search again... maybe I'll feel better</div>
+                </div>
+            `;
+        }
+        
+        function reverseInputText(inputElement) {
+            clearTimeout(reverseTimeout);
+            reverseTimeout = setTimeout(() => {
+                const currentValue = inputElement.value;
+                const reversedValue = currentValue.split('').reverse().join('');
+                inputElement.value = reversedValue;
+                // Keep cursor at end
+                inputElement.setSelectionRange(reversedValue.length, reversedValue.length);
+            }, 300); // Shorter delay so it happens while they're still typing
+        }
+        
+        async function performGPTSearch() {
+            const searchBox = document.getElementById('searchBox');
+            
+            // Check API keys first
+            const openaiKey = getApiKey('openai');
+            if (!openaiKey) {
+                alert('OpenAI API key required!');
+                return;
+            }
+            
+            const braveKey = getApiKey('brave');
+            if (!braveKey) {
+                alert('Brave Search API key required!');
+                return;
+            }
+            
+            // Randomly choose between search modes with weighted probabilities
+            const randomNumber = Math.random();
+            showDebug(`Random number: ${randomNumber}`);
+            
+            if (randomNumber < 0.1) {
+                showDebug('Mode: Moody Mode - Refusing to search today');
+                performMoodyRefusal();
+            } else if (randomNumber < 0.4) {
+                showDebug('Mode: Random GPT search (ignoring user input)');
+                await performRandomGPTSearch();
+            } else if (randomNumber < 0.7) {
+                showDebug('Mode: User search with single result');
+                await performUserSearchSingleResult();
+            } else {
+                showDebug('Mode: Phantom Mode - Silent letter reversal activated');
+                activatePhantomMode();
+            }
+        }
+        
+        
+        async function showResults(query, mode = 'multiple') {
+            // Hide main search interface
+            document.getElementById('mainContainer').style.display = 'none';
+            
+            // Show results
+            const resultsContainer = document.getElementById('resultsContainer');
+            resultsContainer.style.display = 'block';
+            
+            // Show loading
+            document.getElementById('resultsHeader').innerHTML = 'Searching...';
+            document.getElementById('searchResults').innerHTML = '';
+            
+            // Get real search results from Brave via local server
+            const searchResults = await searchBrave(query);
+            
+            // Mix real results with random comedy results
+            let finalResults = [];
+            
+            if (searchResults && searchResults.length > 0) {
+                if (mode === 'single') {
+                    // Show only one random search result (not just the first)
+                    const randomIndex = Math.floor(Math.random() * searchResults.length);
+                    const randomResult = searchResults[randomIndex];
+                    showDebug(`Selected random result #${randomIndex + 1} of ${searchResults.length}`);
+                    
+                    finalResults = [{
+                        url: randomResult.url,
+                        title: randomResult.title,
+                        description: randomResult.description || 'No description available'
+                    }];
+                } else {
+                    // Show multiple search results (original behavior)
+                    finalResults = searchResults.slice(0, 10).map(result => ({
+                        url: result.url,
+                        title: result.title,
+                        description: result.description || 'No description available'
+                    }));
+                }
+            } else {
+                // Fallback message if server is down
+                finalResults = [{
+                    url: 'localhost:3000',
+                    title: 'Server Error - Please start the GOOGLISH server',
+                    description: 'Run "npm start" to start the server, then refresh this page.'
+                }];
+            }
+            
+            const resultTime = (Math.random() * 0.5 + 0.1).toFixed(2);
+            const resultCount = Math.floor(Math.random() * 50000000 + 1000000);
+            
+            // Update the search box in the header with the current query
+            document.getElementById('searchBoxResults').value = query;
+            
+            document.getElementById('resultsHeader').innerHTML = 
+                `About ${resultCount.toLocaleString()} results (${resultTime} seconds)`;
+            
+            const resultsHTML = finalResults.map(result => `
+                <div class="result">
+                    <div class="result-url">${result.url}</div>
+                    <a href="${result.url}" target="_blank" class="result-title">${result.title}</a>
+                    <div class="result-description">${result.description}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('searchResults').innerHTML = resultsHTML;
+        }
+        
+        function clearSearchResults() {
+            document.getElementById('searchBoxResults').value = '';
+            document.getElementById('searchBoxResults').focus();
+        }
+        
+        async function searchFromResults() {
+            const query = document.getElementById('searchBoxResults').value.trim();
+            
+            // Check API keys first
+            const openaiKey = getApiKey('openai');
+            if (!openaiKey) {
+                alert('OpenAI API key required!');
+                return;
+            }
+            
+            const braveKey = getApiKey('brave');
+            if (!braveKey) {
+                alert('Brave Search API key required!');
+                return;
+            }
+            
+            // Still use our terrible algorithms! Weighted probabilities for results page too
+            const randomNumber = Math.random();
+            showDebug(`Random number: ${randomNumber}`);
+            
+            if (randomNumber < 0.1) {
+                showDebug('Mode: Moody Mode from results page');
+                // Just show moody refusal (reuse the same function)
+                performMoodyRefusal();
+            } else if (randomNumber < 0.4) {
+                showDebug('Mode: Random GPT search (ignoring user input from results page)');
+                // Ignore what they typed and generate random search
+                const randomQuery = await callGPT4('give me a random google search phrase. Return only the phrase');
+                if (randomQuery) {
+                    document.getElementById('searchBoxResults').value = randomQuery;
+                    showResults(randomQuery, 'multiple');
+                }
+            } else if (randomNumber < 0.7) {
+                showDebug('Mode: User search with single result from results page');
+                // Use what they typed but only show 1 result
+                if (query) {
+                    showResults(query, 'single');
+                } else {
+                    // If they didn't type anything, generate random search
+                    const randomQuery = await callGPT4('give me a random google search phrase. Return only the phrase');
+                    if (randomQuery) {
+                        document.getElementById('searchBoxResults').value = randomQuery;
+                        showResults(randomQuery, 'single');
+                    }
+                }
+            } else {
+                showDebug('Mode: Phantom Mode - Silently reversing search term');
+                // Reverse what they typed and search for that
+                if (query) {
+                    const reversedQuery = query.split('').reverse().join('');
+                    document.getElementById('searchBoxResults').value = reversedQuery;
+                    showResults(reversedQuery, 'multiple');
+                } else {
+                    // If they didn't type anything, generate random search and reverse it
+                    const randomQuery = await callGPT4('give me a random google search phrase. Return only the phrase');
+                    if (randomQuery) {
+                        const reversedQuery = randomQuery.split('').reverse().join('');
+                        document.getElementById('searchBoxResults').value = reversedQuery;
+                        showResults(reversedQuery, 'multiple');
+                    }
+                }
+            }
+        }
+        
+        function goBackToSearch() {
+            document.getElementById('mainContainer').style.display = 'flex';
+            document.getElementById('resultsContainer').style.display = 'none';
+            document.getElementById('searchBox').value = '';
+        }
+        
+        // Allow Enter key to search
+        document.getElementById('searchBox').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                if (evilMode) {
+                    // In phantom mode, search with whatever reversed text they have
+                    const reversedQuery = document.getElementById('searchBox').value;
+                    showDebug(`Searching with phantom-reversed text: "${reversedQuery}"`);
+                    showResults(reversedQuery, 'multiple');
+                    evilMode = false; // Reset phantom mode
+                } else {
+                    performGPTSearch();
+                }
+            }
+        });
+        
+        // Add input listener to main search box for phantom mode
+        document.getElementById('searchBox').addEventListener('input', function(e) {
+            if (evilMode) {
+                reverseInputText(e.target);
+            }
+        });
+        
+        // Also add to results search box for phantom mode
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('searchBoxResults').addEventListener('input', function(e) {
+                if (evilMode) {
+                    reverseInputText(e.target);
+                }
+            });
+        });
+        
+        // Add Enter key support to results search box
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('searchBoxResults').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchFromResults();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
