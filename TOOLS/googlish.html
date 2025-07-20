@@ -705,8 +705,14 @@
             // Update the search box in the header with the current query
             document.getElementById('searchBoxResults').value = query;
             
-            document.getElementById('resultsHeader').innerHTML = 
-                `About ${resultCount.toLocaleString()} results (${resultTime} seconds)`;
+            // Update results header based on mode
+            if (mode === 'single' && finalResults.length === 1) {
+                document.getElementById('resultsHeader').innerHTML = 
+                    `Found 1 result on the internet (${resultTime} seconds)`;
+            } else {
+                document.getElementById('resultsHeader').innerHTML = 
+                    `About ${resultCount.toLocaleString()} results (${resultTime} seconds)`;
+            }
             
             const resultsHTML = finalResults.map(result => `
                 <div class="result">
