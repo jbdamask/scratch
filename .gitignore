@@ -7,6 +7,12 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
+
+.DS_Store
+
+.dockerignore
+.vscode/
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -298,6 +304,9 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Claude code
+.claude
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
