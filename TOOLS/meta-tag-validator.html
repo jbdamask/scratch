@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meta Tag Validator</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            background: #fafafa;
+        }
+        .file-input {
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .tag-section h3 {
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .tag-item {
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            border: 1px solid;
+        }
+        .tag-present {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .tag-missing {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .tag-warning {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .tag-fallback {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        .tag-optional {
+            background-color: #e2e3e5;
+            border-color: #d6d8db;
+            color: #495057;
+        }
+        .tag-content {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            word-break: break-all;
+        }
+        .missing-tags {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        .missing-tags pre {
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            font-size: 14px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        function MetaTagValidator() {
+            const [validationResults, setValidationResults] = useState(null);
+            const [fileName, setFileName] = useState('');
+
+            const handleFileUpload = (event) => {
+                const file = event.target.files[0];
+                if (file && file.type === 'text/html') {
+                    setFileName(file.name);
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        validateMetaTags(e.target.result);
+                    };
+                    reader.readAsText(file);
+                } else {
+                    alert('Please upload an HTML file');
+                }
+            };
+
+            const extractMetaTags = (html) => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const metaTags = doc.querySelectorAll('meta');
+                const linkTags = doc.querySelectorAll('link[rel="canonical"]');
+                
+                const extracted = {
+                    basic: {},
+                    openGraph: {},
+                    twitter: {
+                        byProperty: {},
+                        byName: {}
+                    },
+                    canonical: null,
+                    title: doc.querySelector('title')?.textContent || null
+                };
+
+                metaTags.forEach(tag => {
+                    const name = tag.getAttribute('name');
+                    const property = tag.getAttribute('property');
+                    const content = tag.getAttribute('content');
+
+                    if (name) {
+                        extracted.basic[name] = content;
+                        // Twitter tags can use name attribute
+                        if (name.startsWith('twitter:')) {
+                            extracted.twitter.byName[name] = content;
+                        }
+                    }
+                    
+                    if (property) {
+                        if (property.startsWith('og:')) {
+                            extracted.openGraph[property] = content;
+                        }
+                        // Twitter tags can use property attribute
+                        if (property.startsWith('twitter:')) {
+                            extracted.twitter.byProperty[property] = content;
+                        }
+                    }
+                });
+
+                if (linkTags.length > 0) {
+                    extracted.canonical = linkTags[0].getAttribute('href');
+                }
+
+                return extracted;
+            };
+
+            const validateBestPractices = (tag, content) => {
+                const issues = [];
+                const recommendations = [];
+
+                if (!content) return { issues, recommendations };
+
+                switch(tag) {
+                    case 'description':
+                        // SEO meta descriptions: 150-160 chars optimal, prioritize first 120 for mobile
+                        if (content.length < 120) {
+                            recommendations.push('Consider making description longer (150-160 characters optimal for SEO)');
+                        }
+                        if (content.length > 160) {
+                            issues.push('Description too long - will be truncated in search results (160 char max)');
+                        }
+                        if (content.length < 50) {
+                            issues.push('Description too short - should be at least 50 characters for good SEO');
+                        }
+                        if (content.length > 120) {
+                            recommendations.push('Most important info should be in first 120 characters for mobile compatibility');
+                        }
+                        break;
+
+                    case 'og:description':
+                    case 'twitter:description':
+                        // Social media descriptions can be shorter and more engaging
+                        if (content.length < 100) {
+                            recommendations.push('Consider making social description longer (100-160 characters is optimal)');
+                        }
+                        if (content.length > 160) {
+                            issues.push('Description too long - may be truncated on social media (160 char max)');
+                        }
+                        if (content.length < 30) {
+                            issues.push('Description too short - should be at least 30 characters for social media');
+                        }
+                        break;
+
+                    case 'og:title':
+                    case 'twitter:title':
+                        if (content.length > 60) {
+                            issues.push('Title too long - will be truncated on social media (60 char max recommended)');
+                        }
+                        if (content.length < 10) {
+                            issues.push('Title too short - should be descriptive and engaging');
+                        }
+                        if (content.length < 20) {
+                            recommendations.push('Consider making title more descriptive (20-60 characters is ideal)');
+                        }
+                        break;
+
+                    case 'og:image':
+                    case 'twitter:image':
+                        if (!content.match(/\.(jpg|jpeg|png|webp)(\?.*)?$/i)) {
+                            recommendations.push('Use optimized image formats: JPG for photos, PNG for graphics, WebP for best compression');
+                        }
+                        if (content.includes('localhost') || content.includes('127.0.0.1')) {
+                            issues.push('Image URL points to localhost - won\'t work when shared externally');
+                        }
+                        // 2025 Twitter Card image size recommendations
+                        recommendations.push('Optimal Twitter Card image: 1200x628px (1.91:1 aspect ratio) for best visual impact');
+                        recommendations.push('For Open Graph: 1200x630px (16:9 ratio) works well across platforms');
+                        if (tag === 'twitter:image') {
+                            recommendations.push('Minimum 280x150px, but 1200x628px recommended. Max 5MB file size');
+                        }
+                        break;
+
+                    case 'twitter:card':
+                        if (!['summary', 'summary_large_image', 'app', 'player'].includes(content)) {
+                            issues.push('Invalid card type - use: summary, summary_large_image, app, or player');
+                        }
+                        if (content === 'summary') {
+                            recommendations.push('Use "summary_large_image" for better engagement - it\'s the 2025 standard');
+                        }
+                        if (content === 'summary_large_image') {
+                            recommendations.push('Excellent choice! Large image cards perform best on social media');
+                        }
+                        break;
+
+                    case 'og:type':
+                        const validTypes = ['website', 'article', 'book', 'profile', 'music.song', 'music.album', 'video.movie', 'video.episode'];
+                        if (!validTypes.includes(content)) {
+                            recommendations.push('Common types: website, article, book, profile');
+                        }
+                        break;
+
+                    case 'twitter:site':
+                    case 'twitter:creator':
+                        if (!content.startsWith('@')) {
+                            issues.push('Twitter handles should start with @');
+                        }
+                        if (content.length > 16) {
+                            issues.push('Twitter handle too long (15 characters max + @)');
+                        }
+                        break;
+
+                    case 'keywords':
+                        const keywordCount = content.split(',').length;
+                        if (keywordCount > 10) {
+                            recommendations.push('Too many keywords - focus on 5-10 most relevant ones');
+                        }
+                        if (content.includes(', ,') || content.includes(',,')) {
+                            issues.push('Remove empty keywords (double commas)');
+                        }
+                        break;
+                }
+
+                // General URL validation
+                if (tag.includes('url') || tag.includes('image')) {
+                    if (content && !content.startsWith('http')) {
+                        issues.push('URL should be absolute (start with https://)');
+                    }
+                    if (content && content.startsWith('http://')) {
+                        recommendations.push('Consider using HTTPS instead of HTTP');
+                    }
+                }
+
+                return { issues, recommendations };
+            };
+
+            const checkDuplicates = (results) => {
+                const contentMap = {};
+                const duplicates = [];
+
+                ['basic', 'openGraph', 'twitter'].forEach(section => {
+                    results[section].forEach(item => {
+                        if (item.content) {
+                            const key = item.content.toLowerCase().trim();
+                            if (!contentMap[key]) {
+                                contentMap[key] = [];
+                            }
+                            contentMap[key].push(item.tag);
+                        }
+                    });
+                });
+
+                Object.entries(contentMap).forEach(([content, tags]) => {
+                    if (tags.length > 1) {
+                        duplicates.push({
+                            content: content,
+                            tags: tags,
+                            issue: 'Duplicate content across different meta tags'
+                        });
+                    }
+                });
+
+                return duplicates;
+            };
+
+            const validateMetaTags = (html) => {
+                const tags = extractMetaTags(html);
+                const results = {
+                    basic: [],
+                    openGraph: [],
+                    twitter: [],
+                    canonical: [],
+                    missing: [],
+                    bestPractices: {
+                        issues: [],
+                        recommendations: [],
+                        duplicates: []
+                    }
+                };
+
+                // Required basic meta tags
+                const requiredBasic = [
+                    { tag: 'description', required: true },
+                    { tag: 'keywords', required: false },
+                    { tag: 'author', required: false },
+                    { tag: 'robots', required: false }
+                ];
+
+                requiredBasic.forEach(({ tag, required }) => {
+                    if (tags.basic[tag]) {
+                        const bestPractice = validateBestPractices(tag, tags.basic[tag]);
+                        let format = 'correct';
+                        let note = '';
+                        
+                        if (bestPractice.issues.length > 0) {
+                            format = 'warning';
+                            note = bestPractice.issues.join('; ');
+                            results.bestPractices.issues.push(...bestPractice.issues.map(issue => ({ tag, issue })));
+                        } else if (bestPractice.recommendations.length > 0) {
+                            note = bestPractice.recommendations.join('; ');
+                            results.bestPractices.recommendations.push(...bestPractice.recommendations.map(rec => ({ tag, recommendation: rec })));
+                        }
+
+                        results.basic.push({ 
+                            tag, 
+                            status: 'present', 
+                            content: tags.basic[tag],
+                            format,
+                            note: note || undefined
+                        });
+                    } else if (required) {
+                        results.basic.push({ tag, status: 'missing', content: null });
+                        results.missing.push(`<meta name="${tag}" content="YOUR_${tag.toUpperCase()}_HERE" />`);
+                    } else {
+                        results.basic.push({ 
+                            tag, 
+                            status: 'optional-missing', 
+                            content: null,
+                            note: 'Recommended but not required'
+                        });
+                    }
+                });
+
+                // Required Open Graph tags with validation
+                const requiredOG = [
+                    { tag: 'og:type', required: true, example: 'website' },
+                    { tag: 'og:url', required: true, example: 'https://yoursite.com' },
+                    { tag: 'og:title', required: true, example: 'Your Page Title' },
+                    { tag: 'og:description', required: true, example: 'Your page description' },
+                    { tag: 'og:image', required: true, example: 'https://yoursite.com/image.jpg' },
+                    { tag: 'og:site_name', required: false, example: 'Your Site Name' }
+                ];
+
+                requiredOG.forEach(({ tag, required, example }) => {
+                    if (tags.openGraph[tag]) {
+                        const bestPractice = validateBestPractices(tag, tags.openGraph[tag]);
+                        let format = 'correct';
+                        let note = '';
+                        
+                        if (bestPractice.issues.length > 0) {
+                            format = 'warning';
+                            note = bestPractice.issues.join('; ');
+                            results.bestPractices.issues.push(...bestPractice.issues.map(issue => ({ tag, issue })));
+                        } else if (bestPractice.recommendations.length > 0) {
+                            note = bestPractice.recommendations.join('; ');
+                            results.bestPractices.recommendations.push(...bestPractice.recommendations.map(rec => ({ tag, recommendation: rec })));
+                        }
+                        
+                        results.openGraph.push({ 
+                            tag, 
+                            status: 'present', 
+                            content: tags.openGraph[tag],
+                            format,
+                            note: note || undefined
+                        });
+                    } else if (required) {
+                        results.openGraph.push({ tag, status: 'missing', content: null });
+                        results.missing.push(`<meta property="${tag}" content="${example}" />`);
+                    } else {
+                        results.openGraph.push({ 
+                            tag, 
+                            status: 'optional-missing', 
+                            content: null,
+                            note: 'Recommended but not required'
+                        });
+                    }
+                });
+
+                // Twitter Card validation with 2025 simplified requirements and fallback logic
+                const twitterTags = [
+                    { 
+                        tag: 'twitter:card', 
+                        required: true, 
+                        preferredFormat: 'name', // Updated: name attribute is more common
+                        fallback: null,
+                        example: 'summary_large_image',
+                        note: 'REQUIRED - The only truly required Twitter Card meta tag in 2025'
+                    },
+                    { 
+                        tag: 'twitter:site', 
+                        required: false, 
+                        preferredFormat: 'name',
+                        fallback: null,
+                        example: '@yourhandle',
+                        note: 'Optional - Used for attribution when content is shared'
+                    },
+                    { 
+                        tag: 'twitter:creator', 
+                        required: false, 
+                        preferredFormat: 'name',
+                        fallback: null,
+                        example: '@yourhandle',
+                        note: 'Optional - Credits the content creator'
+                    },
+                    { 
+                        tag: 'twitter:title', 
+                        required: false, 
+                        preferredFormat: 'property',
+                        fallback: 'og:title',
+                        example: 'Your Page Title',
+                        note: 'Optional - Twitter automatically uses og:title if missing'
+                    },
+                    { 
+                        tag: 'twitter:description', 
+                        required: false, 
+                        preferredFormat: 'property',
+                        fallback: 'og:description',
+                        example: 'Your page description',
+                        note: 'Optional - Twitter automatically uses og:description if missing'
+                    },
+                    { 
+                        tag: 'twitter:image', 
+                        required: false, // Changed to false - Twitter uses og:image fallback
+                        preferredFormat: 'property',
+                        fallback: 'og:image',
+                        example: 'https://yoursite.com/image.jpg',
+                        note: 'Optional - Twitter automatically uses og:image if missing'
+                    },
+                    { 
+                        tag: 'twitter:url', 
+                        required: false, 
+                        preferredFormat: 'property',
+                        fallback: 'og:url',
+                        example: 'https://yoursite.com',
+                        note: 'Optional - Twitter automatically uses og:url if missing'
+                    }
+                ];
+
+                twitterTags.forEach(({ tag, required, preferredFormat, fallback, example }) => {
+                    const propertyValue = tags.twitter.byProperty[tag];
+                    const nameValue = tags.twitter.byName[tag];
+                    const fallbackValue = fallback ? tags.openGraph[fallback] : null;
+                    
+                    let status = 'missing';
+                    let content = null;
+                    let format = 'missing';
+                    let note = '';
+
+                    if (propertyValue) {
+                        status = 'present';
+                        content = propertyValue;
+                        format = preferredFormat === 'property' ? 'correct' : 'acceptable';
+                        if (preferredFormat !== 'property') {
+                            note = `Using property attribute is acceptable, but name="${tag}" is preferred`;
+                        }
+                    } else if (nameValue) {
+                        status = 'present';
+                        content = nameValue;
+                        format = preferredFormat === 'name' ? 'correct' : 'acceptable';
+                        if (preferredFormat !== 'name') {
+                            note = `Using name attribute is acceptable, but property="${tag}" is preferred`;
+                        }
+                    } else if (fallbackValue && !required) {
+                        status = 'fallback';
+                        content = fallbackValue;
+                        format = 'fallback';
+                        note = `Using ${fallback} as fallback (Twitter will use this if ${tag} is missing)`;
+                    }
+
+                    // Best practice validation
+                    if (content) {
+                        const bestPractice = validateBestPractices(tag, content);
+                        if (bestPractice.issues.length > 0) {
+                            format = 'warning';
+                            const practiceNote = bestPractice.issues.join('; ');
+                            note += (note ? ' | ' : '') + practiceNote;
+                            results.bestPractices.issues.push(...bestPractice.issues.map(issue => ({ tag, issue })));
+                        } else if (bestPractice.recommendations.length > 0 && !note) {
+                            const practiceNote = bestPractice.recommendations.join('; ');
+                            note += (note ? ' | ' : '') + practiceNote;
+                            results.bestPractices.recommendations.push(...bestPractice.recommendations.map(rec => ({ tag, recommendation: rec })));
+                        }
+                    }
+
+                    if (status === 'missing' && required) {
+                        const preferredAttr = preferredFormat === 'property' ? 'property' : 'name';
+                        results.missing.push(`<meta ${preferredAttr}="${tag}" content="${example}" />`);
+                    }
+
+                    results.twitter.push({ 
+                        tag, 
+                        status, 
+                        content,
+                        format,
+                        note,
+                        fallbackUsed: status === 'fallback' ? fallback : null
+                    });
+                });
+
+                // Canonical URL
+                if (tags.canonical) {
+                    const bestPractice = validateBestPractices('canonical', tags.canonical);
+                    let format = 'correct';
+                    let note = '';
+                    
+                    if (bestPractice.issues.length > 0) {
+                        format = 'warning';
+                        note = bestPractice.issues.join('; ');
+                        results.bestPractices.issues.push(...bestPractice.issues.map(issue => ({ tag: 'canonical', issue })));
+                    } else if (bestPractice.recommendations.length > 0) {
+                        note = bestPractice.recommendations.join('; ');
+                        results.bestPractices.recommendations.push(...bestPractice.recommendations.map(rec => ({ tag: 'canonical', recommendation: rec })));
+                    }
+
+                    results.canonical.push({ 
+                        tag: 'canonical', 
+                        status: 'present', 
+                        content: tags.canonical,
+                        format,
+                        note: note || undefined
+                    });
+                } else {
+                    results.canonical.push({ tag: 'canonical', status: 'missing', content: null });
+                    results.missing.push('<link rel="canonical" href="https://yoursite.com/current-page" />');
+                }
+
+                // Check for duplicate content
+                results.bestPractices.duplicates = checkDuplicates(results);
+
+                setValidationResults(results);
+            };
+
+            const generateMissingTags = () => {
+                if (!validationResults) return '';
+                return validationResults.missing.join('\n');
+            };
+
+            const getTagClassName = (item) => {
+                if (item.status === 'present') {
+                    if (item.format === 'warning') return 'tag-warning';
+                    return 'tag-present';
+                } else if (item.status === 'fallback') {
+                    return 'tag-fallback';
+                } else if (item.status === 'optional-missing') {
+                    return 'tag-optional';
+                }
+                return 'tag-missing';
+            };
+
+            const getStatusText = (item) => {
+                switch(item.status) {
+                    case 'present': return item.format === 'warning' ? '⚠️ Present (Warning)' : '✓ Present';
+                    case 'fallback': return '🔄 Using Fallback';
+                    case 'optional-missing': return '➖ Optional (Missing)';
+                    default: return '✗ Missing';
+                }
+            };
+
+            const getTagExplanation = (item) => {
+                const explanations = {
+                    'description': 'SEO meta description (150-160 chars optimal). This appears in Google search results and affects click-through rates. First 120 characters show on mobile.',
+                    'keywords': 'Comma-separated keywords. Less important for SEO in 2025, but some search engines still use them.',
+                    'author': 'The author or creator of the page content. Helps with content attribution and expertise.',
+                    'robots': 'Instructions for search engine crawlers (e.g., "index, follow", "noindex, nofollow").',
+                    'og:type': 'The type of Open Graph content. Use "website" for most pages, "article" for blog posts, "product" for e-commerce.',
+                    'og:url': 'The canonical URL of your page. Must be the full, absolute URL (https://yoursite.com/page).',
+                    'og:title': 'Title for social media sharing (20-60 chars ideal). Can be different from your page title for better engagement.',
+                    'og:description': 'Description for social media (100-160 chars). Should be engaging and action-oriented.',
+                    'og:image': 'Image for social sharing. Must be absolute URL. Optimal: 1200x630px (16:9 ratio) for broad compatibility.',
+                    'og:site_name': 'The name of your website/brand. Appears in social media previews for consistency.',
+                    'twitter:card': '🔥 2025 REQUIREMENT: The only required Twitter meta tag! Use "summary_large_image" for best engagement.',
+                    'twitter:site': 'Your website\'s Twitter/X handle (@yoursite). Used for attribution and click tracking.',
+                    'twitter:creator': 'The Twitter/X handle of the content creator (@author). Optional but good for personal branding.',
+                    'twitter:title': '2025 UPDATE: Optional! Twitter automatically uses og:title if this is missing.',
+                    'twitter:description': '2025 UPDATE: Optional! Twitter automatically uses og:description if this is missing.',
+                    'twitter:image': '2025 UPDATE: Optional! Twitter automatically uses og:image if this is missing. Optimal: 1200x628px (1.91:1).',
+                    'twitter:url': '2025 UPDATE: Optional! Twitter automatically uses og:url if this is missing.',
+                    'canonical': 'The preferred URL for this page. Prevents duplicate content issues and consolidates SEO authority.'
+                };
+                
+                return explanations[item.tag] || 'Meta tag for page metadata.';
+            };
+
+            const getCorrectFormat = (item) => {
+                const formats = {
+                    'description': '<meta name="description" content="Your page description here" />',
+                    'keywords': '<meta name="keywords" content="keyword1, keyword2, keyword3" />',
+                    'author': '<meta name="author" content="Your Name" />',
+                    'robots': '<meta name="robots" content="index, follow" />',
+                    'og:type': '<meta property="og:type" content="website" />',
+                    'og:url': '<meta property="og:url" content="https://yoursite.com/page" />',
+                    'og:title': '<meta property="og:title" content="Your Page Title" />',
+                    'og:description': '<meta property="og:description" content="Your page description" />',
+                    'og:image': '<meta property="og:image" content="https://yoursite.com/image.jpg" />',
+                    'og:site_name': '<meta property="og:site_name" content="Your Site Name" />',
+                    'twitter:card': '<meta property="twitter:card" content="summary_large_image" />\n<!-- OR -->\n<meta name="twitter:card" content="summary_large_image" />',
+                    'twitter:site': '<meta name="twitter:site" content="@yourhandle" />',
+                    'twitter:creator': '<meta property="twitter:creator" content="@yourhandle" />',
+                    'twitter:title': '<meta property="twitter:title" content="Your Title" />\n<!-- Twitter will fallback to og:title if this is missing -->',
+                    'twitter:description': '<meta property="twitter:description" content="Your description" />\n<!-- Twitter will fallback to og:description if this is missing -->',
+                    'twitter:image': '<meta property="twitter:image" content="https://yoursite.com/image.jpg" />\n<!-- Twitter will fallback to og:image if this is missing -->',
+                    'twitter:url': '<meta property="twitter:url" content="https://yoursite.com/page" />\n<!-- Twitter will fallback to og:url if this is missing -->',
+                    'canonical': '<link rel="canonical" href="https://yoursite.com/page" />'
+                };
+                
+                return formats[item.tag] || `<meta property="${item.tag}" content="your_value_here" />`;
+            };
+
+            const ImagePreview = ({ url }) => {
+                const [imageLoaded, setImageLoaded] = React.useState(false);
+                const [imageError, setImageError] = React.useState(false);
+                
+                if (!url || !url.startsWith('http')) return null;
+                
+                return (
+                    <div style={{ marginTop: '8px' }}>
+                        <div style={{ fontSize: '12px', color: '#666', marginBottom: '5px' }}>Image Preview:</div>
+                        <div style={{ 
+                            position: 'relative', 
+                            border: '1px solid #ddd', 
+                            borderRadius: '4px', 
+                            overflow: 'hidden',
+                            backgroundColor: '#f8f9fa',
+                            maxWidth: '300px'
+                        }}>
+                            {!imageError ? (
+                                <img 
+                                    src={url}
+                                    alt="Meta tag image preview"
+                                    style={{ 
+                                        width: '100%', 
+                                        height: 'auto', 
+                                        maxHeight: '200px', 
+                                        objectFit: 'cover',
+                                        display: imageLoaded ? 'block' : 'none'
+                                    }}
+                                    onLoad={() => setImageLoaded(true)}
+                                    onError={() => {
+                                        setImageError(true);
+                                        setImageLoaded(false);
+                                    }}
+                                />
+                            ) : null}
+                            
+                            {!imageLoaded && !imageError && (
+                                <div style={{ 
+                                    padding: '20px', 
+                                    textAlign: 'center', 
+                                    color: '#666',
+                                    fontSize: '14px'
+                                }}>
+                                    Loading image...
+                                </div>
+                            )}
+                            
+                            {imageError && (
+                                <div style={{ 
+                                    padding: '20px', 
+                                    textAlign: 'center', 
+                                    color: '#dc3545',
+                                    fontSize: '14px'
+                                }}>
+                                    ❌ Could not load image<br />
+                                    <small>Check if URL is accessible and image exists</small>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                );
+            };
+
+            const TagItem = ({ item }) => {
+                const needsExpansion = item.status === 'missing' || item.format === 'warning' || item.note;
+                const isImageTag = item.tag === 'og:image' || item.tag === 'twitter:image';
+                
+                return (
+                    <div className={`tag-item ${getTagClassName(item)}`}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <strong>{item.tag}</strong>: {getStatusText(item)}
+                            </div>
+                            {needsExpansion && (
+                                <button 
+                                    style={{ 
+                                        background: 'none', 
+                                        border: 'none', 
+                                        fontSize: '18px', 
+                                        cursor: 'pointer',
+                                        padding: '5px'
+                                    }}
+                                    onClick={(e) => {
+                                        const details = e.target.closest('.tag-item').querySelector('.tag-details');
+                                        details.style.display = details.style.display === 'none' ? 'block' : 'none';
+                                        e.target.textContent = details.style.display === 'none' ? '▶' : '▼';
+                                    }}
+                                >
+                                    ▶
+                                </button>
+                            )}
+                        </div>
+                        
+                        {item.content && <div className="tag-content">{item.content}</div>}
+                        {item.note && <div className="tag-content"><em>{item.note}</em></div>}
+                        {item.fallbackUsed && <div className="tag-content">Fallback: {item.fallbackUsed}</div>}
+                        
+                        {/* Show image preview for image tags */}
+                        {isImageTag && item.content && item.status === 'present' && (
+                            <ImagePreview url={item.content} />
+                        )}
+                        
+                        {needsExpansion && (
+                            <div className="tag-details" style={{ 
+                                display: 'none', 
+                                marginTop: '10px', 
+                                padding: '10px', 
+                                backgroundColor: 'rgba(255,255,255,0.7)', 
+                                borderRadius: '4px',
+                                fontSize: '13px',
+                                lineHeight: '1.4'
+                            }}>
+                                <div style={{ marginBottom: '8px' }}>
+                                    <strong>Why this matters:</strong><br />
+                                    {getTagExplanation(item)}
+                                </div>
+                                <div>
+                                    <strong>Correct format:</strong><br />
+                                    <code style={{ 
+                                        display: 'block', 
+                                        background: '#f8f9fa', 
+                                        padding: '8px', 
+                                        borderRadius: '3px',
+                                        marginTop: '4px',
+                                        fontSize: '12px',
+                                        whiteSpace: 'pre-wrap'
+                                    }}>
+                                        {getCorrectFormat(item)}
+                                    </code>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>Meta Tag Validator</h1>
+                        <p>Upload an HTML file to validate Twitter Card and Open Graph meta tags</p>
+                        <details style={{ marginTop: '15px', textAlign: 'left', maxWidth: '800px', margin: '15px auto' }}>
+                            <summary style={{ cursor: 'pointer', fontWeight: 'bold', padding: '10px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                                📖 Why Meta Tags Matter for Social Media
+                            </summary>
+                            <div style={{ padding: '15px', backgroundColor: '#fff', border: '1px solid #dee2e6', borderRadius: '4px', marginTop: '5px' }}>
+                                <h4>Twitter Cards & Open Graph</h4>
+                                <p>When someone shares your website on Twitter, Facebook, LinkedIn, or other social platforms, these meta tags control how your content appears:</p>
+                                <ul style={{ textAlign: 'left' }}>
+                                    <li><strong>Title & Description:</strong> What text people see</li>
+                                    <li><strong>Image:</strong> The preview image that appears</li>
+                                    <li><strong>URL:</strong> The canonical link to your page</li>
+                                </ul>
+                                
+                                <h4>2025 Format Rules & Simplified Requirements</h4>
+                                <ul style={{ textAlign: 'left' }}>
+                                    <li><strong>Twitter Card minimum:</strong> Only <code>name="twitter:card" content="summary_large_image"</code> is required!</li>
+                                    <li><strong>Twitter automatically fallbacks to Open Graph:</strong> og:title → twitter:title, og:image → twitter:image, etc.</li>
+                                    <li><strong>Open Graph always uses:</strong> <code>property="og:title"</code> (not name)</li>
+                                    <li><strong>Image URLs must be absolute:</strong> Start with https:// (HTTP not recommended)</li>
+                                    <li><strong>Meta descriptions:</strong> 150-160 characters optimal, first 120 chars for mobile</li>
+                                </ul>
+                                
+                                <h4>2025 Best Practices</h4>
+                                <ul style={{ textAlign: 'left' }}>
+                                    <li><strong>Image dimensions:</strong> 1200x628px (1.91:1 ratio) for Twitter, 1200x630px for Open Graph</li>
+                                    <li><strong>Minimal setup:</strong> twitter:card + complete Open Graph tags = full Twitter Card support</li>
+                                    <li><strong>File formats:</strong> WebP preferred, JPEG for photos, PNG for graphics</li>
+                                    <li><strong>Focus on Open Graph:</strong> Twitter will use your OG tags automatically if specific Twitter tags are missing</li>
+                                </ul>
+                            </div>
+                        </details>
+                    </div>
+                    
+                    <div className="upload-area">
+                        <input 
+                            type="file" 
+                            accept=".html" 
+                            onChange={handleFileUpload}
+                            className="file-input"
+                        />
+                        {fileName && <p>Uploaded: <strong>{fileName}</strong></p>}
+                    </div>
+
+                    {validationResults && (
+                        <div>
+                            <h2>Validation Results</h2>
+                            
+                            <div className="grid">
+                                <div className="tag-section">
+                                    <h3>Basic Meta Tags</h3>
+                                    {validationResults.basic.map((item, index) => (
+                                        <TagItem key={index} item={item} />
+                                    ))}
+                                </div>
+
+                                <div className="tag-section">
+                                    <h3>Open Graph Tags</h3>
+                                    {validationResults.openGraph.map((item, index) => (
+                                        <TagItem key={index} item={item} />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="grid">
+                                <div className="tag-section">
+                                    <h3>Twitter Card Tags</h3>
+                                    {validationResults.twitter.map((item, index) => (
+                                        <TagItem key={index} item={item} />
+                                    ))}
+                                </div>
+
+                                <div className="tag-section">
+                                    <h3>Canonical URL</h3>
+                                    {validationResults.canonical.map((item, index) => (
+                                        <TagItem key={index} item={item} />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {validationResults.missing.length > 0 && (
+                                <div className="missing-tags">
+                                    <h3>Missing Tags</h3>
+                                    <p>Copy and paste these tags into your HTML head section:</p>
+                                    <pre>{generateMissingTags()}</pre>
+                                </div>
+                            )}
+
+                            {/* Best Practices Summary */}
+                            {(validationResults.bestPractices.issues.length > 0 || 
+                              validationResults.bestPractices.recommendations.length > 0 ||
+                              validationResults.bestPractices.duplicates.length > 0) && (
+                                <div className="missing-tags">
+                                    <h3>📋 Best Practices Review</h3>
+                                    
+                                    {validationResults.bestPractices.issues.length > 0 && (
+                                        <div style={{ marginBottom: '15px' }}>
+                                            <h4 style={{ color: '#856404' }}>⚠️ Issues Found</h4>
+                                            <ul style={{ textAlign: 'left', color: '#856404' }}>
+                                                {validationResults.bestPractices.issues.map((item, index) => (
+                                                    <li key={index}><strong>{item.tag}:</strong> {item.issue}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {validationResults.bestPractices.recommendations.length > 0 && (
+                                        <div style={{ marginBottom: '15px' }}>
+                                            <h4 style={{ color: '#0c5460' }}>💡 Recommendations</h4>
+                                            <ul style={{ textAlign: 'left', color: '#0c5460' }}>
+                                                {validationResults.bestPractices.recommendations.map((item, index) => (
+                                                    <li key={index}><strong>{item.tag}:</strong> {item.recommendation}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    {validationResults.bestPractices.duplicates.length > 0 && (
+                                        <div style={{ marginBottom: '15px' }}>
+                                            <h4 style={{ color: '#721c24' }}>🔄 Duplicate Content</h4>
+                                            <ul style={{ textAlign: 'left', color: '#721c24' }}>
+                                                {validationResults.bestPractices.duplicates.map((item, index) => (
+                                                    <li key={index}>
+                                                        <strong>Tags:</strong> {item.tags.join(', ')}<br />
+                                                        <strong>Content:</strong> "{item.content}"<br />
+                                                        <em>Consider making content unique for different platforms</em>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {validationResults.missing.length === 0 && 
+                             validationResults.bestPractices.issues.length === 0 && (
+                                <div style={{ 
+                                    background: '#d4edda', 
+                                    border: '1px solid #c3e6cb', 
+                                    borderRadius: '6px', 
+                                    padding: '20px', 
+                                    marginTop: '20px',
+                                    textAlign: 'center'
+                                }}>
+                                    <h3 style={{ color: '#155724' }}>✅ Excellent Meta Tag Implementation!</h3>
+                                    <p style={{ color: '#155724' }}>
+                                        All required meta tags are present and follow best practices. 
+                                        Your content is optimized for social media sharing!
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<MetaTagValidator />, document.getElementById('root'));
+    </script>
+</body>
+</html>
