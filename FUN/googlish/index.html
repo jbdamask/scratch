@@ -1,9 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZL4N83QGW0"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-ZL4N83QGW0');
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GOOGLISH</title>
+
+    <!-- Site Metadata -->
+    <meta name="description" content="GOOGLISH - The internet's most unhelpful search engine. Search the web in a completely unhelpful way." />
+    <meta name="keywords" content="search engine, funny, parody, google, unhelpful, comedy" />     
+    <meta name="author" content="John Damask" />    
+    
+    <!-- Open Graph Meta Tags -->
+    <meta name="type" property="og:type" content="website" />
+    <meta name="url" property="og:url" content="https://googli.sh" />
+    <meta name="title" property="og:title" content="GOOGLISH - The Internet's Most Unhelpful Search Engine" />
+    <meta name="description" property="og:description" content="Search the web in a completely unhelpful way with GOOGLISH! " />
+    <meta name="image" property="og:image" content="https://googli.sh/googlish-social-card.jpg" />
+    <meta name="site" property="og:site_name" content="GOOGLISH">
+    
+    <!-- Twitter Meta Tags -->
+    <meta property="twitter:card" content="summary_large_image"/>
+    <meta property="twitter:url" content="https://googli.sh"/>
+    <meta property="twitter:title" content="GOOGLISH - The Internet's Most Unhelpful Search Engine"/>
+    <meta property="twitter:description" content="Search the web in a completely unhelpful way with GOOGLISH!"/>
+    <meta property="twitter:image" content="https://googli.sh/googlish-social-card.jpg" />
+    <meta property="twitter:creator" content="@johndamask" />
+    
+    <!-- Additional SEO -->
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://googli.sh/" />
     <style>
         * {
             margin: 0;
@@ -23,6 +57,8 @@
             flex-direction: column;
             align-items: center;
             padding-top: 150px;
+            padding-left: 20px;
+            padding-right: 20px;
         }
         
         .logo {
@@ -31,6 +67,29 @@
             color: #4285f4;
             margin-bottom: 30px;
             letter-spacing: -5px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                padding-top: 100px;
+            }
+            
+            .logo {
+                font-size: 60px;
+                letter-spacing: -3px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .main-container {
+                padding-top: 80px;
+            }
+            
+            .logo {
+                font-size: 48px;
+                letter-spacing: -2px;
+            }
         }
         
         .logo .o1 { color: #4285f4; }
@@ -43,7 +102,8 @@
         .logo .h { color: #34a853; }
         
         .search-container {
-            width: 582px;
+            width: 100%;
+            max-width: 582px;
             margin-bottom: 30px;
         }
         
@@ -56,6 +116,14 @@
             font-size: 16px;
             outline: none;
             box-shadow: 0 1px 6px rgba(32,33,36,.28);
+        }
+        
+        @media (max-width: 480px) {
+            .search-box {
+                height: 48px;
+                font-size: 16px;
+                padding: 0 16px;
+            }
         }
         
         .search-box:hover {
@@ -89,6 +157,16 @@
             user-select: none;
         }
         
+        @media (max-width: 480px) {
+            .btn {
+                font-size: 16px;
+                height: 40px;
+                line-height: 30px;
+                padding: 0 16px;
+                margin: 8px 2px;
+            }
+        }
+        
         .btn:hover {
             box-shadow: 0 1px 1px rgba(0,0,0,.1);
             background-color: #f1f3f4;
@@ -119,12 +197,33 @@
             padding: 0 20px;
         }
         
+        @media (max-width: 768px) {
+            .search-header-content {
+                gap: 15px;
+                padding: 0 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .search-header-content {
+                gap: 10px;
+                padding: 0 10px;
+            }
+        }
+        
         .logo-small {
             font-size: 24px;
             font-weight: normal;
             color: #4285f4;
             text-decoration: none;
             cursor: pointer;
+            flex-shrink: 0;
+        }
+        
+        @media (max-width: 480px) {
+            .logo-small {
+                font-size: 20px;
+            }
         }
         
         .logo-small .o1 { color: #4285f4; }
@@ -150,6 +249,14 @@
             padding: 0 50px 0 20px;
             font-size: 16px;
             outline: none;
+        }
+        
+        @media (max-width: 480px) {
+            .search-box-results {
+                height: 48px;
+                font-size: 16px;
+                padding: 0 45px 0 16px;
+            }
         }
         
         .search-box-results:hover {
@@ -203,6 +310,18 @@
             padding: 20px;
         }
         
+        @media (max-width: 768px) {
+            .results-content {
+                padding: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .results-content {
+                padding: 10px;
+            }
+        }
+        
         .results-header {
             border-bottom: 1px solid #ebebeb;
             padding-bottom: 12px;
@@ -211,14 +330,34 @@
             font-size: 14px;
         }
         
+        @media (max-width: 480px) {
+            .results-header {
+                font-size: 13px;
+                margin-bottom: 15px;
+            }
+        }
+        
         .result {
             margin-bottom: 30px;
+        }
+        
+        @media (max-width: 480px) {
+            .result {
+                margin-bottom: 20px;
+            }
         }
         
         .result-url {
             color: #202124;
             font-size: 14px;
             line-height: 1.3;
+            word-break: break-all;
+        }
+        
+        @media (max-width: 480px) {
+            .result-url {
+                font-size: 13px;
+            }
         }
         
         .result-title {
@@ -228,6 +367,13 @@
             text-decoration: none;
             margin-bottom: 3px;
             display: block;
+            word-wrap: break-word;
+        }
+        
+        @media (max-width: 480px) {
+            .result-title {
+                font-size: 18px;
+            }
         }
         
         .result-title:hover {
@@ -238,6 +384,14 @@
             color: #4d5156;
             font-size: 14px;
             line-height: 1.58;
+            word-wrap: break-word;
+        }
+        
+        @media (max-width: 480px) {
+            .result-description {
+                font-size: 13px;
+                line-height: 1.5;
+            }
         }
         
         
@@ -289,6 +443,7 @@
         
         // Evil mode tracking
         let evilMode = false;
+        let shrinkingMode = false;
         let reverseTimeout;
         
         function getApiKey(type = 'openai') {
@@ -332,30 +487,21 @@
         }
         
         async function callGPT4(prompt) {
-            const apiKey = getApiKey();
-            
-            if (!apiKey) {
-                alert('API key required for GPT-4 integration!');
-                return null;
-            }
-            
-            showDebug('Calling gpt-4.1-nano...');
+            showDebug('Calling GPT-4 via server...');
             
             try {
-                const response = await fetch(OPENAI_API_URL, {
+                // Call our server endpoint instead of OpenAI directly
+                const response = await fetch('/api/openai', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        model: 'gpt-4.1-nano',
+                        model: 'gpt-4o-mini',
                         messages: [{
                             role: 'user',
                             content: prompt
-                        }],
-                        max_tokens: 50,
-                        temperature: 1.0
+                        }]
                     })
                 });
                 
@@ -381,30 +527,41 @@
         }
         
         async function searchBrave(query) {
-            showDebug(`Searching Brave via local server for: "${query}"`);
+            showDebug(`Searching Brave via server for: "${query}"`);
             
             try {
-                // Try different ports in case server is running on a different port
-                const ports = [3000, 3001, 3002, 3003, 3004];
+                // Use relative URL when deployed, fallback to localhost for local development
                 let response = null;
-                let workingPort = null;
                 
-                for (const port of ports) {
-                    try {
-                        response = await fetch(`http://localhost:${port}/api/search?q=${encodeURIComponent(query)}`);
-                        if (response.ok) {
-                            workingPort = port;
-                            showDebug(`Connected to server on port ${port}`);
-                            break;
-                        }
-                    } catch (e) {
-                        // Try next port
-                        continue;
+                try {
+                    // First try relative URL (works when deployed)
+                    response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                    if (response.ok) {
+                        showDebug(`Connected to server via relative URL`);
                     }
-                }
-                
-                if (!response || !workingPort) {
-                    throw new Error('Could not connect to server on any port');
+                } catch (e) {
+                    showDebug(`Relative URL failed, trying localhost ports for local development`);
+                    // Fallback to localhost ports for local development
+                    const ports = [3000, 3001, 3002, 3003, 3004];
+                    let workingPort = null;
+                    
+                    for (const port of ports) {
+                        try {
+                            response = await fetch(`http://localhost:${port}/api/search?q=${encodeURIComponent(query)}`);
+                            if (response.ok) {
+                                workingPort = port;
+                                showDebug(`Connected to server on port ${port}`);
+                                break;
+                            }
+                        } catch (e) {
+                            // Try next port
+                            continue;
+                        }
+                    }
+                    
+                    if (!response || !workingPort) {
+                        throw new Error('Could not connect to server on any port');
+                    }
                 }
                 
                 if (!response.ok) {
@@ -422,8 +579,8 @@
                 
                 return [];
             } catch (error) {
-                console.error('Error calling local search server:', error);
-                showDebug(`Local server error: ${error.message}`);
+                console.error('Error calling search server:', error);
+                showDebug(`Server error: ${error.message}`);
                 
                 if (error.message.includes('fetch')) {
                     showDebug(`Make sure the server is running: npm start`);
@@ -563,6 +720,63 @@
             searchBox.focus();
         }
         
+        function activateShrinkingMode() {
+            shrinkingMode = true;
+            showDebug('Mode: Shrinking Mode - Each letter gets smaller');
+            
+            const searchBox = document.getElementById('searchBox');
+            searchBox.focus();
+        }
+        
+        function applyShrinkingEffect(inputElement) {
+            const text = inputElement.value;
+            if (!text) return;
+            
+            // Clear any existing styling
+            inputElement.style.background = '';
+            inputElement.style.backgroundClip = '';
+            inputElement.style.webkitBackgroundClip = '';
+            inputElement.style.color = '';
+            inputElement.style.webkitTextFillColor = '';
+            
+            // Create gradient mask for shrinking text effect
+            let gradientStops = [];
+            const baseSize = 100; // Start at 100% size
+            
+            for (let i = 0; i < text.length; i++) {
+                const size = baseSize * Math.pow(0.75, i); // 25% smaller each time
+                const position = (i / Math.max(1, text.length - 1)) * 100;
+                
+                // Calculate opacity - letters can go completely transparent
+                const opacity = size / 100; // No minimum opacity limit
+                gradientStops.push(`rgba(32, 33, 36, ${opacity}) ${position}%`);
+            }
+            
+            // Apply fading effect to simulate shrinking
+            inputElement.style.background = `linear-gradient(to right, ${gradientStops.join(', ')})`;
+            inputElement.style.webkitBackgroundClip = 'text';
+            inputElement.style.backgroundClip = 'text';
+            inputElement.style.webkitTextFillColor = 'transparent';
+            inputElement.style.color = 'transparent';
+        }
+        
+        function createShrinkingHTML(text) {
+            if (!text) return '';
+            
+            let html = '';
+            const baseSize = 16; // Base font size in pixels
+            
+            for (let i = 0; i < text.length; i++) {
+                const size = baseSize * Math.pow(0.75, i); // 25% smaller each time
+                const minSize = 4; // Minimum readable size
+                const actualSize = Math.max(minSize, size);
+                
+                html += `<span style="font-size: ${actualSize}px;">${text[i]}</span>`;
+            }
+            
+            return html;
+        }
+        
         function performMoodyRefusal() {
             showDebug('Mode: Moody Mode - Refusing to search');
             
@@ -619,40 +833,45 @@
         async function performGPTSearch() {
             const searchBox = document.getElementById('searchBox');
             
-            // Check API keys first
-            const openaiKey = getApiKey('openai');
-            if (!openaiKey) {
-                alert('OpenAI API key required!');
-                return;
-            }
-            
-            const braveKey = getApiKey('brave');
-            if (!braveKey) {
-                alert('Brave Search API key required!');
-                return;
-            }
+            // Note: API keys are handled server-side when deployed to AWS
+            // For local development, they can still be stored in localStorage as fallback
             
             // Randomly choose between search modes with weighted probabilities
             const randomNumber = Math.random();
             showDebug(`Random number: ${randomNumber}`);
             
-            if (randomNumber < 0.1) {
+            if (randomNumber < 0.08) {
                 showDebug('Mode: Moody Mode - Refusing to search today');
                 performMoodyRefusal();
-            } else if (randomNumber < 0.4) {
+            } else if (randomNumber < 0.32) {
                 showDebug('Mode: Random GPT search (ignoring user input)');
                 await performRandomGPTSearch();
-            } else if (randomNumber < 0.7) {
+            } else if (randomNumber < 0.56) {
                 showDebug('Mode: User search with single result');
                 await performUserSearchSingleResult();
-            } else {
+            } else if (randomNumber < 0.78) {
                 showDebug('Mode: Phantom Mode - Silent letter reversal activated');
                 activatePhantomMode();
+            } else {
+                showDebug('Mode: Shrinking Mode - Each letter gets smaller');
+                activateShrinkingMode();
             }
         }
         
         
         async function showResults(query, mode = 'multiple') {
+            // Reset all special modes when showing results
+            evilMode = false;
+            shrinkingMode = false;
+            
+            // Reset input styling on main search box
+            const searchBox = document.getElementById('searchBox');
+            searchBox.style.background = '';
+            searchBox.style.backgroundClip = '';
+            searchBox.style.webkitBackgroundClip = '';
+            searchBox.style.color = '';
+            searchBox.style.webkitTextFillColor = '';
+            
             // Hide main search interface
             document.getElementById('mainContainer').style.display = 'none';
             
@@ -733,28 +952,17 @@
         async function searchFromResults() {
             const query = document.getElementById('searchBoxResults').value.trim();
             
-            // Check API keys first
-            const openaiKey = getApiKey('openai');
-            if (!openaiKey) {
-                alert('OpenAI API key required!');
-                return;
-            }
-            
-            const braveKey = getApiKey('brave');
-            if (!braveKey) {
-                alert('Brave Search API key required!');
-                return;
-            }
+            // Note: API keys are handled server-side when deployed to AWS
             
             // Still use our terrible algorithms! Weighted probabilities for results page too
             const randomNumber = Math.random();
             showDebug(`Random number: ${randomNumber}`);
             
-            if (randomNumber < 0.1) {
+            if (randomNumber < 0.08) {
                 showDebug('Mode: Moody Mode from results page');
                 // Just show moody refusal (reuse the same function)
                 performMoodyRefusal();
-            } else if (randomNumber < 0.4) {
+            } else if (randomNumber < 0.32) {
                 showDebug('Mode: Random GPT search (ignoring user input from results page)');
                 // Ignore what they typed and generate random search
                 const randomQuery = await callGPT4('give me a random google search phrase. Return only the phrase');
@@ -762,7 +970,7 @@
                     document.getElementById('searchBoxResults').value = randomQuery;
                     showResults(randomQuery, 'multiple');
                 }
-            } else if (randomNumber < 0.7) {
+            } else if (randomNumber < 0.56) {
                 showDebug('Mode: User search with single result from results page');
                 // Use what they typed but only show 1 result
                 if (query) {
@@ -775,7 +983,7 @@
                         showResults(randomQuery, 'single');
                     }
                 }
-            } else {
+            } else if (randomNumber < 0.78) {
                 showDebug('Mode: Phantom Mode - Silently reversing search term');
                 // Reverse what they typed and search for that
                 if (query) {
@@ -791,13 +999,48 @@
                         showResults(reversedQuery, 'multiple');
                     }
                 }
+            } else {
+                showDebug('Mode: Shrinking Mode from results page');
+                activateShrinkingMode();
             }
+            
+            // Reset results search box styling after any search mode is activated
+            setTimeout(() => {
+                const searchBoxResults = document.getElementById('searchBoxResults');
+                if (!shrinkingMode && !evilMode) {
+                    searchBoxResults.style.background = '';
+                    searchBoxResults.style.backgroundClip = '';
+                    searchBoxResults.style.webkitBackgroundClip = '';
+                    searchBoxResults.style.color = '';
+                    searchBoxResults.style.webkitTextFillColor = '';
+                }
+            }, 100);
         }
         
         function goBackToSearch() {
             document.getElementById('mainContainer').style.display = 'flex';
             document.getElementById('resultsContainer').style.display = 'none';
             document.getElementById('searchBox').value = '';
+            
+            // Reset all special modes
+            evilMode = false;
+            shrinkingMode = false;
+            
+            // Reset input styling for main search box
+            const searchBox = document.getElementById('searchBox');
+            searchBox.style.background = '';
+            searchBox.style.backgroundClip = '';
+            searchBox.style.webkitBackgroundClip = '';
+            searchBox.style.color = '';
+            searchBox.style.webkitTextFillColor = '';
+            
+            // Reset input styling for results search box too
+            const searchBoxResults = document.getElementById('searchBoxResults');
+            searchBoxResults.style.background = '';
+            searchBoxResults.style.backgroundClip = '';
+            searchBoxResults.style.webkitBackgroundClip = '';
+            searchBoxResults.style.color = '';
+            searchBoxResults.style.webkitTextFillColor = '';
         }
         
         // Allow Enter key to search
@@ -809,24 +1052,41 @@
                     showDebug(`Searching with phantom-reversed text: "${reversedQuery}"`);
                     showResults(reversedQuery, 'multiple');
                     evilMode = false; // Reset phantom mode
+                } else if (shrinkingMode) {
+                    // In shrinking mode, search with whatever shrinking text they have
+                    const shrinkingQuery = document.getElementById('searchBox').value;
+                    showDebug(`Searching with shrinking text: "${shrinkingQuery}"`);
+                    showResults(shrinkingQuery, 'multiple');
+                    shrinkingMode = false; // Reset shrinking mode
+                    // Reset input styling
+                    const searchBox = document.getElementById('searchBox');
+                    searchBox.style.background = '';
+                    searchBox.style.backgroundClip = '';
+                    searchBox.style.webkitBackgroundClip = '';
+                    searchBox.style.color = '';
+                    searchBox.style.webkitTextFillColor = '';
                 } else {
                     performGPTSearch();
                 }
             }
         });
         
-        // Add input listener to main search box for phantom mode
+        // Add input listener to main search box for special modes
         document.getElementById('searchBox').addEventListener('input', function(e) {
             if (evilMode) {
                 reverseInputText(e.target);
+            } else if (shrinkingMode) {
+                applyShrinkingEffect(e.target);
             }
         });
         
-        // Also add to results search box for phantom mode
+        // Also add to results search box for special modes
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('searchBoxResults').addEventListener('input', function(e) {
                 if (evilMode) {
                     reverseInputText(e.target);
+                } else if (shrinkingMode) {
+                    applyShrinkingEffect(e.target);
                 }
             });
         });

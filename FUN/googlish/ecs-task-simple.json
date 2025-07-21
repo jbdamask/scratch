@@ -1,0 +1,39 @@
+{
+  "family": "googlish-simple",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::277707111475:role/ecsTaskExecutionRole",
+  "containerDefinitions": [
+    {
+      "name": "googlish",
+      "image": "277707111475.dkr.ecr.us-east-1.amazonaws.com/googlish-repo:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "BRAVE_SEARCH_API_KEY",
+          "value": "BSATiLgm-_EVtPXS153rQkF"
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "value": "sk-proj-test"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/googlish-test",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "family": "googlish-test",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::277707111475:role/ecsTaskExecutionRole",
+  "taskRoleArn": "arn:aws:iam::277707111475:role/GooglishInfrastructureStack-AppRunnerInstanceRole96A5A063-IGQH0LIx9V4L",
+  "containerDefinitions": [
+    {
+      "name": "googlish",
+      "image": "277707111475.dkr.ecr.us-east-1.amazonaws.com/googlish-repo:latest",
+      "portMappings": [
+        {
+          "containerPort": 3000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "secrets": [
+        {
+          "name": "BRAVE_SEARCH_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:277707111475:secret:googlish-api-keys-VQRAFs:BRAVE_SEARCH_API_KEY::"
+        },
+        {
+          "name": "OPENAI_API_KEY", 
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:277707111475:secret:googlish-api-keys-VQRAFs:OPENAI_API_KEY::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/googlish-test",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
