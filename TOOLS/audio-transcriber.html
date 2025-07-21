@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Transcriber</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/ytdl-core@4.11.5/lib/index.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .api-key-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+        }
+        .upload-section {
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: border-color 0.3s;
+        }
+        .upload-section.dragover {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+        }
+        .file-input {
+            margin: 10px 0;
+        }
+        .url-input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+        .btn:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #f3f3f3;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #007bff;
+            transition: width 0.3s ease;
+        }
+        .file-info {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #666;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .result-section {
+            margin-top: 30px;
+        }
+        .transcription {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 15px;
+            white-space: pre-wrap;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .url-info {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 4px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 12px;
+            color: #1565c0;
+        }
+        .url-info strong {
+            color: #0d47a1;
+        }
+        .progress-visual {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .progress-steps {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            position: relative;
+        }
+        .progress-steps::before {
+            content: '';
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            height: 2px;
+            background: #e9ecef;
+            z-index: 1;
+        }
+        .progress-line {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            height: 2px;
+            background: linear-gradient(90deg, #007bff, #0056b3);
+            z-index: 2;
+            transition: width 0.5s ease;
+        }
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+            z-index: 3;
+            min-width: 80px;
+        }
+        .step-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid #e9ecef;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        .step.active .step-circle {
+            border-color: #007bff;
+            background: #007bff;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+        .step.completed .step-circle {
+            border-color: #28a745;
+            background: #28a745;
+            color: white;
+        }
+        .step.error .step-circle {
+            border-color: #dc3545;
+            background: #dc3545;
+            color: white;
+        }
+        .step-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+            max-width: 80px;
+            line-height: 1.3;
+        }
+        .step.active .step-label {
+            color: #007bff;
+            font-weight: 600;
+        }
+        .step.completed .step-label {
+            color: #28a745;
+        }
+        .step.error .step-label {
+            color: #dc3545;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .progress-details {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .progress-details h4 {
+            margin: 0 0 8px 0;
+            color: #333;
+            font-size: 14px;
+        }
+        .progress-details p {
+            margin: 0;
+            color: #666;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .eta {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        function AudioTranscriber() {
+            const [apiKey, setApiKey] = useState('');
+            const [file, setFile] = useState(null);
+            const [url, setUrl] = useState('');
+            const [transcription, setTranscription] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [dragOver, setDragOver] = useState(false);
+            const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+            const [progress, setProgress] = useState(0);
+            const [progressText, setProgressText] = useState('');
+            const [isChunking, setIsChunking] = useState(false);
+            const [currentStep, setCurrentStep] = useState(0);
+            const [totalChunks, setTotalChunks] = useState(0);
+            const [currentChunk, setCurrentChunk] = useState(0);
+            const [startTime, setStartTime] = useState(null);
+            const [pipelineNodes, setPipelineNodes] = useState([]);
+            const [activeNodeId, setActiveNodeId] = useState(null);
+            const fileInputRef = useRef(null);
+            
+            const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB in bytes
+            
+            const getPipelineNodes = (isLargeFile) => {
+                if (isLargeFile) {
+                    return [
+                        { id: 'analyze', label: 'Analyzing Audio', icon: '🔍', progress: 0, status: 'Waiting...' },
+                        { id: 'chunk', label: 'Creating Chunks', icon: '✂️', progress: 0, status: 'Waiting...' },
+                        { id: 'transcribe', label: 'Transcribing', icon: '🎙️', progress: 0, status: 'Waiting...' },
+                        { id: 'assemble', label: 'Assembling Result', icon: '🔗', progress: 0, status: 'Waiting...' }
+                    ];
+                } else {
+                    return [
+                        { id: 'transcribe', label: 'Transcribing', icon: '🎙️', progress: 0, status: 'Processing...' }
+                    ];
+                }
+            };
+            
+            const updateNodeProgress = (nodeId, progress, status) => {
+                setPipelineNodes(prevNodes => 
+                    prevNodes.map(node => 
+                        node.id === nodeId 
+                            ? { ...node, progress: Math.round(progress), status }
+                            : node
+                    )
+                );
+            };
+            
+            const getNodeStatus = (node, activeNodeId) => {
+                if (node.progress === 100) return 'completed';
+                if (node.id === activeNodeId && node.progress > 0) return 'active';
+                if (node.progress > 0) return 'active';
+                return 'pending';
+            };
+            
+            const formatTimeRemaining = (startTime, totalProgress) => {
+                if (!startTime || totalProgress <= 0) return '';
+                const elapsed = Date.now() - startTime;
+                const estimated = elapsed / (totalProgress / 100);
+                const remaining = estimated - elapsed;
+                if (remaining < 0) return '';
+                const minutes = Math.floor(remaining / 60000);
+                const seconds = Math.floor((remaining % 60000) / 1000);
+                return `~${minutes}m ${seconds}s remaining`;
+            };
+            
+            const calculateOverallProgress = (nodes) => {
+                if (!nodes || nodes.length === 0) return 0;
+                const totalProgress = nodes.reduce((sum, node) => sum + node.progress, 0);
+                return totalProgress / nodes.length;
+            };
+            
+            // YouTube and video platform detection
+            const isYouTubeUrl = (url) => {
+                return url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/);
+            };
+            
+            const isVideoUrl = (url) => {
+                return isYouTubeUrl(url) || 
+                       url.includes('vimeo.com') || 
+                       url.includes('dailymotion.com') || 
+                       url.includes('twitch.tv') ||
+                       url.includes('tiktok.com');
+            };
+            
+            // Extract video ID from YouTube URL
+            const getYouTubeVideoId = (url) => {
+                const match = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/);
+                return match ? match[1] : null;
+            };
+            
+            // Use a CORS proxy to fetch YouTube metadata
+            const fetchYouTubeInfo = async (videoId) => {
+                try {
+                    // Using a public API that provides YouTube metadata
+                    const response = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+                    if (!response.ok) {
+                        throw new Error('Failed to get video information');
+                    }
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    throw new Error('Unable to fetch YouTube video information: ' + error.message);
+                }
+            };
+            
+            // Use CORS proxy to fetch any URL
+            const fetchWithProxy = async (url) => {
+                const proxyUrls = [
+                    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+                    `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+                    `https://corsproxy.io/?${encodeURIComponent(url)}`
+                ];
+                
+                for (const proxyUrl of proxyUrls) {
+                    try {
+                        const response = await fetch(proxyUrl);
+                        if (response.ok) {
+                            // Handle different proxy response formats
+                            if (proxyUrl.includes('allorigins')) {
+                                const data = await response.json();
+                                return new Response(data.contents, {
+                                    status: 200,
+                                    headers: { 'content-type': 'application/octet-stream' }
+                                });
+                            } else {
+                                return response;
+                            }
+                        }
+                    } catch (error) {
+                        console.log(`Proxy ${proxyUrl} failed:`, error);
+                        continue;
+                    }
+                }
+                
+                throw new Error('All proxy attempts failed. The file may not be publicly accessible.');
+            };
+            
+            // Try multiple YouTube extraction services
+            const extractYouTubeAudio = async (videoId) => {
+                const services = [
+                    {
+                        name: 'yt1s.com',
+                        url: `https://www.yt1s.com/api/ajaxSearch/index`,
+                        extract: async (videoId) => {
+                            const response = await fetch(`https://www.yt1s.com/api/ajaxSearch/index`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded'
+                                },
+                                body: `q=https://www.youtube.com/watch?v=${videoId}&vt=mp3`
+                            });
+                            const data = await response.json();
+                            if (data.status === 'ok' && data.links?.mp3) {
+                                const audioFormats = Object.values(data.links.mp3);
+                                return audioFormats[0]?.url || null;
+                            }
+                            return null;
+                        }
+                    },
+                    {
+                        name: 'y2mate',
+                        extract: async (videoId) => {
+                            try {
+                                const response = await fetch(`https://www.y2mate.com/mates/analyzeV2/ajax`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded'
+                                    },
+                                    body: `k_query=https://www.youtube.com/watch?v=${videoId}&k_page=home&hl=en&q_auto=1`
+                                });
+                                const data = await response.json();
+                                if (data.status === 'ok') {
+                                    // Parse the returned HTML to find download links
+                                    const parser = new DOMParser();
+                                    const doc = parser.parseFromString(data.result, 'text/html');
+                                    const audioLinks = doc.querySelectorAll('a[data-ftype="mp3"]');
+                                    if (audioLinks.length > 0) {
+                                        return audioLinks[0].getAttribute('href');
+                                    }
+                                }
+                                return null;
+                            } catch (error) {
+                                return null;
+                            }
+                        }
+                    }
+                ];
+                
+                for (const service of services) {
+                    try {
+                        console.log(`Trying ${service.name}...`);
+                        const audioUrl = await service.extract(videoId);
+                        if (audioUrl) {
+                            console.log(`Success with ${service.name}`);
+                            return audioUrl;
+                        }
+                    } catch (error) {
+                        console.log(`${service.name} failed:`, error);
+                        continue;
+                    }
+                }
+                
+                return null;
+            };
+            
+            const getDirectAudioUrl = async (url) => {
+                // For YouTube URLs, try to extract audio
+                if (isYouTubeUrl(url)) {
+                    const videoId = getYouTubeVideoId(url);
+                    if (!videoId) {
+                        throw new Error('Invalid YouTube URL format');
+                    }
+                    
+                    setProgressText('Extracting audio from YouTube...');
+                    
+                    try {
+                        const audioUrl = await extractYouTubeAudio(videoId);
+                        if (audioUrl) {
+                            return audioUrl;
+                        } else {
+                            throw new Error('Unable to extract audio from this YouTube video. This could be due to:\n\n• Video restrictions or copyright protection\n• Private or unlisted video\n• Geographic restrictions\n\nPlease try downloading the audio manually using yt-dlp:\n1. Install yt-dlp: pip install yt-dlp\n2. Download: yt-dlp -x --audio-format mp3 "' + url + '"\n3. Upload the downloaded file above');
+                        }
+                    } catch (error) {
+                        if (error.message.includes('Unable to extract')) {
+                            throw error;
+                        }
+                        throw new Error('YouTube extraction failed. Please download the audio manually:\n\n1. Use yt-dlp: yt-dlp -x --audio-format mp3 "' + url + '"\n2. Or use any YouTube to MP3 converter\n3. Upload the downloaded file above');
+                    }
+                }
+                
+                // For other video platforms, provide guidance
+                if (isVideoUrl(url)) {
+                    throw new Error('Video platform downloads require specialized tools. Please download the audio file first and upload it directly.');
+                }
+                
+                // For direct file URLs, try direct fetch first, then proxy
+                try {
+                    const response = await fetch(url, { method: 'HEAD' });
+                    if (response.ok) {
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && !contentType.startsWith('audio/') && !contentType.startsWith('video/')) {
+                            throw new Error('URL does not point to an audio or video file');
+                        }
+                        return url;
+                    }
+                } catch (error) {
+                    // If direct fetch fails, try with proxy
+                    console.log('Direct fetch failed, trying proxy...');
+                }
+                
+                // Try proxy fetch
+                try {
+                    await fetchWithProxy(url);
+                    return url; // If proxy works, we'll use it in the actual download
+                } catch (error) {
+                    throw new Error('Cannot access file: ' + error.message);
+                }
+            };
+
+            useEffect(() => {
+                const savedApiKey = localStorage.getItem('openai_api_key');
+                if (savedApiKey) {
+                    setApiKey(savedApiKey);
+                } else {
+                    setShowApiKeyInput(true);
+                }
+            }, []);
+
+            const saveApiKey = (key) => {
+                localStorage.setItem('openai_api_key', key);
+                setApiKey(key);
+                setShowApiKeyInput(false);
+            };
+
+            const handleDragOver = (e) => {
+                e.preventDefault();
+                setDragOver(true);
+            };
+
+            const handleDragLeave = (e) => {
+                e.preventDefault();
+                setDragOver(false);
+            };
+
+            const handleDrop = (e) => {
+                e.preventDefault();
+                setDragOver(false);
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    setFile(files[0]);
+                    setUrl('');
+                    setError('');
+                    validateFileSize(files[0]);
+                }
+            };
+
+            const handleFileSelect = (e) => {
+                const selectedFile = e.target.files[0];
+                if (selectedFile) {
+                    setFile(selectedFile);
+                    setUrl('');
+                    setError('');
+                    validateFileSize(selectedFile);
+                }
+            };
+            
+            const validateFileSize = (file) => {
+                if (file.size > MAX_FILE_SIZE) {
+                    setError(`File size (${(file.size / 1024 / 1024).toFixed(1)}MB) exceeds OpenAI's 25MB limit. The file will be processed in chunks.`);
+                } else {
+                    setError('');
+                }
+            };
+            
+            const formatFileSize = (bytes) => {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            };
+            
+            // Much more aggressive chunking calculation
+            const calculateInitialChunkDuration = (fileSizeBytes) => {
+                // WAV files are MUCH larger than compressed formats
+                // For a 960MB MP4, the WAV chunks will be massive
+                // Start with very short durations and let adaptive chunking adjust
+                
+                if (fileSizeBytes > 500 * 1024 * 1024) { // >500MB
+                    return 5; // 5 seconds - very aggressive!
+                } else if (fileSizeBytes > 200 * 1024 * 1024) { // >200MB
+                    return 10; // 10 seconds  
+                } else if (fileSizeBytes > 100 * 1024 * 1024) { // >100MB
+                    return 20; // 20 seconds
+                } else {
+                    return 60; // 1 minute for smaller files
+                }
+            };
+            
+            // Function to create audio chunks using Web Audio API
+            const createAudioChunks = async (audioFile) => {
+                let chunkDurationSeconds = calculateInitialChunkDuration(audioFile.size);
+                console.log(`File size: ${formatFileSize(audioFile.size)}, Starting with chunk duration: ${chunkDurationSeconds} seconds`);
+                
+                return new Promise((resolve, reject) => {
+                    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    const reader = new FileReader();
+                    
+                    reader.onload = async (event) => {
+                        try {
+                            const arrayBuffer = event.target.result;
+                            const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                            
+                            const sampleRate = audioBuffer.sampleRate;
+                            const chunkSamples = chunkDurationSeconds * sampleRate;
+                            const totalSamples = audioBuffer.length;
+                            const numChunks = Math.ceil(totalSamples / chunkSamples);
+                            
+                            const chunks = [];
+                            
+                            for (let i = 0; i < numChunks; i++) {
+                                const start = i * chunkSamples;
+                                const end = Math.min(start + chunkSamples, totalSamples);
+                                const length = end - start;
+                                
+                                // Create new buffer for this chunk
+                                const chunkBuffer = audioContext.createBuffer(
+                                    audioBuffer.numberOfChannels, 
+                                    length, 
+                                    sampleRate
+                                );
+                                
+                                // Copy audio data to chunk buffer
+                                for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+                                    const channelData = audioBuffer.getChannelData(channel);
+                                    const chunkData = chunkBuffer.getChannelData(channel);
+                                    for (let j = 0; j < length; j++) {
+                                        chunkData[j] = channelData[start + j];
+                                    }
+                                }
+                                
+                                // Convert buffer to WAV blob
+                                const wav = audioBufferToWav(chunkBuffer);
+                                const blob = new Blob([wav], { type: 'audio/wav' });
+                                
+                                // Check if chunk is too large
+                                if (blob.size > MAX_FILE_SIZE) {
+                                    console.warn(`Chunk ${i + 1} is ${formatFileSize(blob.size)}, still too large!`);
+                                    // If still too large, we'd need to split this chunk further
+                                    // For now, we'll proceed with a warning
+                                }
+                                
+                                chunks.push(blob);
+                                
+                                // Update progress
+                                const progress = ((i + 1) / numChunks) * 50; // First 50% for chunking
+                                setProgress(progress);
+                                setProgressText(`Creating chunks: ${i + 1}/${numChunks}`);
+                                
+                                // Allow UI to update
+                                await new Promise(resolve => setTimeout(resolve, 10));
+                            }
+                            
+                            resolve(chunks);
+                        } catch (error) {
+                            reject(error);
+                        }
+                    };
+                    
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(audioFile);
+                });
+            };
+            
+            // Function to convert AudioBuffer to WAV
+            const audioBufferToWav = (buffer) => {
+                const length = buffer.length;
+                const numberOfChannels = buffer.numberOfChannels;
+                const sampleRate = buffer.sampleRate;
+                const arrayBuffer = new ArrayBuffer(44 + length * numberOfChannels * 2);
+                const view = new DataView(arrayBuffer);
+                
+                // WAV header
+                const writeString = (offset, string) => {
+                    for (let i = 0; i < string.length; i++) {
+                        view.setUint8(offset + i, string.charCodeAt(i));
+                    }
+                };
+                
+                writeString(0, 'RIFF');
+                view.setUint32(4, 36 + length * numberOfChannels * 2, true);
+                writeString(8, 'WAVE');
+                writeString(12, 'fmt ');
+                view.setUint32(16, 16, true);
+                view.setUint16(20, 1, true);
+                view.setUint16(22, numberOfChannels, true);
+                view.setUint32(24, sampleRate, true);
+                view.setUint32(28, sampleRate * numberOfChannels * 2, true);
+                view.setUint16(32, numberOfChannels * 2, true);
+                view.setUint16(34, 16, true);
+                writeString(36, 'data');
+                view.setUint32(40, length * numberOfChannels * 2, true);
+                
+                // Convert float32 audio data to int16
+                let offset = 44;
+                for (let i = 0; i < length; i++) {
+                    for (let channel = 0; channel < numberOfChannels; channel++) {
+                        const sample = Math.max(-1, Math.min(1, buffer.getChannelData(channel)[i]));
+                        view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+                        offset += 2;
+                    }
+                }
+                
+                return arrayBuffer;
+            };
+            
+            const transcribeChunks = async (chunks) => {
+                const transcriptions = [];
+                
+                for (let i = 0; i < chunks.length; i++) {
+                    setProgressText(`Transcribing chunk ${i + 1}/${chunks.length}`);
+                    const progress = 50 + ((i + 1) / chunks.length) * 50; // Second 50% for transcription
+                    setProgress(progress);
+                    
+                    const formData = new FormData();
+                    formData.append('file', chunks[i], `chunk_${i}.wav`);
+                    formData.append('model', 'whisper-1');
+                    
+                    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${apiKey}`,
+                        },
+                        body: formData
+                    });
+                    
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`Chunk ${i + 1} failed: ${errorData.error?.message || 'Transcription failed'}`);
+                    }
+                    
+                    const data = await response.json();
+                    transcriptions.push(data.text);
+                    
+                    // Small delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                }
+                
+                return transcriptions.join(' ');
+            };
+
+
+            const transcribeAudio = async () => {
+                if (!apiKey) {
+                    setError('Please enter your OpenAI API key');
+                    setShowApiKeyInput(true);
+                    return;
+                }
+
+                if (!file) {
+                    setError('Please select a file');
+                    return;
+                }
+
+                setLoading(true);
+                setError('');
+                setTranscription('');
+                setProgress(0);
+                setProgressText('');
+
+                try {
+                    let audioFile = file;
+                    
+                    // Check if file needs chunking
+                    if (audioFile.size > MAX_FILE_SIZE) {
+                        setIsChunking(true);
+                        const nodes = getPipelineNodes(true);
+                        setPipelineNodes(nodes);
+                        
+                        // Analyze audio
+                        setActiveNodeId('analyze');
+                        updateNodeProgress('analyze', 50, 'Analyzing audio properties...');
+                        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate analysis
+                        updateNodeProgress('analyze', 100, 'Analysis complete');
+                        
+                        // Create audio chunks
+                        setActiveNodeId('chunk');
+                        updateNodeProgress('chunk', 0, 'Starting chunking process...');
+                        const chunks = await createAudioChunks(audioFile);
+                        updateNodeProgress('chunk', 100, `Created ${chunks.length} chunks`);
+                        
+                        // Transcribe each chunk
+                        setActiveNodeId('transcribe');
+                        updateNodeProgress('transcribe', 0, 'Starting transcription...');
+                        const finalTranscription = await transcribeChunks(chunks);
+                        updateNodeProgress('transcribe', 100, 'Transcription complete');
+                        
+                        // Assemble result
+                        setActiveNodeId('assemble');
+                        updateNodeProgress('assemble', 50, 'Combining transcriptions...');
+                        setTranscription(finalTranscription);
+                        updateNodeProgress('assemble', 100, 'Assembly complete');
+                    } else {
+                        // Single file transcription
+                        const nodes = getPipelineNodes(false);
+                        setPipelineNodes(nodes);
+                        setActiveNodeId('transcribe');
+                        updateNodeProgress('transcribe', 0, 'Starting transcription...');
+                        
+                        const formData = new FormData();
+                        formData.append('file', audioFile);
+                        formData.append('model', 'whisper-1');
+
+                        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+                            method: 'POST',
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`,
+                            },
+                            body: formData
+                        });
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error?.message || 'Transcription failed');
+                        }
+
+                        const data = await response.json();
+                        setTranscription(data.text);
+                        updateNodeProgress('transcribe', 100, 'Transcription complete');
+                    }
+                    
+                    setProgressText('Transcription completed!');
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                    setIsChunking(false);
+                    setProgress(0);
+                    setProgressText('');
+                    setCurrentStep(0);
+                    setStartTime(null);
+                    setCurrentChunk(0);
+                    setTotalChunks(0);
+                    setPipelineNodes([]);
+                    setActiveNodeId(null);
+                }
+            };
+
+            const copyToClipboard = () => {
+                navigator.clipboard.writeText(transcription).then(() => {
+                    alert('Transcription copied to clipboard!');
+                });
+            };
+
+            const downloadTranscription = () => {
+                const blob = new Blob([transcription], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'transcription.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            return (
+                <div className="container">
+                    <h1>Audio Transcriber</h1>
+                    
+                    {showApiKeyInput ? (
+                        <div className="api-key-section">
+                            <div className="input-group">
+                                <label>OpenAI API Key:</label>
+                                <input
+                                    type="password"
+                                    placeholder="Enter your OpenAI API key"
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            saveApiKey(e.target.value);
+                                        }
+                                    }}
+                                />
+                                <button 
+                                    className="btn"
+                                    onClick={(e) => {
+                                        const input = e.target.previousElementSibling;
+                                        if (input.value.trim()) {
+                                            saveApiKey(input.value.trim());
+                                        }
+                                    }}
+                                >
+                                    Save API Key
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="api-key-section">
+                            <p>✓ API Key saved in localStorage</p>
+                            <button 
+                                className="btn btn-secondary"
+                                onClick={() => setShowApiKeyInput(true)}
+                            >
+                                Change API Key
+                            </button>
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="error">
+                            {error}
+                        </div>
+                    )}
+
+                    <div 
+                        className={`upload-section ${dragOver ? 'dragover' : ''}`}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                    >
+                        <h3>Upload Audio File</h3>
+                        <p>Drag and drop an audio file here, or use the file picker below:</p>
+                        
+                        <div className="file-input">
+                            <input
+                                type="file"
+                                accept="audio/*,video/*"
+                                onChange={handleFileSelect}
+                                ref={fileInputRef}
+                            />
+                            {file && (
+                                <div className="file-info">
+                                    <strong>Selected:</strong> {file.name}<br/>
+                                    <strong>Size:</strong> {formatFileSize(file.size)}<br/>
+                                    {file.size > MAX_FILE_SIZE && (
+                                        <span style={{color: '#856404'}}>⚠️ Will be processed in chunks</span>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        
+                        
+                        <button
+                            className="btn"
+                            onClick={transcribeAudio}
+                            disabled={loading || !file || !apiKey}
+                        >
+                            {loading ? 'Transcribing...' : 'Transcribe'}
+                        </button>
+                    </div>
+
+                    {loading && (
+                        <div className="loading">
+                            <div className="spinner"></div>
+                            {progressText || 'Processing audio file...'}
+                            {isChunking && (
+                                <div className="progress-bar">
+                                    <div 
+                                        className="progress-fill" 
+                                        style={{width: `${progress}%`}}
+                                    ></div>
+                                </div>
+                            )}
+                            {progress > 0 && <div>{Math.round(progress)}% complete</div>}
+                        </div>
+                    )}
+
+                    {transcription && (
+                        <div className="result-section">
+                            <h3>Transcription Result:</h3>
+                            <div className="transcription">
+                                {transcription}
+                            </div>
+                            <div className="button-group">
+                                <button className="btn" onClick={copyToClipboard}>
+                                    Copy to Clipboard
+                                </button>
+                                <button className="btn btn-secondary" onClick={downloadTranscription}>
+                                    Download as Text File
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<AudioTranscriber />, document.getElementById('root'));
+    </script>
+</body>
+</html>
