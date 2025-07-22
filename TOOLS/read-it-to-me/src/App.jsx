@@ -1,12 +1,15 @@
 import React, { useState } from 'react'
 import FileUpload from './components/FileUpload'
 import AudioPlayer from './components/AudioPlayer'
+import DocumentViewer from './components/DocumentViewer'
 import './App.css'
 
 function App() {
   const [extractedText, setExtractedText] = useState('')
   const [audioUrl, setAudioUrl] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [fileName, setFileName] = useState('')
+  const [fileType, setFileType] = useState('')
 
   return (
     <div className="app">
@@ -19,21 +22,26 @@ function App() {
         <FileUpload 
           onTextExtracted={setExtractedText}
           onAudioGenerated={setAudioUrl}
+          onFileInfo={(name, type) => { setFileName(name); setFileType(type); }}
           isLoading={isLoading}
           setIsLoading={setIsLoading}
         />
         
-        {extractedText && (
-          <div className="text-preview">
-            <h3>Extracted Text:</h3>
-            <div className="text-content">
-              {extractedText.substring(0, 500)}
-              {extractedText.length > 500 && '...'}
+        {(extractedText || audioUrl) && (
+          <div className="spotify-layout">
+            <div className="sidebar">
+              {audioUrl && <AudioPlayer audioUrl={audioUrl} />}
+            </div>
+            
+            <div className="main-content">
+              <DocumentViewer 
+                extractedText={extractedText}
+                fileName={fileName}
+                fileType={fileType}
+              />
             </div>
           </div>
         )}
-        
-        {audioUrl && <AudioPlayer audioUrl={audioUrl} />}
       </main>
     </div>
   )

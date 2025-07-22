@@ -2,13 +2,15 @@ import React, { useCallback } from 'react'
 import { extractTextFromFile } from '../utils/textExtractor'
 import { generateSpeech } from '../utils/openaiClient'
 
-const FileUpload = ({ onTextExtracted, onAudioGenerated, isLoading, setIsLoading }) => {
+const FileUpload = ({ onTextExtracted, onAudioGenerated, onFileInfo, isLoading, setIsLoading }) => {
   const handleFileChange = useCallback(async (event) => {
     const file = event.target.files[0]
     if (!file) return
 
     setIsLoading(true)
     try {
+      onFileInfo(file.name, file.type)
+      
       const text = await extractTextFromFile(file)
       onTextExtracted(text)
       
@@ -20,7 +22,7 @@ const FileUpload = ({ onTextExtracted, onAudioGenerated, isLoading, setIsLoading
     } finally {
       setIsLoading(false)
     }
-  }, [onTextExtracted, onAudioGenerated, setIsLoading])
+  }, [onTextExtracted, onAudioGenerated, onFileInfo, setIsLoading])
 
   const acceptedTypes = '.pdf,.txt,.html,.htm'
 
