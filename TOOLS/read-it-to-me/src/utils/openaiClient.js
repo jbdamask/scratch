@@ -1,26 +1,40 @@
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY
 
-export const generateSpeech = async (text) => {
+export const generateSpeech = async (text, onProgress) => {
   if (!OPENAI_API_KEY) {
     throw new Error('OpenAI API key not configured. Please set VITE_OPENAI_API_KEY in your environment.')
   }
 
   try {
-    // Split text into chunks if it's too long (OpenAI has a limit)
-    const maxChunkSize = 4000 // Conservative limit
+    // OpenAI TTS API has a hard limit of 4096 characters
+    const maxChunkSize = 4090 // Leave some buffer for safety
     const textChunks = text.length > maxChunkSize ? splitTextIntoChunks(text, maxChunkSize) : [text]
     
     if (textChunks.length === 1) {
-      return await generateSingleAudio(textChunks[0])
+      if (onProgress) onProgress(0, 1, 'Generating audio...')
+      const audioUrl = await generateSingleAudio(textChunks[0])
+      if (onProgress) onProgress(1, 1, 'Complete!')
+      return audioUrl
     } else {
-      // For multiple chunks, we'll generate audio for each and combine them
-      // This is a simplified approach - in production you might want streaming
-      const audioUrls = []
-      for (const chunk of textChunks) {
-        const audioUrl = await generateSingleAudio(chunk)
-        audioUrls.push(audioUrl)
+      // Generate audio for each chunk and combine them
+      const audioBlobs = []
+      
+      for (let i = 0; i < textChunks.length; i++) {
+        const chunk = textChunks[i]
+        if (onProgress) onProgress(i, textChunks.length, `Generating audio chunk ${i + 1} of ${textChunks.length}...`)
+        
+        const audioBlob = await generateSingleAudioBlob(chunk)
+        audioBlobs.push(audioBlob)
       }
-      return audioUrls[0] // Return first chunk for now - you could combine them
+      
+      if (onProgress) onProgress(textChunks.length, textChunks.length, 'Combining audio chunks...')
+      
+      // Combine all audio blobs into a single audio file
+      const combinedBlob = await combineAudioBlobs(audioBlobs)
+      const combinedUrl = URL.createObjectURL(combinedBlob)
+      
+      if (onProgress) onProgress(textChunks.length, textChunks.length, 'Complete!')
+      return combinedUrl
     }
   } catch (error) {
     console.error('Error generating speech:', error)
@@ -29,6 +43,11 @@ export const generateSpeech = async (text) => {
 }
 
 const generateSingleAudio = async (text) => {
+  const audioBlob = await generateSingleAudioBlob(text)
+  return URL.createObjectURL(audioBlob)
+}
+
+const generateSingleAudioBlob = async (text) => {
   const response = await fetch('https://api.openai.com/v1/audio/speech', {
     method: 'POST',
     headers: {
@@ -48,8 +67,32 @@ const generateSingleAudio = async (text) => {
     throw new Error(`OpenAI API error: ${response.status} ${errorData.error?.message || response.statusText}`)
   }
 
-  const audioBlob = await response.blob()
-  return URL.createObjectURL(audioBlob)
+  return await response.blob()
+}
+
+const combineAudioBlobs = async (audioBlobs) => {
+  // For MP3 files, we can simply concatenate them at the binary level
+  // This works because MP3 is a streaming format that supports concatenation
+  const combinedArrayBuffers = []
+  
+  for (const blob of audioBlobs) {
+    const arrayBuffer = await blob.arrayBuffer()
+    combinedArrayBuffers.push(new Uint8Array(arrayBuffer))
+  }
+  
+  // Calculate total length
+  const totalLength = combinedArrayBuffers.reduce((sum, arr) => sum + arr.length, 0)
+  
+  // Create combined array
+  const combined = new Uint8Array(totalLength)
+  let offset = 0
+  
+  for (const arr of combinedArrayBuffers) {
+    combined.set(arr, offset)
+    offset += arr.length
+  }
+  
+  return new Blob([combined], { type: 'audio/mpeg' })
 }
 
 const splitTextIntoChunks = (text, maxSize) => {

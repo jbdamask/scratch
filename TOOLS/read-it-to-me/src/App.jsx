@@ -10,6 +10,7 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [fileName, setFileName] = useState('')
   const [fileType, setFileType] = useState('')
+  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 1, message: '' })
 
   return (
     <div className="app">
@@ -25,6 +26,8 @@ function App() {
           onFileInfo={(name, type) => { setFileName(name); setFileType(type); }}
           isLoading={isLoading}
           setIsLoading={setIsLoading}
+          loadingProgress={loadingProgress}
+          setLoadingProgress={setLoadingProgress}
         />
         
         {(extractedText || audioUrl) && (
