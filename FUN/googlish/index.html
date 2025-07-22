@@ -486,8 +486,8 @@
             // console.log(message);
         }
         
-        async function callGPT4(prompt) {
-            showDebug('Calling GPT-4 via server...');
+        async function callGPT4(prompt, attempt = 1, maxAttempts = 4) {
+            showDebug(`Calling GPT-4 via server... (attempt ${attempt}/${maxAttempts})`);
             
             try {
                 // Call our server endpoint instead of OpenAI directly
@@ -505,29 +505,98 @@
                     })
                 });
                 
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    showDebug(`GPT-4 API error (attempt ${attempt}): ${errorData.error || response.status}`);
+                    
+                    // Retry API errors up to maxAttempts
+                    if (attempt < maxAttempts) {
+                        showDebug(`Retrying GPT-4 call in 500ms... (attempt ${attempt + 1}/${maxAttempts})`);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        return callGPT4(prompt, attempt + 1, maxAttempts);
+                    } else {
+                        // All retries exhausted
+                        showDebug(`GPT-4 Error after ${maxAttempts} attempts: ${errorData.error || response.status}`);
+                        if (attempt === maxAttempts) {
+                            alert(`GPT-4 API failed after ${maxAttempts} attempts. Please try again later.`);
+                        }
+                        return null;
+                    }
+                }
+                
                 const data = await response.json();
                 
                 // Debug: Show full response
-                showDebug(`GPT-4 Response:\n${JSON.stringify(data, null, 2)}`);
+                showDebug(`GPT-4 Response (attempt ${attempt}):\n${JSON.stringify(data, null, 2)}`);
                 
-                if (data.choices && data.choices[0]) {
+                if (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) {
                     const result = data.choices[0].message.content.trim();
-                    showDebug(`GPT-4 Response:\nFull: ${JSON.stringify(data, null, 2)}\n\nExtracted: "${result}"`);
+                    showDebug(`GPT-4 Response extracted: "${result}"`);
                     return result;
                 }
                 
-                showDebug(`GPT-4 Error: No choices in response\n${JSON.stringify(data, null, 2)}`);
+                // Invalid response format - could be temporary, retry
+                showDebug(`GPT-4 Error: Invalid response format (attempt ${attempt})\n${JSON.stringify(data, null, 2)}`);
+                if (attempt < maxAttempts) {
+                    showDebug(`Retrying GPT-4 call due to invalid response... (attempt ${attempt + 1}/${maxAttempts})`);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    return callGPT4(prompt, attempt + 1, maxAttempts);
+                }
+                
                 return null;
             } catch (error) {
-                console.error('Error calling GPT-4:', error);
-                showDebug(`GPT-4 Error:\n${error.message}\n\nFull error: ${JSON.stringify(error, null, 2)}`);
-                alert('Error calling GPT-4 API. Check debug panel for details.');
-                return null;
+                console.error(`Error calling GPT-4 (attempt ${attempt}):`, error);
+                showDebug(`GPT-4 Error: ${error.message}`);
+                
+                // Retry network/connection errors
+                if (attempt < maxAttempts) {
+                    showDebug(`Retrying GPT-4 call after error... (attempt ${attempt + 1}/${maxAttempts})`);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    return callGPT4(prompt, attempt + 1, maxAttempts);
+                } else {
+                    // All retries exhausted
+                    alert(`GPT-4 API failed after ${maxAttempts} attempts. Please try again later.`);
+                    return null;
+                }
             }
         }
         
-        async function searchBrave(query) {
-            showDebug(`Searching Brave via server for: "${query}"`);
+        function getRetryMessage(attempt) {
+            const retryMessages = [
+                "The hamsters aren't responding, hang on...",
+                "Give me a break, you know how many people I'm waiting on right now? Just a minute.",
+                "I'm getting an espresso. You want anything? I'll get to your search later.",
+                "The search goblins are on a coffee break. Trying again...",
+                "My AI is having an existential crisis. Attempting retry...",
+                "The internet tubes are clogged. Plunging now...",
+                "Servers are doing yoga stretches. Please hold...",
+                "The search algorithm is arguing with itself. Mediating...",
+                "API is ghosting me. Sliding into DMs again...",
+                "Hold on, the search elves are being difficult today...",
+                "Retry #" + attempt + ": Now I'm just being stubborn...",
+                "The cloud is having mood swings. Bear with me...",
+                "My search minions need more motivation. Trying again...",
+                "The database is playing hard to get. Persistence is key...",
+                "API servers are doing the cha-cha. Waiting for the song to end..."
+            ];
+            
+            return retryMessages[Math.floor(Math.random() * retryMessages.length)];
+        }
+        
+        function updateSearchStatus(message) {
+            const resultsHeader = document.getElementById('resultsHeader');
+            if (resultsHeader) {
+                resultsHeader.innerHTML = message;
+            }
+        }
+        
+        function stripQuotes(text) {
+            if (!text) return text;
+            return text.replace(/^"(.*)"$/, '$1');
+        }
+
+        async function searchBrave(query, attempt = 1, maxAttempts = 4) {
+            showDebug(`Searching Brave via server for: "${query}" (attempt ${attempt}/${maxAttempts})`);
             
             try {
                 // Use relative URL when deployed, fallback to localhost for local development
@@ -560,33 +629,65 @@
                     }
                     
                     if (!response || !workingPort) {
-                        throw new Error('Could not connect to server on any port');
+                        // Server connection failure - don't retry, immediately return error
+                        return { error: 'SERVER_DOWN', message: 'Could not connect to server on any port' };
                     }
                 }
                 
                 if (!response.ok) {
                     const error = await response.json();
-                    showDebug(`Server error: ${error.error}`);
-                    throw new Error(`HTTP ${response.status}: ${error.error}`);
+                    showDebug(`Server/API error (attempt ${attempt}): ${error.error}`);
+                    
+                    // Retry API errors up to maxAttempts
+                    if (attempt < maxAttempts) {
+                        const retryMessage = getRetryMessage(attempt);
+                        updateSearchStatus(retryMessage);
+                        showDebug(`Retrying Brave search in 1000ms... (attempt ${attempt + 1}/${maxAttempts})`);
+                        await new Promise(resolve => setTimeout(resolve, 1000)); // Longer delay to show message
+                        return searchBrave(query, attempt + 1, maxAttempts);
+                    } else {
+                        // All retries exhausted
+                        return { error: 'API_ERROR', message: error.error || `HTTP ${response.status}` };
+                    }
                 }
                 
                 const data = await response.json();
-                showDebug(`Brave returned ${data.web?.results?.length || 0} results via server`);
+                showDebug(`Brave returned ${data.web?.results?.length || 0} results via server (attempt ${attempt})`);
                 
                 if (data.web && data.web.results) {
                     return data.web.results;
                 }
                 
-                return [];
-            } catch (error) {
-                console.error('Error calling search server:', error);
-                showDebug(`Server error: ${error.message}`);
-                
-                if (error.message.includes('fetch')) {
-                    showDebug(`Make sure the server is running: npm start`);
+                // No results but successful response - could be temporary, retry
+                if (attempt < maxAttempts) {
+                    const retryMessage = getRetryMessage(attempt);
+                    updateSearchStatus(retryMessage);
+                    showDebug(`No results returned, retrying... (attempt ${attempt + 1}/${maxAttempts})`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return searchBrave(query, attempt + 1, maxAttempts);
                 }
                 
                 return [];
+            } catch (error) {
+                console.error(`Error calling search server (attempt ${attempt}):`, error);
+                showDebug(`Server error: ${error.message}`);
+                
+                if (error.message.includes('fetch') || error.message.includes('Could not connect')) {
+                    showDebug(`Make sure the server is running: npm start`);
+                    // Server connection failure - don't retry
+                    return { error: 'SERVER_DOWN', message: error.message };
+                }
+                
+                // Other errors are likely API-related, retry them
+                if (attempt < maxAttempts) {
+                    const retryMessage = getRetryMessage(attempt);
+                    updateSearchStatus(retryMessage);
+                    showDebug(`Retrying after error... (attempt ${attempt + 1}/${maxAttempts})`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    return searchBrave(query, attempt + 1, maxAttempts);
+                }
+                
+                return { error: 'API_ERROR', message: error.message };
             }
         }
 
@@ -681,10 +782,11 @@
             searchBox.placeholder = 'Search the web in a completely unhelpful way...';
             
             if (!query) {
+                searchBox.placeholder = 'GPT-4 gave up. Try clicking search again...';
                 return;
             }
             
-            searchBox.value = query;
+            searchBox.value = stripQuotes(query);
             showResults(query, 'multiple');
         }
         
@@ -703,10 +805,11 @@
                 searchBox.placeholder = 'Search the web in a completely unhelpful way...';
                 
                 if (!query) {
+                    searchBox.placeholder = 'GPT-4 gave up. Try clicking search again...';
                     return;
                 }
                 
-                searchBox.value = query;
+                searchBox.value = stripQuotes(query);
             }
             
             showResults(query, 'single');
@@ -805,7 +908,7 @@
             resultsContainer.style.display = 'block';
             
             // Update the search box in the header
-            document.getElementById('searchBoxResults').value = query;
+            document.getElementById('searchBoxResults').value = stripQuotes(query);
             
             // Show moody message as the only "result"
             document.getElementById('resultsHeader').innerHTML = 'About 0 results (0.00 seconds)';
@@ -843,13 +946,13 @@
             if (randomNumber < 0.08) {
                 showDebug('Mode: Moody Mode - Refusing to search today');
                 performMoodyRefusal();
-            } else if (randomNumber < 0.32) {
+            } else if (randomNumber < 0.35) {
                 showDebug('Mode: Random GPT search (ignoring user input)');
                 await performRandomGPTSearch();
-            } else if (randomNumber < 0.56) {
+            } else if (randomNumber < 0.50) {
                 showDebug('Mode: User search with single result');
                 await performUserSearchSingleResult();
-            } else if (randomNumber < 0.78) {
+            } else if (randomNumber < 0.75) {
                 showDebug('Mode: Phantom Mode - Silent letter reversal activated');
                 activatePhantomMode();
             } else {
@@ -889,7 +992,22 @@
             // Mix real results with random comedy results
             let finalResults = [];
             
-            if (searchResults && searchResults.length > 0) {
+            if (searchResults && searchResults.error) {
+                // Handle different types of errors
+                if (searchResults.error === 'SERVER_DOWN') {
+                    finalResults = [{
+                        url: 'localhost:3000',
+                        title: 'Server Error - Please start the GOOGLISH server',
+                        description: 'Run "npm start" to start the server, then refresh this page.'
+                    }];
+                } else if (searchResults.error === 'API_ERROR') {
+                    finalResults = [{
+                        url: 'api.error',
+                        title: 'Search API Error - Try again',
+                        description: `API call failed: ${searchResults.message}. Click search again, it usually works on the second try!`
+                    }];
+                }
+            } else if (searchResults && searchResults.length > 0) {
                 if (mode === 'single') {
                     // Show only one random search result (not just the first)
                     const randomIndex = Math.floor(Math.random() * searchResults.length);
@@ -910,11 +1028,11 @@
                     }));
                 }
             } else {
-                // Fallback message if server is down
+                // No results returned (but server is working)
                 finalResults = [{
-                    url: 'localhost:3000',
-                    title: 'Server Error - Please start the GOOGLISH server',
-                    description: 'Run "npm start" to start the server, then refresh this page.'
+                    url: 'no.results.found',
+                    title: 'No search results found',
+                    description: 'The search completed successfully but returned no results. Try a different search term!'
                 }];
             }
             
@@ -922,7 +1040,7 @@
             const resultCount = Math.floor(Math.random() * 50000000 + 1000000);
             
             // Update the search box in the header with the current query
-            document.getElementById('searchBoxResults').value = query;
+            document.getElementById('searchBoxResults').value = stripQuotes(query);
             
             // Update results header based on mode
             if (mode === 'single' && finalResults.length === 1) {
@@ -962,15 +1080,17 @@
                 showDebug('Mode: Moody Mode from results page');
                 // Just show moody refusal (reuse the same function)
                 performMoodyRefusal();
-            } else if (randomNumber < 0.32) {
+            } else if (randomNumber < 0.35) {
                 showDebug('Mode: Random GPT search (ignoring user input from results page)');
                 // Ignore what they typed and generate random search
                 const randomQuery = await callGPT4('give me a random google search phrase. Return only the phrase');
                 if (randomQuery) {
-                    document.getElementById('searchBoxResults').value = randomQuery;
+                    document.getElementById('searchBoxResults').value = stripQuotes(randomQuery);
                     showResults(randomQuery, 'multiple');
+                } else {
+                    updateSearchStatus('GPT-4 gave up. Try clicking search again...');
                 }
-            } else if (randomNumber < 0.56) {
+            } else if (randomNumber < 0.50) {
                 showDebug('Mode: User search with single result from results page');
                 // Use what they typed but only show 1 result
                 if (query) {
@@ -979,24 +1099,28 @@
                     // If they didn't type anything, generate random search
                     const randomQuery = await callGPT4('give me a random google search phrase. Return only the phrase');
                     if (randomQuery) {
-                        document.getElementById('searchBoxResults').value = randomQuery;
+                        document.getElementById('searchBoxResults').value = stripQuotes(randomQuery);
                         showResults(randomQuery, 'single');
+                    } else {
+                        updateSearchStatus('GPT-4 gave up. Try clicking search again...');
                     }
                 }
-            } else if (randomNumber < 0.78) {
+            } else if (randomNumber < 0.75) {
                 showDebug('Mode: Phantom Mode - Silently reversing search term');
                 // Reverse what they typed and search for that
                 if (query) {
                     const reversedQuery = query.split('').reverse().join('');
-                    document.getElementById('searchBoxResults').value = reversedQuery;
+                    document.getElementById('searchBoxResults').value = stripQuotes(reversedQuery);
                     showResults(reversedQuery, 'multiple');
                 } else {
                     // If they didn't type anything, generate random search and reverse it
                     const randomQuery = await callGPT4('give me a random google search phrase. Return only the phrase');
                     if (randomQuery) {
                         const reversedQuery = randomQuery.split('').reverse().join('');
-                        document.getElementById('searchBoxResults').value = reversedQuery;
+                        document.getElementById('searchBoxResults').value = stripQuotes(reversedQuery);
                         showResults(reversedQuery, 'multiple');
+                    } else {
+                        updateSearchStatus('GPT-4 gave up. Try clicking search again...');
                     }
                 }
             } else {
@@ -1043,35 +1167,14 @@
             searchBoxResults.style.webkitTextFillColor = '';
         }
         
-        // Allow Enter key to search
+        // Simple Enter key handler for main search box
         document.getElementById('searchBox').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                if (evilMode) {
-                    // In phantom mode, search with whatever reversed text they have
-                    const reversedQuery = document.getElementById('searchBox').value;
-                    showDebug(`Searching with phantom-reversed text: "${reversedQuery}"`);
-                    showResults(reversedQuery, 'multiple');
-                    evilMode = false; // Reset phantom mode
-                } else if (shrinkingMode) {
-                    // In shrinking mode, search with whatever shrinking text they have
-                    const shrinkingQuery = document.getElementById('searchBox').value;
-                    showDebug(`Searching with shrinking text: "${shrinkingQuery}"`);
-                    showResults(shrinkingQuery, 'multiple');
-                    shrinkingMode = false; // Reset shrinking mode
-                    // Reset input styling
-                    const searchBox = document.getElementById('searchBox');
-                    searchBox.style.background = '';
-                    searchBox.style.backgroundClip = '';
-                    searchBox.style.webkitBackgroundClip = '';
-                    searchBox.style.color = '';
-                    searchBox.style.webkitTextFillColor = '';
-                } else {
-                    performGPTSearch();
-                }
+                performGPTSearch();
             }
         });
         
-        // Add input listener to main search box for special modes
+        // Simple input handler for main search box special modes
         document.getElementById('searchBox').addEventListener('input', function(e) {
             if (evilMode) {
                 reverseInputText(e.target);
@@ -1080,24 +1183,26 @@
             }
         });
         
-        // Also add to results search box for special modes
+        // Results search box handlers (wait for DOM since this element might not exist initially)
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('searchBoxResults').addEventListener('input', function(e) {
-                if (evilMode) {
-                    reverseInputText(e.target);
-                } else if (shrinkingMode) {
-                    applyShrinkingEffect(e.target);
-                }
-            });
-        });
-        
-        // Add Enter key support to results search box
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('searchBoxResults').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    searchFromResults();
-                }
-            });
+            const resultsSearchBox = document.getElementById('searchBoxResults');
+            if (resultsSearchBox) {
+                // Input listener for special modes
+                resultsSearchBox.addEventListener('input', function(e) {
+                    if (evilMode) {
+                        reverseInputText(e.target);
+                    } else if (shrinkingMode) {
+                        applyShrinkingEffect(e.target);
+                    }
+                });
+                
+                // Simple Enter key support
+                resultsSearchBox.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        searchFromResults();
+                    }
+                });
+            }
         });
     </script>
 </body>
