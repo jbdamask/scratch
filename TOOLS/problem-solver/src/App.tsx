@@ -3,16 +3,20 @@ import { PanelGroup, Panel, PanelResizeHandle } from 'react-resizable-panels';
 import { ChatPanel, type ChatMessage } from './components/ChatPanel';
 import { MermaidEditor } from './components/MermaidEditor';
 import { DiagramViewer } from './components/DiagramViewer';
+import { ProjectManager } from './components/ProjectManager';
 import { McKinseyBot } from './lib/mckinsey-bot';
-import { chatDb } from './lib/database';
+import { DocumentExporter } from './lib/document-export';
+import { chatDb, type Project, type ChatSession } from './lib/database';
 
 function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [mermaidCode, setMermaidCode] = useState('');
   const [renderedCode, setRenderedCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string>('');
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [bot, setBot] = useState<McKinseyBot | null>(null);
+  const [documentExporter, setDocumentExporter] = useState<DocumentExporter | null>(null);
 
   // Initialize the app
   useEffect(() => {
@@ -45,26 +49,54 @@ Once you've added your API key, refresh the page to start solving problems with 
     }
 
     try {
-      // Initialize bot
+      // Initialize bot and document exporter
       const newBot = new McKinseyBot(apiKey);
+      const newExporter = new DocumentExporter(apiKey);
       setBot(newBot);
+      setDocumentExporter(newExporter);
 
-      // Create or load session
-      const newSessionId = chatDb.createSession('Problem Solving Session');
-      setSessionId(newSessionId);
+      // Check for existing projects
+      const projects = chatDb.getProjects();
+      if (projects.length === 0) {
+        // Create default project for first-time users
+        const defaultProjectId = chatDb.createProject(
+          'My First Project',
+          'Getting started with structured problem solving'
+        );
+        const defaultProject = chatDb.getProject(defaultProjectId);
+        if (defaultProject) {
+          setCurrentProject(defaultProject);
+          
+          // Create initial session
+          const sessionId = chatDb.createSession(defaultProjectId, 'Initial Analysis');
+          const session = chatDb.getSession(sessionId);
+          if (session) {
+            setCurrentSession(session);
+            
+            // Add welcome message
+            const welcomeMessage: ChatMessage = {
+              id: crypto.randomUUID(),
+              role: 'assistant',
+              content: newBot.getInitialMessage(),
+              timestamp: new Date()
+            };
 
-      // Add welcome message
-      const welcomeMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: 'assistant',
-        content: newBot.getInitialMessage(),
-        timestamp: new Date()
-      };
-
-      setMessages([welcomeMessage]);
-      
-      // Save to database
-      chatDb.addMessage(newSessionId, 'assistant', welcomeMessage.content);
+            setMessages([welcomeMessage]);
+            chatDb.addMessage(sessionId, 'assistant', welcomeMessage.content);
+          }
+        }
+      } else {
+        // Load first project and its most recent session
+        const firstProject = projects[0];
+        setCurrentProject(firstProject);
+        
+        const sessions = chatDb.getSessionsByProject(firstProject.id);
+        if (sessions.length > 0) {
+          const recentSession = sessions[0];
+          setCurrentSession(recentSession);
+          loadSessionMessages(recentSession.id);
+        }
+      }
 
     } catch (error) {
       console.error('Failed to initialize app:', error);
@@ -78,8 +110,72 @@ Once you've added your API key, refresh the page to start solving problems with 
     }
   };
 
+  const loadSessionMessages = (sessionId: string) => {
+    const dbMessages = chatDb.getMessages(sessionId);
+    const chatMessages: ChatMessage[] = dbMessages.map(msg => ({
+      id: msg.id.toString(),
+      role: msg.role,
+      content: msg.content,
+      timestamp: new Date(msg.timestamp)
+    }));
+    setMessages(chatMessages);
+  };
+
+  const handleProjectChange = (project: Project) => {
+    setCurrentProject(project);
+    // Clear current session and messages
+    setCurrentSession(null);
+    setMessages([]);
+  };
+
+  const handleSessionChange = (session: ChatSession) => {
+    setCurrentSession(session);
+    loadSessionMessages(session.id);
+  };
+
+  const handleNewSession = () => {
+    if (!currentProject || !bot) return;
+
+    const sessionTitle = `Session ${new Date().toLocaleDateString()}`;
+    const sessionId = chatDb.createSession(currentProject.id, sessionTitle);
+    const newSession = chatDb.getSession(sessionId);
+    
+    if (newSession) {
+      setCurrentSession(newSession);
+      
+      // Add welcome message to new session
+      const welcomeMessage: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        content: bot.getInitialMessage(),
+        timestamp: new Date()
+      };
+
+      setMessages([welcomeMessage]);
+      chatDb.addMessage(sessionId, 'assistant', welcomeMessage.content);
+    }
+  };
+
+  const handleExportDocument = async () => {
+    if (!currentProject || !documentExporter) return;
+
+    try {
+      setIsLoading(true);
+      const summary = await documentExporter.generateProjectSummary(currentProject.id);
+      const diagrams = chatDb.getDiagramsByProject(currentProject.id);
+      const markdownReport = documentExporter.generateMarkdownReport(currentProject, summary, diagrams);
+      
+      const filename = `${currentProject.name.replace(/[^a-zA-Z0-9]/g, '_')}_Report.md`;
+      documentExporter.downloadMarkdown(markdownReport, filename);
+    } catch (error) {
+      console.error('Failed to export document:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSendMessage = async (userMessage: string) => {
-    if (!bot || !sessionId) return;
+    if (!bot || !currentSession) return;
 
     // Add user message
     const userChatMessage: ChatMessage = {
@@ -93,7 +189,7 @@ Once you've added your API key, refresh the page to start solving problems with 
     setIsLoading(true);
 
     // Save user message to database
-    chatDb.addMessage(sessionId, 'user', userMessage);
+    chatDb.addMessage(currentSession.id, 'user', userMessage);
 
     try {
       // Get response from bot
@@ -111,7 +207,7 @@ Once you've added your API key, refresh the page to start solving problems with 
 
       // Save assistant response to database
       chatDb.addMessage(
-        sessionId, 
+        currentSession.id, 
         'assistant', 
         response.response,
         response.suggestedDiagramType,
@@ -122,6 +218,19 @@ Once you've added your API key, refresh the page to start solving problems with 
       if (response.mermaidCode) {
         setMermaidCode(response.mermaidCode);
         setRenderedCode(response.mermaidCode);
+        
+        // Add diagram to catalog if it's a new significant diagram
+        if (response.suggestedDiagramType && currentProject) {
+          const diagramTitle = `${response.suggestedDiagramType} - ${new Date().toLocaleDateString()}`;
+          chatDb.addDiagramToCatalog(
+            currentProject.id,
+            currentSession.id,
+            diagramTitle,
+            response.suggestedDiagramType,
+            response.mermaidCode,
+            `Generated during conversation on ${new Date().toLocaleDateString()}`
+          );
+        }
       }
 
     } catch (error) {
@@ -149,40 +258,53 @@ Once you've added your API key, refresh the page to start solving problems with 
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-background">
-      <PanelGroup direction="horizontal">
-        {/* Chat Panel */}
-        <Panel defaultSize={30} minSize={25}>
-          <ChatPanel
-            messages={messages}
-            onSendMessage={handleSendMessage}
-            isLoading={isLoading}
-            className="h-full border-r"
-          />
-        </Panel>
+    <div className="h-screen w-screen overflow-hidden bg-background flex flex-col">
+      {/* Project Manager Header */}
+      <ProjectManager
+        currentProject={currentProject}
+        currentSession={currentSession}
+        onProjectChange={handleProjectChange}
+        onSessionChange={handleSessionChange}
+        onNewSession={handleNewSession}
+        onExportDocument={handleExportDocument}
+      />
 
-        <PanelResizeHandle className="w-2 hover:bg-primary/20 transition-colors bg-border" />
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        <PanelGroup direction="horizontal">
+          {/* Chat Panel */}
+          <Panel defaultSize={30} minSize={25}>
+            <ChatPanel
+              messages={messages}
+              onSendMessage={handleSendMessage}
+              isLoading={isLoading}
+              className="h-full border-r"
+            />
+          </Panel>
 
-        {/* Mermaid Editor Panel */}
-        <Panel defaultSize={35} minSize={25}>
-          <MermaidEditor
-            code={mermaidCode}
-            onCodeChange={handleCodeChange}
-            onRender={handleRender}
-            className="h-full border-r"
-          />
-        </Panel>
+          <PanelResizeHandle className="w-2 hover:bg-primary/20 transition-colors bg-border" />
 
-        <PanelResizeHandle className="w-2 hover:bg-primary/20 transition-colors bg-border" />
+          {/* Mermaid Editor Panel */}
+          <Panel defaultSize={35} minSize={25}>
+            <MermaidEditor
+              code={mermaidCode}
+              onCodeChange={handleCodeChange}
+              onRender={handleRender}
+              className="h-full border-r"
+            />
+          </Panel>
 
-        {/* Diagram Viewer Panel */}
-        <Panel defaultSize={35} minSize={25}>
-          <DiagramViewer
-            mermaidCode={renderedCode}
-            className="h-full"
-          />
-        </Panel>
-      </PanelGroup>
+          <PanelResizeHandle className="w-2 hover:bg-primary/20 transition-colors bg-border" />
+
+          {/* Diagram Viewer Panel */}
+          <Panel defaultSize={35} minSize={25}>
+            <DiagramViewer
+              mermaidCode={renderedCode}
+              className="h-full"
+            />
+          </Panel>
+        </PanelGroup>
+      </div>
     </div>
   );
 }

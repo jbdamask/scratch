@@ -8,10 +8,12 @@ A sophisticated problem-solving tool that combines AI-powered McKinsey-style con
 
 - **Expert McKinsey Guidance**: AI assistant trained on "Bulletproof Problem Solving" principles
 - **Interactive Diagrams**: Support for Issue Trees, Decision Trees, 2x2 Matrices, and Hypothesis Trees
+- **Project-Based Organization**: Manage multiple projects with dedicated sessions and diagram catalogs
 - **Real-time Collaboration**: Three-panel layout with chat, code editor, and diagram viewer
 - **Advanced Visualization**: Zoom, pan, and drag functionality for diagrams
-- **Export Capabilities**: Save diagrams as images or Markdown files
-- **Persistent Storage**: SQLite database for conversation history
+- **Professional Document Export**: AI-generated executive summaries with recommendations
+- **Diagram Catalog**: Automatic storage and organization of all diagrams by project
+- **Persistent Storage**: SQLite database with localStorage fallback
 - **Resizable Interface**: Customizable panel layouts
 
 ## Problem-Solving Frameworks
@@ -68,14 +70,34 @@ Structure and test assumptions with evidence-based validation.
 
 ### Interface Layout
 
+- **Header**: Project selector, session management, and export controls
 - **Left Panel (Chat)**: Interactive conversation with the McKinsey-trained assistant
 - **Middle Panel (Editor)**: Mermaid code editor with syntax highlighting
 - **Right Panel (Viewer)**: Live diagram rendering with zoom/pan controls
 
+### Project Management
+
+1. **Create Projects**: Organize your problem-solving work into distinct projects
+2. **Multiple Sessions**: Have separate conversation threads within each project
+3. **Diagram Catalog**: All generated diagrams are automatically cataloged by project
+4. **Export Reports**: Generate comprehensive markdown reports with executive summaries
+
+### Professional Document Export
+
+The **Export Report** feature generates comprehensive business documents including:
+
+- **Executive Summary**: High-level overview for senior leadership
+- **Overview**: Detailed background and context
+- **Key Findings**: Critical insights discovered during analysis
+- **Considerations**: Important factors to consider
+- **Strategic Options**: Multiple approaches with pros/cons analysis
+- **Recommendations**: Prioritized action items with next steps
+- **Supporting Diagrams**: All project diagrams with descriptions
+
 ### Keyboard Shortcuts
 
 - **Ctrl/Cmd + Enter**: Send message in chat
-- **Ctrl/Cmd + S**: Copy Mermaid code
+- **Ctrl/Cmd + S**: Copy Mermaid code  
 - **Ctrl/Cmd + D**: Download diagram as image
 
 ## Architecture
