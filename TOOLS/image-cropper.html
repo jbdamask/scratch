@@ -334,6 +334,7 @@
                     <select id="aspectRatio" class="aspect-ratio-select" onchange="changeAspectRatio()">
                         <option value="2">2:1 (Twitter/LinkedIn)</option>
                         <option value="1.91">1.91:1 (Facebook)</option>
+                        <option value="1.78">16:9 (YouTube)</option>
                         <option value="1.4">1.4:1 (Substack)</option>
                         <option value="1">1:1 (Instagram)</option>
                     </select>
@@ -594,6 +595,9 @@
             } else if (aspectRatio === 1.91) {
                 previewTitle.textContent = 'Preview (1.91:1 Facebook)';
                 dimensionsInfo.textContent = 'Output: 1200×628px';
+            } else if (aspectRatio === 1.78) {
+                previewTitle.textContent = 'Preview (16:9 YouTube)';
+                dimensionsInfo.textContent = 'Output: 1280×720px';
             } else if (aspectRatio === 1.4) {
                 previewTitle.textContent = 'Preview (1.4:1 Substack)';
                 dimensionsInfo.textContent = 'Output: 1400×1000px';
@@ -616,6 +620,10 @@
                 // 1.91:1 Facebook
                 outputWidth = 1200;
                 outputHeight = 628;
+            } else if (aspectRatio === 1.78) {
+                // 16:9 YouTube
+                outputWidth = 1280;
+                outputHeight = 720;
             } else if (aspectRatio === 1.4) {
                 // 1.4:1 Substack
                 outputWidth = 1400;
@@ -703,6 +711,8 @@
                     filename = 'twitter-linkedin-card.jpg';
                 } else if (aspectRatio === 1.91) {
                     filename = 'facebook-card.jpg';
+                } else if (aspectRatio === 1.78) {
+                    filename = 'youtube-thumbnail.jpg';
                 } else if (aspectRatio === 1.4) {
                     filename = 'substack-card.jpg';
                 } else if (aspectRatio === 1) {

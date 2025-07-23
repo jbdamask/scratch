@@ -23,6 +23,13 @@ function App() {
     initializeApp();
   }, []);
 
+  // Load bot context when both bot and currentSession are available
+  useEffect(() => {
+    if (bot && currentSession && messages.length > 0) {
+      bot.loadConversationHistory(messages);
+    }
+  }, [bot, currentSession, messages]);
+
   const initializeApp = async () => {
     // Get API key from environment
     const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
@@ -119,6 +126,19 @@ Once you've added your API key, refresh the page to start solving problems with 
       timestamp: new Date(msg.timestamp)
     }));
     setMessages(chatMessages);
+    
+    // Load the most recent diagram from the session
+    const messagesWithDiagrams = dbMessages.filter(msg => msg.mermaid_code);
+    if (messagesWithDiagrams.length > 0) {
+      const latestDiagram = messagesWithDiagrams[messagesWithDiagrams.length - 1];
+      setMermaidCode(latestDiagram.mermaid_code!);
+      setRenderedCode(latestDiagram.mermaid_code!);
+    }
+    
+    // Load conversation context into bot if available
+    if (bot && chatMessages.length > 0) {
+      bot.loadConversationHistory(chatMessages);
+    }
   };
 
   const handleProjectChange = (project: Project) => {
@@ -126,6 +146,13 @@ Once you've added your API key, refresh the page to start solving problems with 
     // Clear current session and messages
     setCurrentSession(null);
     setMessages([]);
+    // Clear diagrams when switching projects
+    setMermaidCode('');
+    setRenderedCode('');
+    // Reset bot context
+    if (bot) {
+      bot.resetContext();
+    }
   };
 
   const handleSessionChange = (session: ChatSession) => {
@@ -142,6 +169,13 @@ Once you've added your API key, refresh the page to start solving problems with 
     
     if (newSession) {
       setCurrentSession(newSession);
+      
+      // Reset bot context for new session
+      bot.resetContext();
+      
+      // Clear current diagrams
+      setMermaidCode('');
+      setRenderedCode('');
       
       // Add welcome message to new session
       const welcomeMessage: ChatMessage = {
