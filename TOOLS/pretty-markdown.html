@@ -138,7 +138,7 @@
             justify-content: flex-end;
         }
 
-        .save-btn {
+        .save-btn, .copy-btn {
             background-color: #007bff;
             color: white;
             border: none;
@@ -149,10 +149,19 @@
             display: flex;
             align-items: center;
             gap: 5px;
+            margin-left: 8px;
         }
 
-        .save-btn:hover {
+        .save-btn:hover, .copy-btn:hover {
             background-color: #0056b3;
+        }
+
+        .copy-btn {
+            background-color: #28a745;
+        }
+
+        .copy-btn:hover {
+            background-color: #218838;
         }
 
         .editor {
@@ -262,6 +271,10 @@
 
         <div class="tab-content" id="editTab">
             <div class="edit-header">
+                <button class="copy-btn" id="copyBtn">
+                    <span>📋</span>
+                    Copy
+                </button>
                 <button class="save-btn" id="saveBtn">
                     <span>💾</span>
                     Save
@@ -308,6 +321,7 @@
         const editor = document.getElementById('editor');
         const previewPanel = document.querySelector('.preview-panel');
         const saveBtn = document.getElementById('saveBtn');
+        const copyBtn = document.getElementById('copyBtn');
 
         uploadArea.addEventListener('click', () => {
             fileInput.click();
@@ -361,6 +375,20 @@
         editor.addEventListener('input', () => {
             currentContent = editor.value;
             updatePreview();
+        });
+
+        // Copy functionality
+        copyBtn.addEventListener('click', async () => {
+            const content = editor.value;
+            try {
+                await navigator.clipboard.writeText(content);
+                copyBtn.innerHTML = '<span>✓</span>Copied';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<span>📋</span>Copy';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy: ', err);
+            }
         });
 
         // Save functionality
