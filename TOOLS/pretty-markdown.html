@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pretty Markdown</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked@9.1.2/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            background-color: #f5f5f5;
+        }
+
+        .sidebar {
+            width: 300px;
+            background-color: #fff;
+            border-right: 1px solid #e0e0e0;
+            transition: width 0.3s ease;
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: 40px;
+        }
+
+        .sidebar-header {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .collapse-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: #666;
+            padding: 5px;
+        }
+
+        .file-selector {
+            padding: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .upload-area:hover {
+            border-color: #007bff;
+        }
+
+        .upload-area.dragover {
+            border-color: #007bff;
+            background-color: #f0f8ff;
+        }
+
+        .upload-text {
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .tabs {
+            background-color: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+        }
+
+        .tab-content {
+            flex: 1;
+            overflow: hidden;
+            display: none;
+            background-color: #fff;
+        }
+
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .preview-panel, .edit-panel {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .edit-header {
+            padding: 10px 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .save-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .save-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .editor {
+            width: 100%;
+            height: 100%;
+            border: none;
+            resize: none;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 0;
+            outline: none;
+        }
+
+        .markdown-content {
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .markdown-content h1,
+        .markdown-content h2,
+        .markdown-content h3,
+        .markdown-content h4,
+        .markdown-content h5,
+        .markdown-content h6 {
+            margin: 20px 0 10px 0;
+            color: #222;
+        }
+
+        .markdown-content p {
+            margin-bottom: 15px;
+        }
+
+        .markdown-content code {
+            background-color: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        }
+
+        .markdown-content pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin-bottom: 15px;
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid #007bff;
+            padding-left: 15px;
+            margin: 15px 0;
+            color: #666;
+        }
+
+        .markdown-content ul, .markdown-content ol {
+            margin-bottom: 15px;
+            padding-left: 30px;
+        }
+
+        .sidebar.collapsed .sidebar-title,
+        .sidebar.collapsed .file-selector {
+            display: none;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">Files</div>
+            <button class="collapse-btn" id="collapseBtn">←</button>
+        </div>
+        <div class="file-selector">
+            <div class="upload-area" id="uploadArea">
+                <div class="upload-text">
+                    <strong>Drop a Markdown file here</strong><br>
+                    or click to browse
+                </div>
+                <input type="file" class="file-input" id="fileInput" accept=".md,.markdown,.txt">
+            </div>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="tabs">
+            <div class="tab active" data-tab="preview">Preview</div>
+            <div class="tab" data-tab="edit">Edit</div>
+        </div>
+
+        <div class="tab-content active" id="previewTab">
+            <div class="preview-panel">
+                <div class="empty-state">
+                    <h3>No file selected</h3>
+                    <p>Upload a Markdown file to get started</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="editTab">
+            <div class="edit-header">
+                <button class="save-btn" id="saveBtn">
+                    <span>💾</span>
+                    Save
+                </button>
+            </div>
+            <div class="edit-panel">
+                <textarea class="editor" id="editor" placeholder="Start typing your Markdown here..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentFileName = '';
+        let currentContent = '';
+
+        // Sidebar collapse functionality
+        const sidebar = document.getElementById('sidebar');
+        const collapseBtn = document.getElementById('collapseBtn');
+
+        collapseBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('collapsed');
+            collapseBtn.textContent = sidebar.classList.contains('collapsed') ? '→' : '←';
+        });
+
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                const targetTab = tab.dataset.tab;
+                
+                tabs.forEach(t => t.classList.remove('active'));
+                tabContents.forEach(tc => tc.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById(targetTab + 'Tab').classList.add('active');
+            });
+        });
+
+        // File handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const editor = document.getElementById('editor');
+        const previewPanel = document.querySelector('.preview-panel');
+        const saveBtn = document.getElementById('saveBtn');
+
+        uploadArea.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            currentFileName = file.name;
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                currentContent = e.target.result;
+                editor.value = currentContent;
+                updatePreview();
+            };
+            
+            reader.readAsText(file);
+        }
+
+        function updatePreview() {
+            const markdownContent = editor.value || currentContent;
+            const html = marked.parse(markdownContent);
+            previewPanel.innerHTML = `<div class="markdown-content">${html}</div>`;
+        }
+
+        // Update preview when editor content changes
+        editor.addEventListener('input', () => {
+            currentContent = editor.value;
+            updatePreview();
+        });
+
+        // Save functionality
+        saveBtn.addEventListener('click', () => {
+            const content = editor.value;
+            const fileName = currentFileName || 'document.md';
+            
+            const blob = new Blob([content], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Initialize with empty content
+        updatePreview();
+    </script>
+</body>
+</html>
