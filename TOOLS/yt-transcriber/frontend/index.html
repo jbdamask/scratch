@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Transcriber</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .logo {
+            font-size: 2rem;
+        }
+        .api-key-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+        }
+        .url-section {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .url-input {
+            width: 100%;
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .url-input:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        .btn {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            margin: 5px;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background: #1976d2;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .btn-danger {
+            background: #dc3545;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2196f3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .progress-container {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2196f3, #1976d2);
+            transition: width 0.3s ease;
+            border-radius: 4px;
+        }
+        .progress-text {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .progress-percentage {
+            font-weight: 600;
+            color: #2196f3;
+            font-size: 18px;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+        .input-group {
+            margin-bottom: 15px;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        .result-section {
+            margin-top: 30px;
+        }
+        .video-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196f3;
+        }
+        .video-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .transcription {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+            font-family: 'Georgia', 'Times New Roman', serif;
+            font-size: 16px;
+            line-height: 1.6;
+            max-height: 500px;
+            overflow-y: auto;
+            color: #333;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .url-examples {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #666;
+            text-align: left;
+        }
+        .url-examples strong {
+            color: #333;
+        }
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .status-downloading {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-processing {
+            background: #cce5f0;
+            color: #004085;
+        }
+        .status-transcribing {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+        .status-complete {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function YouTubeTranscriber() {
+            const [apiKey, setApiKey] = useState('');
+            const [youtubeUrl, setYoutubeUrl] = useState('');
+            const [transcription, setTranscription] = useState('');
+            const [videoTitle, setVideoTitle] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [success, setSuccess] = useState('');
+            const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+            const [progress, setProgress] = useState(0);
+            const [progressText, setProgressText] = useState('');
+            const [status, setStatus] = useState('idle');
+
+            // Load saved API key on component mount
+            useEffect(() => {
+                const savedApiKey = localStorage.getItem('openai_api_key');
+                if (savedApiKey) {
+                    setApiKey(savedApiKey);
+                } else {
+                    setShowApiKeyInput(true);
+                }
+            }, []);
+
+            const saveApiKey = (key) => {
+                localStorage.setItem('openai_api_key', key);
+                setApiKey(key);
+                setShowApiKeyInput(false);
+                setSuccess('API key saved successfully!');
+                setTimeout(() => setSuccess(''), 3000);
+            };
+
+            const clearApiKey = () => {
+                localStorage.removeItem('openai_api_key');
+                setApiKey('');
+                setShowApiKeyInput(true);
+            };
+
+            const isValidYouTubeUrl = (url) => {
+                const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
+                return youtubeRegex.test(url);
+            };
+
+            const transcribeYouTubeVideo = async () => {
+                if (!apiKey) {
+                    setError('Please enter your OpenAI API key');
+                    setShowApiKeyInput(true);
+                    return;
+                }
+
+                if (!youtubeUrl.trim()) {
+                    setError('Please enter a YouTube URL');
+                    return;
+                }
+
+                if (!isValidYouTubeUrl(youtubeUrl.trim())) {
+                    setError('Please enter a valid YouTube URL');
+                    return;
+                }
+
+                setLoading(true);
+                setError('');
+                setSuccess('');
+                setTranscription('');
+                setVideoTitle('');
+                setProgress(0);
+                setProgressText('');
+                setStatus('downloading');
+
+                try {
+                    const response = await fetch('/api/transcribe', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            youtube_url: youtubeUrl.trim(),
+                            api_key: apiKey
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Transcription failed');
+                    }
+
+                    setTranscription(data.transcription);
+                    setVideoTitle(data.title);
+                    setStatus('complete');
+                    setSuccess('Transcription completed successfully!');
+
+                } catch (err) {
+                    setError(err.message);
+                    setStatus('error');
+                } finally {
+                    setLoading(false);
+                    setProgress(0);
+                    setProgressText('');
+                }
+            };
+
+            const copyToClipboard = () => {
+                navigator.clipboard.writeText(transcription).then(() => {
+                    setSuccess('Transcription copied to clipboard!');
+                    setTimeout(() => setSuccess(''), 3000);
+                }).catch(() => {
+                    setError('Failed to copy to clipboard');
+                    setTimeout(() => setError(''), 3000);
+                });
+            };
+
+            const downloadTranscription = () => {
+                const blob = new Blob([transcription], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `${videoTitle || 'youtube_transcription'}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                setSuccess('Transcription downloaded!');
+                setTimeout(() => setSuccess(''), 3000);
+            };
+
+            const clearResults = () => {
+                setTranscription('');
+                setVideoTitle('');
+                setError('');
+                setSuccess('');
+                setStatus('idle');
+            };
+
+            const getStatusIndicator = () => {
+                const statusConfig = {
+                    downloading: { text: 'Downloading...', class: 'status-downloading' },
+                    processing: { text: 'Processing...', class: 'status-processing' },
+                    transcribing: { text: 'Transcribing...', class: 'status-transcribing' },
+                    complete: { text: 'Complete', class: 'status-complete' },
+                    error: { text: 'Error', class: 'status-error' }
+                };
+
+                const config = statusConfig[status];
+                if (!config) return null;
+
+                return (
+                    <div className={`status-indicator ${config.class}`}>
+                        {status === 'downloading' || status === 'processing' || status === 'transcribing' ? (
+                            <div className="spinner" style={{width: '16px', height: '16px', border: '2px solid currentColor', borderTop: '2px solid transparent'}}></div>
+                        ) : null}
+                        {config.text}
+                    </div>
+                );
+            };
+
+            return (
+                <div className="container">
+                    <h1>
+                        <span className="logo">🎥</span>
+                        YouTube Transcriber
+                    </h1>
+                    
+                    {showApiKeyInput ? (
+                        <div className="api-key-section">
+                            <div className="input-group">
+                                <label>OpenAI API Key:</label>
+                                <input
+                                    type="password"
+                                    placeholder="Enter your OpenAI API key (starts with sk-)"
+                                    onKeyPress={(e) => {
+                                        if (e.key === 'Enter') {
+                                            const value = e.target.value.trim();
+                                            if (value) saveApiKey(value);
+                                        }
+                                    }}
+                                />
+                                <button 
+                                    className="btn"
+                                    onClick={(e) => {
+                                        const input = e.target.previousElementSibling;
+                                        const value = input.value.trim();
+                                        if (value) saveApiKey(value);
+                                    }}
+                                >
+                                    Save API Key
+                                </button>
+                            </div>
+                            <p style={{fontSize: '13px', color: '#666', marginTop: '10px'}}>
+                                Your API key is stored locally in your browser and never sent to our servers except for transcription requests.
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="api-key-section">
+                            <p>✅ API Key configured</p>
+                            <button 
+                                className="btn btn-secondary"
+                                onClick={() => setShowApiKeyInput(true)}
+                            >
+                                Change API Key
+                            </button>
+                            <button 
+                                className="btn btn-danger"
+                                onClick={clearApiKey}
+                            >
+                                Clear API Key
+                            </button>
+                        </div>
+                    )}
+
+                    {error && (
+                        <div className="error">
+                            <strong>Error:</strong> {error}
+                        </div>
+                    )}
+
+                    {success && (
+                        <div className="success">
+                            <strong>Success:</strong> {success}
+                        </div>
+                    )}
+
+                    <div className="url-section">
+                        <h3>🎬 Enter YouTube URL</h3>
+                        <p>Paste the URL of the YouTube video you want to transcribe:</p>
+                        
+                        <input
+                            type="url"
+                            className="url-input"
+                            value={youtubeUrl}
+                            onChange={(e) => setYoutubeUrl(e.target.value)}
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            disabled={loading}
+                        />
+                        
+                        <div>
+                            <button
+                                className="btn"
+                                onClick={transcribeYouTubeVideo}
+                                disabled={loading || !youtubeUrl.trim() || !apiKey}
+                            >
+                                {loading ? 'Processing...' : '🎙️ Transcribe Video'}
+                            </button>
+                            
+                            {transcription && (
+                                <button
+                                    className="btn btn-secondary"
+                                    onClick={clearResults}
+                                    disabled={loading}
+                                >
+                                    Clear Results
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="url-examples">
+                            <strong>Supported formats:</strong><br/>
+                            • https://www.youtube.com/watch?v=VIDEO_ID<br/>
+                            • https://youtu.be/VIDEO_ID<br/>
+                            • https://www.youtube.com/embed/VIDEO_ID
+                        </div>
+                    </div>
+
+                    {loading && (
+                        <div className="progress-container">
+                            <div className="loading">
+                                <div className="spinner"></div>
+                                {getStatusIndicator()}
+                                <div style={{marginTop: '15px'}}>
+                                    <div className="progress-text">
+                                        {progressText || 'Processing your video...'}
+                                    </div>
+                                    {progress > 0 && (
+                                        <>
+                                            <div className="progress-bar">
+                                                <div 
+                                                    className="progress-fill" 
+                                                    style={{width: `${progress}%`}}
+                                                ></div>
+                                            </div>
+                                            <div className="progress-percentage">
+                                                {Math.round(progress)}% complete
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {transcription && (
+                        <div className="result-section">
+                            {videoTitle && (
+                                <div className="video-info">
+                                    <div className="video-title">📹 {videoTitle}</div>
+                                    <div style={{fontSize: '13px', color: '#666', marginTop: '5px'}}>
+                                        Transcription completed successfully
+                                    </div>
+                                </div>
+                            )}
+                            
+                            <h3>📝 Transcription Result:</h3>
+                            <div className="transcription">
+                                {transcription}
+                            </div>
+                            
+                            <div className="button-group">
+                                <button className="btn" onClick={copyToClipboard}>
+                                    📋 Copy to Clipboard
+                                </button>
+                                <button className="btn btn-secondary" onClick={downloadTranscription}>
+                                    💾 Download as Text File
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        ReactDOM.render(<YouTubeTranscriber />, document.getElementById('root'));
+    </script>
+</body>
+</html>

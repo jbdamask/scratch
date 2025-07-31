@@ -1,0 +1,6 @@
+Flask==2.3.3
+Flask-CORS==4.0.0
+yt-dlp>=2025.7.21
+pydub==0.25.1
+openai>=1.50.0
+Werkzeug==2.3.7
