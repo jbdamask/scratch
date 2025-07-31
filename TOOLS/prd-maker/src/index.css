@@ -1,0 +1,65 @@
+/* Import Inter font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-950 text-gray-100 antialiased;
+  }
+  
+  /* Dark mode scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    @apply bg-gray-900;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded-md;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-600;
+  }
+}
+
+@layer components {
+  .prose-dark {
+    @apply prose prose-invert max-w-none;
+  }
+  
+  .prose-dark h1,
+  .prose-dark h2,
+  .prose-dark h3,
+  .prose-dark h4,
+  .prose-dark h5,
+  .prose-dark h6 {
+    @apply text-gray-100 font-semibold;
+  }
+  
+  .prose-dark p {
+    @apply text-gray-300;
+  }
+  
+  .prose-dark code {
+    @apply bg-gray-800 text-gray-200 px-1 py-0.5 rounded text-sm;
+  }
+  
+  .prose-dark pre {
+    @apply bg-gray-900 border border-gray-700;
+  }
+  
+  .prose-dark blockquote {
+    @apply border-l-4 border-gray-600 bg-gray-900 text-gray-300;
+  }
+}
