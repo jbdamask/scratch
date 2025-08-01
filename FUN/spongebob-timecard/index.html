@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpongeBob Time Cards Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One:wght@400&display=swap" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Some Time Later';
+            src: url('./SomeTimeLater.otf') format('opentype'),
+                 local('Some Time Later'),
+                 local('SomeTimeLater');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Fredoka One', cursive;
+            background: linear-gradient(135deg, #87CEEB 0%, #4169E1 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .header {
+            background: #FFD700;
+            padding: 15px;
+            text-align: center;
+            border-bottom: 4px solid #FFA500;
+        }
+
+        .header h1 {
+            font-family: 'Some Time Later', 'Fredoka One', cursive;
+            font-size: 2rem;
+            color: #2E4A62;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .content {
+            padding: 20px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-family: 'Fredoka One', cursive;
+            font-size: 1rem;
+            color: #2E4A62;
+        }
+
+        .text-input {
+            font-family: 'Fredoka One', cursive;
+            padding: 12px;
+            font-size: 1rem;
+            border: 2px solid #87CEEB;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .text-input:focus {
+            border-color: #4169E1;
+        }
+
+        .background-select {
+            font-family: 'Fredoka One', cursive;
+            padding: 12px;
+            font-size: 1rem;
+            border: 2px solid #87CEEB;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .advanced-toggle {
+            background: #87CEEB;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-family: 'Fredoka One', cursive;
+            font-size: 0.9rem;
+            color: white;
+            transition: background-color 0.3s;
+        }
+
+        .advanced-toggle:hover {
+            background: #4169E1;
+        }
+
+        .advanced-controls {
+            display: none;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .advanced-controls.show {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .advanced-controls .input-group {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .advanced-controls input {
+            font-family: 'Fredoka One', cursive;
+            padding: 8px;
+            border: 2px solid #87CEEB;
+            border-radius: 5px;
+        }
+
+        .preview-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .canvas-container {
+            display: inline-block;
+            border: 2px solid #2E4A62;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            max-width: 100%;
+        }
+
+        #previewCanvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            max-height: 300px;
+        }
+
+        .download-section {
+            text-align: center;
+        }
+
+        .download-btn {
+            background: #32CD32;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-family: 'Fredoka One', cursive;
+            border-radius: 20px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(50, 205, 50, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(50, 205, 50, 0.4);
+        }
+
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.5rem;
+            }
+            
+            .content {
+                padding: 15px;
+            }
+            
+            .advanced-controls {
+                flex-direction: column;
+            }
+            
+            .container {
+                max-width: 95%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>SpongeBob Time Cards Generator</h1>
+        </div>
+        
+        <div class="content">
+            <div class="controls">
+                <div class="input-group">
+                    <label for="textInput">Enter your text:</label>
+                    <input type="text" id="textInput" class="text-input" placeholder="Three hours later ..." value="Three hours later ...">
+                </div>
+                
+                <div class="input-group">
+                    <label for="backgroundSelect">Background:</label>
+                    <select id="backgroundSelect" class="background-select">
+                        <option value="spongebob-flowers.png">Flowers</option>
+                        <option value="spongebob-flowers-blue.jpg">Flowers Blue</option>
+                        <option value="spongebob-bamboo-green.jpg">Bamboo Green</option>
+                    </select>
+                </div>
+                
+                <button class="advanced-toggle" onclick="toggleAdvanced()">▶ Advanced</button>
+                
+                <div class="advanced-controls" id="advancedControls">
+                    <div class="input-group">
+                        <label for="fontSize">Font Size:</label>
+                        <input type="range" id="fontSize" min="20" max="120" value="60">
+                    </div>
+                    <div class="input-group">
+                        <label for="textColor">Text Color:</label>
+                        <input type="color" id="textColor" value="#ffffff">
+                    </div>
+                    <div class="input-group">
+                        <label for="strokeColor">Outline Color:</label>
+                        <input type="color" id="strokeColor" value="#000000">
+                    </div>
+                    <div class="input-group">
+                        <label for="strokeWidth">Outline Width:</label>
+                        <input type="range" id="strokeWidth" min="0" max="10" value="3">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="preview-section">
+                <div class="canvas-container">
+                    <canvas id="previewCanvas" width="800" height="450"></canvas>
+                </div>
+            </div>
+            
+            <div class="download-section">
+                <button class="download-btn" onclick="downloadImage()">Download Time Card</button>
+            </div>
+        </div>
+        
+    </div>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <script>
+        const canvas = document.getElementById('previewCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentImage = null;
+        let advancedOpen = false;
+
+        // Load initial background
+        loadBackground('spongebob-flowers.png');
+
+        function loadBackground(imageName) {
+            const img = new Image();
+            img.onload = function() {
+                currentImage = img;
+                canvas.width = img.width;
+                canvas.height = img.height;
+                drawTimeCard();
+            };
+            img.onerror = function() {
+                console.error('Failed to load image:', imageName);
+                canvas.width = 800;
+                canvas.height = 450;
+                drawTimeCard();
+            };
+            img.src = `img/${imageName}`;
+        }
+
+        function drawTimeCard() {
+            if (!currentImage) {
+                // Draw fallback background if no image
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                // Clear canvas and draw background image
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(currentImage, 0, 0);
+            }
+            
+            // Get text and styling
+            const text = document.getElementById('textInput').value || 'Three hours later ...';
+            const fontSize = parseInt(document.getElementById('fontSize').value);
+            const textColor = document.getElementById('textColor').value;
+            const strokeColor = document.getElementById('strokeColor').value;
+            const strokeWidth = parseInt(document.getElementById('strokeWidth').value);
+            
+            // Set up text styling
+            ctx.font = `${fontSize}px 'Some Time Later', 'Fredoka One', Arial, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = textColor;
+            ctx.strokeStyle = strokeColor;
+            ctx.lineWidth = strokeWidth;
+            
+            // Position text in center
+            const x = canvas.width / 2;
+            const y = canvas.height / 2;
+            
+            // Draw text with outline first, then fill
+            if (strokeWidth > 0) {
+                ctx.strokeText(text, x, y);
+            }
+            ctx.fillText(text, x, y);
+        }
+
+        function toggleAdvanced() {
+            const controls = document.getElementById('advancedControls');
+            const toggle = document.querySelector('.advanced-toggle');
+            
+            advancedOpen = !advancedOpen;
+            
+            if (advancedOpen) {
+                controls.classList.add('show');
+                toggle.textContent = '▼ Advanced';
+            } else {
+                controls.classList.remove('show');
+                toggle.textContent = '▶ Advanced';
+            }
+        }
+
+        function downloadImage() {
+            // Simple direct download - no security restrictions
+            const link = document.createElement('a');
+            link.download = 'spongebob-timecard.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+
+        // Event listeners
+        document.getElementById('textInput').addEventListener('input', drawTimeCard);
+        document.getElementById('backgroundSelect').addEventListener('change', function() {
+            loadBackground(this.value);
+        });
+        
+        // Advanced control listeners
+        document.getElementById('fontSize').addEventListener('input', drawTimeCard);
+        document.getElementById('textColor').addEventListener('input', drawTimeCard);
+        document.getElementById('strokeColor').addEventListener('input', drawTimeCard);
+        document.getElementById('strokeWidth').addEventListener('input', drawTimeCard);
+
+        // Load font and redraw when ready
+        document.fonts.ready.then(() => {
+            setTimeout(drawTimeCard, 200);
+        });
+    </script>
+</body>
+</html>

@@ -19,7 +19,7 @@ const PRDPanel: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [isAutoSaving, setIsAutoSaving] = useState(false)
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const { currentProject } = useAppContext()
+  const { currentProject, setNotification } = useAppContext()
 
   // Load project PRD when project changes
   useEffect(() => {
@@ -100,17 +100,61 @@ const PRDPanel: React.FC = () => {
     setTitle(newTitle)
   }
 
-  const exportPRD = () => {
-    const filename = title ? `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md` : 'prd-document.md'
-    const blob = new Blob([content], { type: 'text/markdown' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+  const exportPRD = async () => {
+    // Use content or fallback to default content if empty
+    const exportContent = content.trim() || `# ${title || 'Product Requirements Document'}\n\nThis is an empty PRD document. Start editing to add content.`
+    
+    // Create a safe filename
+    let safeTitle = title || 'prd-document'
+    safeTitle = safeTitle.replace(/[^a-z0-9\s-]/gi, '') // Remove special chars except spaces and hyphens
+    safeTitle = safeTitle.replace(/\s+/g, '-') // Replace spaces with hyphens
+    safeTitle = safeTitle.toLowerCase()
+    const filename = `${safeTitle}.md`
+    
+    console.log('Exporting PRD:', { filename, contentLength: exportContent.length })
+    
+    try {
+      // Check if Blob and URL.createObjectURL are supported
+      if (!window.Blob || !window.URL || !window.URL.createObjectURL) {
+        throw new Error('Browser does not support file downloads')
+      }
+
+      const blob = new Blob([exportContent], { type: 'text/markdown;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      
+      // Create download link
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.style.display = 'none'
+      
+      // Add to DOM, click, and cleanup
+      document.body.appendChild(a)
+      a.click()
+      
+      // Cleanup with slight delay to ensure download starts
+      setTimeout(() => {
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      }, 100)
+      
+      console.log('Export completed successfully')
+      setNotification(`PRD exported as ${filename}`)
+      // Clear notification after 3 seconds
+      setTimeout(() => setNotification(null), 3000)
+    } catch (error) {
+      console.error('Export failed:', error)
+      // Fallback: Copy content to clipboard
+      try {
+        await navigator.clipboard.writeText(exportContent)
+        setNotification('Export failed, but content copied to clipboard')
+        setTimeout(() => setNotification(null), 5000)
+      } catch (clipboardError) {
+        console.error('Clipboard fallback failed:', clipboardError)
+        setNotification('Failed to export. Please copy the content manually from the Edit tab.')
+        setTimeout(() => setNotification(null), 5000)
+      }
+    }
   }
 
   const formatLastSaved = () => {
@@ -145,7 +189,7 @@ const PRDPanel: React.FC = () => {
           <div className="flex items-center space-x-2">
             <button
               onClick={exportPRD}
-              disabled={!content || !currentProject}
+              disabled={!currentProject}
               className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg transition-colors duration-200"
             >
               <ArrowDownTrayIcon className="w-4 h-4" />
