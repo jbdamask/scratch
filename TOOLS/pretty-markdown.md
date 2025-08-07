@@ -42,6 +42,7 @@ Pretty Markdown supports standard Markdown syntax including:
 - Blockquotes
 - Tables
 - Horizontal rules
+- **Mermaid Diagrams**: Interactive flowcharts, sequence diagrams, and more
 
 ## Getting Started
 
@@ -50,6 +51,22 @@ Pretty Markdown supports standard Markdown syntax including:
 3. View the rendered content in the Preview tab
 4. Switch to the Edit tab to make changes
 5. Click the save button to download your modified file
+
+### Using Mermaid Diagrams
+
+To create interactive diagrams, use Mermaid code blocks in your Markdown:
+
+````markdown
+```mermaid
+graph TD
+    A[Start] --> B{Is it ready?}
+    B -->|Yes| C[Deploy]
+    B -->|No| D[Keep working]
+    D --> B
+```
+````
+
+Supported diagram types include flowcharts, sequence diagrams, class diagrams, state diagrams, and more.
 
 ## Technical Details
 

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pretty Markdown</title>
     <script src="https://cdn.jsdelivr.net/npm/marked@9.1.2/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -235,6 +236,11 @@
             height: 100%;
             color: #999;
         }
+
+        .mermaid-wrapper {
+            margin: 15px 0;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -369,6 +375,22 @@
             const markdownContent = editor.value || currentContent;
             const html = marked.parse(markdownContent);
             previewPanel.innerHTML = `<div class="markdown-content">${html}</div>`;
+            
+            // Render Mermaid diagrams if any exist
+            const mermaidElements = previewPanel.querySelectorAll('code.language-mermaid');
+            mermaidElements.forEach((element, index) => {
+                const diagramText = element.textContent;
+                const diagramId = `mermaid-diagram-${index}`;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'mermaid-wrapper';
+                wrapper.innerHTML = `<div class="mermaid" id="${diagramId}">${diagramText}</div>`;
+                element.parentNode.replaceWith(wrapper);
+            });
+            
+            // Initialize Mermaid if diagrams exist
+            if (mermaidElements.length > 0) {
+                mermaid.run();
+            }
         }
 
         // Update preview when editor content changes
@@ -406,6 +428,13 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
+        });
+
+        // Initialize Mermaid
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose'
         });
 
         // Initialize with empty content
