@@ -1,6 +1,6 @@
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Float
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Float, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime
 
 SQLITE_DATABASE_URL = "sqlite:///./invoices.db"
@@ -19,8 +19,22 @@ class Company(Base):
     primary_contact = Column(String)
     phone_number = Column(String)
     email = Column(String)
-    logo_path = Column(String)
+    logo_path = Column(String)  # Keep for backward compatibility
     created_at = Column(DateTime, default=datetime.utcnow)
+    
+    logos = relationship("CompanyLogo", back_populates="company", cascade="all, delete-orphan")
+
+class CompanyLogo(Base):
+    __tablename__ = "company_logos"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    file_path = Column(String, nullable=False)
+    file_name = Column(String, nullable=False)
+    is_default = Column(Integer, default=0)  # Using Integer for SQLite compatibility (0=False, 1=True)
+    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    
+    company = relationship("Company", back_populates="logos")
 
 class Client(Base):
     __tablename__ = "clients"

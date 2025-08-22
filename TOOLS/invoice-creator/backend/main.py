@@ -1,22 +1,32 @@
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from typing import List
 import csv
 import io
 import os
+import shutil
 from datetime import datetime
+import uuid
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib import colors
 
-from database import get_db, init_db, Company as DBCompany, Client as DBClient, Invoice as DBInvoice, InvoiceItem as DBInvoiceItem
-from models import Company, CompanyCreate, Client, ClientCreate, Invoice, InvoiceCreate, InvoiceItem
+from database import get_db, init_db, Company as DBCompany, Client as DBClient, Invoice as DBInvoice, InvoiceItem as DBInvoiceItem, CompanyLogo as DBCompanyLogo
+from models import Company, CompanyCreate, Client, ClientCreate, Invoice, InvoiceCreate, InvoiceItem, CompanyLogo
 from worklog_processor import process_worklog_csv
 
 app = FastAPI(title="Invoice Creator API")
+
+# Create uploads directory if it doesn't exist (do this before mounting)
+os.makedirs("uploads", exist_ok=True)
+
+# Mount static files for serving uploaded images (must be after directory exists)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
@@ -62,6 +72,93 @@ def update_company(company_id: int, company: CompanyCreate, db: Session = Depend
     db.commit()
     db.refresh(db_company)
     return db_company
+
+@app.post("/companies/{company_id}/logos/", response_model=CompanyLogo)
+async def upload_company_logo(company_id: int, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    # Check if company exists
+    company = db.query(DBCompany).filter(DBCompany.id == company_id).first()
+    if company is None:
+        raise HTTPException(status_code=404, detail="Company not found")
+    
+    # Check if company already has 5 logos
+    existing_logos = db.query(DBCompanyLogo).filter(DBCompanyLogo.company_id == company_id).all()
+    if len(existing_logos) >= 5:
+        raise HTTPException(status_code=400, detail="Maximum of 5 logos allowed per company")
+    
+    # Validate file type
+    allowed_types = ["image/jpeg", "image/jpg", "image/png", "image/gif", "image/svg+xml", "image/webp"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Invalid file type. Only images are allowed.")
+    
+    # Generate unique filename
+    file_extension = os.path.splitext(file.filename)[1]
+    unique_filename = f"{company_id}_{uuid.uuid4()}{file_extension}"
+    file_path = os.path.join("uploads", unique_filename)
+    
+    # Save file to disk
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Save to database
+    db_logo = DBCompanyLogo(
+        company_id=company_id,
+        file_name=file.filename,
+        file_path=f"/uploads/{unique_filename}"
+    )
+    db.add(db_logo)
+    db.commit()
+    db.refresh(db_logo)
+    
+    return db_logo
+
+@app.get("/companies/{company_id}/logos/", response_model=List[CompanyLogo])
+def get_company_logos(company_id: int, db: Session = Depends(get_db)):
+    logos = db.query(DBCompanyLogo).filter(DBCompanyLogo.company_id == company_id).all()
+    return logos
+
+@app.delete("/companies/{company_id}/logos/{logo_id}")
+def delete_company_logo(company_id: int, logo_id: int, db: Session = Depends(get_db)):
+    logo = db.query(DBCompanyLogo).filter(
+        DBCompanyLogo.id == logo_id,
+        DBCompanyLogo.company_id == company_id
+    ).first()
+    
+    if logo is None:
+        raise HTTPException(status_code=404, detail="Logo not found")
+    
+    # Delete file from disk
+    file_path = logo.file_path.replace("/uploads/", "uploads/")
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    
+    # Delete from database
+    db.delete(logo)
+    db.commit()
+    
+    return {"message": "Logo deleted successfully"}
+
+@app.put("/companies/{company_id}/logos/{logo_id}/set-default")
+def set_default_logo(company_id: int, logo_id: int, db: Session = Depends(get_db)):
+    # Check if the logo exists and belongs to the company
+    logo = db.query(DBCompanyLogo).filter(
+        DBCompanyLogo.id == logo_id,
+        DBCompanyLogo.company_id == company_id
+    ).first()
+    
+    if logo is None:
+        raise HTTPException(status_code=404, detail="Logo not found")
+    
+    # Set all other logos for this company to not default
+    db.query(DBCompanyLogo).filter(DBCompanyLogo.company_id == company_id).update(
+        {DBCompanyLogo.is_default: 0}
+    )
+    
+    # Set this logo as default
+    logo.is_default = 1
+    db.commit()
+    db.refresh(logo)
+    
+    return {"message": "Default logo set successfully"}
 
 @app.get("/clients/", response_model=List[Client])
 def read_clients(db: Session = Depends(get_db)):

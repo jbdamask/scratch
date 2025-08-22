@@ -13,9 +13,23 @@ class CompanyBase(BaseModel):
 class CompanyCreate(CompanyBase):
     pass
 
+class CompanyLogoBase(BaseModel):
+    file_name: str
+    file_path: str
+    is_default: bool = False
+
+class CompanyLogo(CompanyLogoBase):
+    id: int
+    company_id: int
+    uploaded_at: datetime
+    
+    class Config:
+        from_attributes = True
+
 class Company(CompanyBase):
     id: int
     created_at: datetime
+    logos: List[CompanyLogo] = []
     
     class Config:
         from_attributes = True
