@@ -94,7 +94,7 @@ function App() {
         const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.total_amount, 0)
         const pendingInvoices = invoices.filter(inv => {
           const status = inv.status || 'submitted' // Keep existing default
-          return ['submitted', 'sent', 'pending', 'overdue'].includes(status)
+          return ['submitted', 'sent', 'pending', 'overdue'].includes(status) // Include 'sent' for backwards compatibility
         }).length
         const paidInvoices = invoices.filter(inv => (inv.status || 'submitted') === 'paid').length
         const activeClients = clientsList.length
@@ -133,10 +133,11 @@ function App() {
     const actualStatus = status || 'draft'
     const statusConfig = {
       'draft': { label: 'Draft', colors: theme.colors.draft },
-      'sent': { label: 'Sent', colors: theme.colors.info },
       'pending': { label: 'Pending', colors: theme.colors.warning },
       'paid': { label: 'Paid', colors: theme.colors.success },
-      'overdue': { label: 'Overdue', colors: theme.colors.error }
+      'overdue': { label: 'Overdue', colors: theme.colors.error },
+      // Map old "sent" to pending for backwards compatibility
+      'sent': { label: 'Pending', colors: theme.colors.warning }
     }
     return statusConfig[actualStatus] || statusConfig['draft']
   }

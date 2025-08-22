@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { theme } from '@/theme'
 import { Plus, Edit, Trash2, Users, Mail, Phone, MapPin, User, Building } from 'lucide-react'
+import ClientDetail from './ClientDetail'
 
 interface Client {
   id?: number
@@ -31,6 +32,7 @@ export default function ClientManagement() {
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null)
 
   const emptyClient: Client = {
     name: '',
@@ -86,7 +88,7 @@ export default function ClientManagement() {
     const pendingTotal = clientInvoices
       .filter(invoice => {
         const status = invoice.status || 'submitted' // Keep existing default
-        return ['submitted', 'sent', 'pending', 'overdue'].includes(status)
+        return ['submitted', 'sent', 'pending', 'overdue'].includes(status) // Include 'sent' for backwards compatibility
       })
       .reduce((sum, invoice) => sum + invoice.total_amount, 0)
     const paidTotal = clientInvoices
@@ -163,6 +165,19 @@ export default function ClientManagement() {
   const handleChange = (field: keyof Client, value: string) => {
     if (!editingClient) return
     setEditingClient(prev => prev ? { ...prev, [field]: value } : null)
+  }
+
+  const handleClientClick = (clientId: number) => {
+    setSelectedClientId(clientId)
+  }
+
+  const handleBackToClients = () => {
+    setSelectedClientId(null)
+  }
+
+  // If a client is selected, show the client detail page
+  if (selectedClientId) {
+    return <ClientDetail clientId={selectedClientId} onBack={handleBackToClients} />
   }
 
   return (
@@ -430,7 +445,7 @@ export default function ClientManagement() {
             clients.map((client) => (
               <div 
                 key={client.id}
-                onClick={() => handleEdit(client)}
+                onClick={() => client.id && handleClientClick(client.id)}
                 style={{ 
                   backgroundColor: theme.colors.background.card, 
                   borderRadius: '12px', 

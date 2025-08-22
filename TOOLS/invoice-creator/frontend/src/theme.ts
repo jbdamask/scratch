@@ -133,10 +133,6 @@ export const theme = {
       bg: 'rgba(139, 148, 158, 0.1)',
       text: '#8B949E',
     },
-    sent: {
-      bg: 'rgba(0, 191, 255, 0.1)',
-      text: '#0099CC',
-    },
     pending: {
       bg: 'rgba(255, 215, 0, 0.05)',
       text: '#CC8F00',

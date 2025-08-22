@@ -193,6 +193,27 @@ def update_client(client_id: int, client: ClientCreate, db: Session = Depends(ge
     db.refresh(db_client)
     return db_client
 
+@app.delete("/clients/{client_id}")
+def delete_client(client_id: int, db: Session = Depends(get_db)):
+    """Delete a client and check for associated invoices."""
+    client = db.query(DBClient).filter(DBClient.id == client_id).first()
+    if client is None:
+        raise HTTPException(status_code=404, detail="Client not found")
+    
+    # Check if client has any invoices
+    associated_invoices = db.query(DBInvoice).filter(DBInvoice.client_id == client_id).first()
+    if associated_invoices:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot delete client with associated invoices. Please delete all invoices for this client first."
+        )
+    
+    # Delete the client
+    db.delete(client)
+    db.commit()
+    
+    return {"message": f"Client '{client.name}' deleted successfully"}
+
 @app.post("/upload-csv/")
 async def upload_csv(file: UploadFile = File(...)):
     if not file.filename.endswith('.csv'):
@@ -686,7 +707,7 @@ def get_invoice_pdf(invoice_id: int, download: bool = False, db: Session = Depen
 @app.put("/invoices/{invoice_id}/status")
 def update_invoice_status(invoice_id: int, status: str, db: Session = Depends(get_db)):
     """Update invoice status."""
-    allowed_statuses = ["draft", "sent", "pending", "paid", "overdue", "submitted"]  # Keep submitted for backwards compatibility
+    allowed_statuses = ["draft", "pending", "paid", "overdue", "submitted"]  # Keep submitted for backwards compatibility
     if status not in allowed_statuses:
         raise HTTPException(status_code=400, detail=f"Status must be one of: {', '.join(allowed_statuses)}")
     
@@ -700,17 +721,55 @@ def update_invoice_status(invoice_id: int, status: str, db: Session = Depends(ge
     
     return {"message": f"Invoice status updated to {status}", "status": status}
 
+@app.delete("/invoices/{invoice_id}")
+def delete_invoice(invoice_id: int, db: Session = Depends(get_db)):
+    """Delete an invoice and its items."""
+    invoice = db.query(DBInvoice).filter(DBInvoice.id == invoice_id).first()
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    # Delete associated invoice items first
+    db.query(DBInvoiceItem).filter(DBInvoiceItem.invoice_id == invoice_id).delete()
+    
+    # Delete PDF and markdown files if they exist
+    if invoice.pdf_path and os.path.exists(invoice.pdf_path):
+        try:
+            os.remove(invoice.pdf_path)
+        except Exception as e:
+            print(f"Warning: Could not delete PDF file {invoice.pdf_path}: {e}")
+    
+    if invoice.markdown_path and os.path.exists(invoice.markdown_path):
+        try:
+            os.remove(invoice.markdown_path)
+        except Exception as e:
+            print(f"Warning: Could not delete markdown file {invoice.markdown_path}: {e}")
+    
+    # Delete the invoice
+    db.delete(invoice)
+    db.commit()
+    
+    return {"message": f"Invoice #{invoice.invoice_number} deleted successfully"}
+
 @app.post("/invoices/migrate-status")
 def migrate_invoice_status(db: Session = Depends(get_db)):
     """Migrate existing invoices to have default status if missing."""
     # Update all invoices that have NULL or empty status
-    updated_count = db.query(DBInvoice).filter(
+    null_updated_count = db.query(DBInvoice).filter(
         (DBInvoice.status == None) | (DBInvoice.status == "")
     ).update({"status": "submitted"})
     
+    # Update all "sent" status to "pending" (consolidating statuses)
+    sent_updated_count = db.query(DBInvoice).filter(
+        DBInvoice.status == "sent"
+    ).update({"status": "pending"})
+    
     db.commit()
     
-    return {"message": f"Updated {updated_count} invoices with default status", "count": updated_count}
+    return {
+        "message": f"Updated {null_updated_count} invoices with default status and {sent_updated_count} 'sent' invoices to 'pending'", 
+        "null_status_count": null_updated_count,
+        "sent_to_pending_count": sent_updated_count
+    }
 
 if __name__ == "__main__":
     import uvicorn

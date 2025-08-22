@@ -212,10 +212,11 @@ export default function InvoiceGenerator() {
   const getStatusConfig = (status: string) => {
     const statusMap: Record<string, {label: string, icon: string, colors: any}> = {
       'draft': { label: 'Draft', icon: '📝', colors: theme.status.draft },
-      'sent': { label: 'Sent', icon: '📤', colors: theme.status.sent },
       'pending': { label: 'Pending', icon: '⏳', colors: theme.status.pending },
       'paid': { label: 'Paid', icon: '✅', colors: theme.status.paid },
-      'overdue': { label: 'Overdue', icon: '🚨', colors: theme.status.overdue }
+      'overdue': { label: 'Overdue', icon: '🚨', colors: theme.status.overdue },
+      // Map old "sent" to pending for backwards compatibility
+      'sent': { label: 'Pending', icon: '⏳', colors: theme.status.pending }
     }
     return statusMap[status] || statusMap['draft']
   }
@@ -241,6 +242,116 @@ export default function InvoiceGenerator() {
     }
     setDraggedInvoice(null)
   }
+
+  const handleDeleteInvoice = async (invoiceId: number, invoiceNumber: string) => {
+    if (!confirm(`Are you sure you want to delete invoice #${invoiceNumber}? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/invoices/${invoiceId}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // Refresh the invoices list
+        await fetchInvoices()
+        alert(`Invoice #${invoiceNumber} deleted successfully!`)
+      } else {
+        throw new Error('Failed to delete invoice')
+      }
+    } catch (error) {
+      console.error('Error deleting invoice:', error)
+      alert('Error deleting invoice')
+    }
+  }
+
+  // Reusable invoice card component
+  const InvoiceCard = ({ invoice, statusColor }: { invoice: Invoice, statusColor: string }) => (
+    <div
+      key={invoice.id}
+      draggable
+      onDragStart={(e) => handleDragStart(e, invoice)}
+      onDragEnd={handleDragEnd}
+      style={{
+        backgroundColor: draggedInvoice?.id === invoice.id ? theme.colors.gray[100] : theme.colors.background.card,
+        border: `1px solid ${theme.colors.border.main}`,
+        borderRadius: '8px',
+        padding: '12px',
+        cursor: 'move',
+        transition: 'all 0.2s',
+        opacity: draggedInvoice?.id === invoice.id ? 0.5 : 1,
+        position: 'relative'
+      }}
+      onMouseEnter={(e) => {
+        if (draggedInvoice?.id !== invoice.id) {
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
+        }
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = 'none'
+      }}
+    >
+      {/* Delete button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          handleDeleteInvoice(invoice.id, invoice.invoice_number)
+        }}
+        style={{
+          position: 'absolute',
+          top: '8px',
+          right: '8px',
+          width: '24px',
+          height: '24px',
+          borderRadius: '4px',
+          border: 'none',
+          backgroundColor: theme.colors.error.bg,
+          color: theme.colors.error.main,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          transition: 'all 0.2s',
+          opacity: 0.7
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.opacity = '1'
+          e.currentTarget.style.backgroundColor = theme.colors.error.main
+          e.currentTarget.style.color = 'white'
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.opacity = '0.7'
+          e.currentTarget.style.backgroundColor = theme.colors.error.bg
+          e.currentTarget.style.color = theme.colors.error.main
+        }}
+      >
+        <Trash2 size={12} />
+      </button>
+
+      {/* Card content */}
+      <div 
+        onClick={() => handleInvoiceClick(invoice)}
+        style={{ paddingRight: '30px' }} // Space for delete button
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px' }}>
+          <h4 style={{ fontSize: '14px', fontWeight: '600', color: theme.colors.text.primary, margin: 0 }}>
+            #{invoice.invoice_number}
+          </h4>
+          <span style={{ fontSize: '12px', fontWeight: '600', color: statusColor }}>
+            ${invoice.total_amount.toFixed(2)}
+          </span>
+        </div>
+        <p style={{ fontSize: '12px', color: theme.colors.text.secondary, margin: '2px 0' }}>
+          {getClientName(invoice.client_id)}
+        </p>
+        <p style={{ fontSize: '11px', color: theme.colors.gray[400], margin: 0 }}>
+          {formatDate(invoice.date)}
+        </p>
+      </div>
+    </div>
+  )
 
   const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -1039,7 +1150,7 @@ export default function InvoiceGenerator() {
           </button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
           {/* Draft Column */}
           <div
             onDragOver={handleDragOver}
@@ -1064,124 +1175,19 @@ export default function InvoiceGenerator() {
             </div>
             <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {invoices.filter(invoice => (invoice.status || 'draft') === 'draft').map((invoice) => (
-                <div
-                  key={invoice.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, invoice)}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => handleInvoiceClick(invoice)}
-                  style={{
-                    backgroundColor: draggedInvoice?.id === invoice.id ? theme.colors.gray[100] : theme.colors.background.card,
-                    border: `1px solid ${theme.colors.border.main}`,
-                    borderRadius: '8px',
-                    padding: '12px',
-                    cursor: 'move',
-                    transition: 'all 0.2s',
-                    opacity: draggedInvoice?.id === invoice.id ? 0.5 : 1
-                  }}
-                  onMouseEnter={(e) => {
-                    if (draggedInvoice?.id !== invoice.id) {
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: theme.colors.text.primary, margin: 0 }}>
-                      #{invoice.invoice_number}
-                    </h4>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: theme.status.draft.text }}>
-                      ${invoice.total_amount.toFixed(2)}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '12px', color: theme.colors.text.secondary, margin: '2px 0' }}>
-                    {getClientName(invoice.client_id)}
-                  </p>
-                  <p style={{ fontSize: '11px', color: theme.colors.gray[400], margin: 0 }}>
-                    {formatDate(invoice.date)}
-                  </p>
-                </div>
+                <InvoiceCard key={invoice.id} invoice={invoice} statusColor={theme.status.draft.text} />
               ))}
             </div>
           </div>
 
-          {/* Sent Column */}
-          <div
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, 'sent')}
-            style={{
-              backgroundColor: theme.colors.background.card,
-              borderRadius: '12px',
-              border: draggedInvoice && ['sent'].includes(draggedInvoice.status || 'draft') ? `2px dashed ${theme.colors.border.main}` : `1px solid ${theme.colors.border.main}`,
-              minHeight: '400px'
-            }}
-          >
-            <div style={{ 
-              padding: '16px 20px',
-              borderBottom: `1px solid ${theme.colors.border.main}`,
-              backgroundColor: theme.status.sent.bg,
-              borderTopLeftRadius: '12px',
-              borderTopRightRadius: '12px'
-            }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: theme.status.sent.text, margin: 0 }}>
-                📤 Sent ({invoices.filter(i => (i.status || 'draft') === 'sent').length})
-              </h3>
-            </div>
-            <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {invoices.filter(invoice => (invoice.status || 'draft') === 'sent').map((invoice) => (
-                <div
-                  key={invoice.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, invoice)}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => handleInvoiceClick(invoice)}
-                  style={{
-                    backgroundColor: draggedInvoice?.id === invoice.id ? theme.colors.gray[100] : theme.colors.background.card,
-                    border: `1px solid ${theme.colors.border.main}`,
-                    borderRadius: '8px',
-                    padding: '12px',
-                    cursor: 'move',
-                    transition: 'all 0.2s',
-                    opacity: draggedInvoice?.id === invoice.id ? 0.5 : 1
-                  }}
-                  onMouseEnter={(e) => {
-                    if (draggedInvoice?.id !== invoice.id) {
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: theme.colors.text.primary, margin: 0 }}>
-                      #{invoice.invoice_number}
-                    </h4>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: theme.status.sent.text }}>
-                      ${invoice.total_amount.toFixed(2)}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '12px', color: theme.colors.text.secondary, margin: '2px 0' }}>
-                    {getClientName(invoice.client_id)}
-                  </p>
-                  <p style={{ fontSize: '11px', color: theme.colors.gray[400], margin: 0 }}>
-                    {formatDate(invoice.date)}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Pending Column (includes submitted for backwards compatibility) */}
+          {/* Pending Column (includes submitted and sent for backwards compatibility) */}
           <div
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, 'pending')}
             style={{
               backgroundColor: theme.colors.background.card,
               borderRadius: '12px',
-              border: draggedInvoice && ['pending', 'submitted'].includes(draggedInvoice.status || 'draft') ? `2px dashed ${theme.colors.border.main}` : `1px solid ${theme.colors.border.main}`,
+              border: draggedInvoice && ['pending', 'submitted', 'sent'].includes(draggedInvoice.status || 'draft') ? `2px dashed ${theme.colors.border.main}` : `1px solid ${theme.colors.border.main}`,
               minHeight: '400px'
             }}
           >
@@ -1195,54 +1201,16 @@ export default function InvoiceGenerator() {
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: theme.status.pending.text, margin: 0 }}>
                 ⏳ Pending ({invoices.filter(i => {
                   const status = i.status || 'draft'
-                  return ['pending', 'submitted'].includes(status)
+                  return ['pending', 'submitted', 'sent'].includes(status)
                 }).length})
               </h3>
             </div>
             <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {invoices.filter(invoice => {
                 const status = invoice.status || 'draft'
-                return ['pending', 'submitted'].includes(status)
+                return ['pending', 'submitted', 'sent'].includes(status)
               }).map((invoice) => (
-                <div
-                  key={invoice.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, invoice)}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => handleInvoiceClick(invoice)}
-                  style={{
-                    backgroundColor: draggedInvoice?.id === invoice.id ? theme.colors.gray[100] : theme.colors.background.card,
-                    border: `1px solid ${theme.colors.border.main}`,
-                    borderRadius: '8px',
-                    padding: '12px',
-                    cursor: 'move',
-                    transition: 'all 0.2s',
-                    opacity: draggedInvoice?.id === invoice.id ? 0.5 : 1
-                  }}
-                  onMouseEnter={(e) => {
-                    if (draggedInvoice?.id !== invoice.id) {
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: theme.colors.text.primary, margin: 0 }}>
-                      #{invoice.invoice_number}
-                    </h4>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: theme.status.pending.text }}>
-                      ${invoice.total_amount.toFixed(2)}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '12px', color: theme.colors.text.secondary, margin: '2px 0' }}>
-                    {getClientName(invoice.client_id)}
-                  </p>
-                  <p style={{ fontSize: '11px', color: theme.colors.gray[400], margin: 0 }}>
-                    {formatDate(invoice.date)}
-                  </p>
-                </div>
+                <InvoiceCard key={invoice.id} invoice={invoice} statusColor={theme.status.pending.text} />
               ))}
             </div>
           </div>
@@ -1271,45 +1239,7 @@ export default function InvoiceGenerator() {
             </div>
             <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {invoices.filter(invoice => (invoice.status || 'draft') === 'paid').map((invoice) => (
-                <div
-                  key={invoice.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, invoice)}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => handleInvoiceClick(invoice)}
-                  style={{
-                    backgroundColor: draggedInvoice?.id === invoice.id ? theme.colors.gray[100] : theme.colors.background.card,
-                    border: `1px solid ${theme.colors.border.main}`,
-                    borderRadius: '8px',
-                    padding: '12px',
-                    cursor: 'move',
-                    transition: 'all 0.2s',
-                    opacity: draggedInvoice?.id === invoice.id ? 0.5 : 1
-                  }}
-                  onMouseEnter={(e) => {
-                    if (draggedInvoice?.id !== invoice.id) {
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: theme.colors.text.primary, margin: 0 }}>
-                      #{invoice.invoice_number}
-                    </h4>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: theme.status.paid.text }}>
-                      ${invoice.total_amount.toFixed(2)}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '12px', color: theme.colors.text.secondary, margin: '2px 0' }}>
-                    {getClientName(invoice.client_id)}
-                  </p>
-                  <p style={{ fontSize: '11px', color: theme.colors.gray[400], margin: 0 }}>
-                    {formatDate(invoice.date)}
-                  </p>
-                </div>
+                <InvoiceCard key={invoice.id} invoice={invoice} statusColor={theme.status.paid.text} />
               ))}
             </div>
           </div>
@@ -1338,45 +1268,7 @@ export default function InvoiceGenerator() {
             </div>
             <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {invoices.filter(invoice => (invoice.status || 'draft') === 'overdue').map((invoice) => (
-                <div
-                  key={invoice.id}
-                  draggable
-                  onDragStart={(e) => handleDragStart(e, invoice)}
-                  onDragEnd={handleDragEnd}
-                  onClick={() => handleInvoiceClick(invoice)}
-                  style={{
-                    backgroundColor: draggedInvoice?.id === invoice.id ? theme.colors.gray[100] : theme.colors.background.card,
-                    border: `1px solid ${theme.colors.border.main}`,
-                    borderRadius: '8px',
-                    padding: '12px',
-                    cursor: 'move',
-                    transition: 'all 0.2s',
-                    opacity: draggedInvoice?.id === invoice.id ? 0.5 : 1
-                  }}
-                  onMouseEnter={(e) => {
-                    if (draggedInvoice?.id !== invoice.id) {
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = 'none'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '6px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: '600', color: theme.colors.text.primary, margin: 0 }}>
-                      #{invoice.invoice_number}
-                    </h4>
-                    <span style={{ fontSize: '12px', fontWeight: '600', color: theme.status.overdue.text }}>
-                      ${invoice.total_amount.toFixed(2)}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '12px', color: theme.colors.text.secondary, margin: '2px 0' }}>
-                    {getClientName(invoice.client_id)}
-                  </p>
-                  <p style={{ fontSize: '11px', color: theme.colors.gray[400], margin: 0 }}>
-                    {formatDate(invoice.date)}
-                  </p>
-                </div>
+                <InvoiceCard key={invoice.id} invoice={invoice} statusColor={theme.status.overdue.text} />
               ))}
             </div>
           </div>
