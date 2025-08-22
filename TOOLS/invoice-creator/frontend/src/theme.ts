@@ -19,11 +19,11 @@ export const theme = {
     
     // Status colors - Updated with cyberpunk palette
     success: {
-      main: '#00F5FF',
-      light: '#4DFFFF',
-      dark: '#00D4DD',
-      bg: 'rgba(0, 245, 255, 0.1)',
-      text: '#00B8CC',
+      main: '#00FF41',
+      light: '#4DFF7A',
+      dark: '#00D935',
+      bg: 'rgba(0, 255, 65, 0.1)',
+      text: '#00FF41',
     },
     
     warning: {
@@ -113,8 +113,8 @@ export const theme = {
   
   status: {
     paid: {
-      bg: 'rgba(0, 245, 255, 0.1)',
-      text: '#00B8CC',
+      bg: 'rgba(0, 255, 65, 0.1)',
+      text: '#00FF41',
     },
     pending: {
       bg: 'rgba(255, 215, 0, 0.05)',

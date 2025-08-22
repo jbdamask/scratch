@@ -147,7 +147,7 @@ export default function ClientManagement() {
               }}>
                 <Users style={{ width: '24px', height: '24px', color: 'white' }} />
               </div>
-              <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: 'white' }}>
+              <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'white' }}>
                 {editingClient.id ? 'Edit Client' : 'Add New Client'}
               </h2>
             </div>
@@ -410,19 +410,14 @@ export default function ClientManagement() {
                   borderBottom: `1px solid ${theme.colors.border.main}`,
                   background: `linear-gradient(135deg, ${theme.colors.gray[100]} 0%, ${theme.colors.background.card} 100%)`
                 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ 
-                      fontSize: '18px', 
-                      fontWeight: '600', 
-                      color: theme.colors.text.primary,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold flex items-center gap-2" style={{ 
+                      color: theme.colors.text.primary
                     }}>
                       <Building size={18} color={theme.colors.text.secondary} />
                       {client.name}
                     </h3>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div className="flex gap-2">
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
@@ -483,38 +478,36 @@ export default function ClientManagement() {
                 <div style={{ padding: '20px 24px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {client.primary_contact && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="flex items-center gap-2">
                         <User size={16} color={theme.colors.text.secondary} />
-                        <span style={{ fontSize: '14px', color: theme.colors.text.secondary }}>{client.primary_contact}</span>
+                        <span className="text-sm" style={{ color: theme.colors.text.secondary }}>{client.primary_contact}</span>
                       </div>
                     )}
                     {client.email && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="flex items-center gap-2">
                         <Mail size={16} color={theme.colors.text.secondary} />
                         <a 
                           href={`mailto:${client.email}`}
+                          className="text-sm hover:underline"
                           style={{ 
-                            fontSize: '14px', 
                             color: theme.colors.secondary.main,
                             textDecoration: 'none'
                           }}
-                          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
                         >
                           {client.email}
                         </a>
                       </div>
                     )}
                     {client.phone_number && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="flex items-center gap-2">
                         <Phone size={16} color={theme.colors.text.secondary} />
-                        <span style={{ fontSize: '14px', color: theme.colors.text.secondary }}>{client.phone_number}</span>
+                        <span className="text-sm" style={{ color: theme.colors.text.secondary }}>{client.phone_number}</span>
                       </div>
                     )}
                     {client.address && (
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <div className="flex items-start gap-2">
                         <MapPin size={16} color={theme.colors.text.secondary} style={{ marginTop: '2px' }} />
-                        <span style={{ fontSize: '14px', color: theme.colors.text.secondary, lineHeight: '1.5' }}>{client.address}</span>
+                        <span className="text-sm leading-relaxed" style={{ color: theme.colors.text.secondary }}>{client.address}</span>
                       </div>
                     )}
                   </div>
