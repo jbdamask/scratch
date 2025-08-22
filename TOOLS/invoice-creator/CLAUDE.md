@@ -1,6 +1,6 @@
 # General Tips
 - Do not assume the date. You should run `date()` in the terminal to get today's date before doing anything that relates to time (e.g. installing package versions)
-
+- Do not change the existing csv parsing algorithm - it's located in the backend
 
 # Architecture
 - Use the latest versions of Vite, React, and Shadcn
