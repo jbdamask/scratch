@@ -80,6 +80,17 @@ export default function InvoiceGenerator() {
     fetchInvoices()
     fetchClients()
     fetchCompanies()
+    
+    // Listen for new invoice event from header button
+    const handleNewInvoice = () => {
+      handleNewInvoiceClick()
+    }
+    
+    window.addEventListener('newInvoice', handleNewInvoice)
+    
+    return () => {
+      window.removeEventListener('newInvoice', handleNewInvoice)
+    }
   }, [])
 
   const fetchInvoices = async () => {
@@ -932,45 +943,6 @@ export default function InvoiceGenerator() {
   // Otherwise, show invoice list
   return (
     <div style={{ padding: '32px' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '24px'
-      }}>
-        <div>
-          <h1 style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '8px' }}>
-            Invoices
-          </h1>
-          <p style={{ fontSize: '16px', color: '#6b7280' }}>
-            Manage your invoices and create new ones
-          </p>
-        </div>
-        
-        <button
-          onClick={handleNewInvoiceClick}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '12px 20px',
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: '600',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
-        >
-          <Plus size={20} />
-          New Invoice
-        </button>
-      </div>
-
       {invoices.length === 0 ? (
         <div style={{
           backgroundColor: 'white',

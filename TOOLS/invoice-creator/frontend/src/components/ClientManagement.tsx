@@ -26,6 +26,18 @@ export default function ClientManagement() {
 
   useEffect(() => {
     fetchClients()
+    
+    // Listen for add new client event from header button
+    const handleAddNewClient = () => {
+      setEditingClient(emptyClient)
+      setShowForm(true)
+    }
+    
+    window.addEventListener('addNewClient', handleAddNewClient)
+    
+    return () => {
+      window.removeEventListener('addNewClient', handleAddNewClient)
+    }
   }, [])
 
   const fetchClients = async () => {
@@ -109,53 +121,6 @@ export default function ClientManagement() {
 
   return (
     <div style={{ padding: '32px' }}>
-      {/* Header Section */}
-      <div style={{ 
-        marginBottom: '32px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center'
-      }}>
-        <div>
-          <h1 style={{ 
-            fontSize: '32px', 
-            fontWeight: 'bold', 
-            color: '#111827',
-            marginBottom: '8px'
-          }}>
-            Client Management
-          </h1>
-          <p style={{ fontSize: '14px', color: '#6b7280' }}>
-            Manage your client relationships and contact information
-          </p>
-        </div>
-        <button
-          onClick={() => {
-            setEditingClient(emptyClient)
-            setShowForm(true)
-          }}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '12px 24px',
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '14px',
-            fontWeight: '500',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
-        >
-          <Plus size={20} />
-          Add New Client
-        </button>
-      </div>
-
       {/* Add/Edit Form */}
       {showForm && editingClient && (
         <div style={{ 

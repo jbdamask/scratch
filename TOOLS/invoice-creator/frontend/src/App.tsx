@@ -342,34 +342,69 @@ function App() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>
-                {sidebarItems.find(item => item.id === currentPage)?.label || 'Dashboard'}
+                {currentPage === 'clients' ? 'Client Management' : 
+                 currentPage === 'settings' ? 'Company Settings' : 
+                 sidebarItems.find(item => item.id === currentPage)?.label || 'Dashboard'}
               </h1>
               <p style={{ fontSize: '14px', color: '#6b7280' }}>
                 {currentPage === 'dashboard' && 'Overview of your business metrics'}
-                {currentPage === 'clients' && 'Manage your client relationships'}
+                {currentPage === 'clients' && 'Manage your client relationships and contact information'}
                 {currentPage === 'invoices' && 'Create and manage invoices'}
-                {currentPage === 'settings' && 'Configure your business settings'}
+                {currentPage === 'settings' && 'Manage your company information for invoices'}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button 
-                style={{
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  padding: '10px 24px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onClick={() => setCurrentPage('invoices')}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
-              >
-                + New Invoice
-              </button>
+              {currentPage === 'clients' ? (
+                <button 
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    padding: '10px 24px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  onClick={() => {
+                    // This will trigger the client form - we'll handle this through a custom event or state
+                    window.dispatchEvent(new CustomEvent('addNewClient'))
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                >
+                  + Add New Client
+                </button>
+              ) : currentPage === 'settings' ? null : (
+                <button 
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    padding: '10px 24px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onClick={() => {
+                    if (currentPage === 'invoices') {
+                      window.dispatchEvent(new CustomEvent('newInvoice'))
+                    } else {
+                      setCurrentPage('invoices')
+                    }
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                >
+                  + New Invoice
+                </button>
+              )}
             </div>
           </div>
         </header>

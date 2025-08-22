@@ -200,13 +200,6 @@ export default function CompanyConfig() {
 
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '8px' }}>
-        Company Settings
-      </h1>
-      <p style={{ color: '#6b7280', marginBottom: '24px' }}>
-        Manage your company information for invoices
-      </p>
-
       <form onSubmit={handleSubmit} style={{ backgroundColor: 'white', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
         {/* Company Name */}
         <div style={{ marginBottom: '16px' }}>
