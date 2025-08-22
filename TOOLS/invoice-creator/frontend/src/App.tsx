@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import CompanyConfig from '@/components/CompanyConfig'
 import ClientManagement from '@/components/ClientManagement'
 import InvoiceGenerator from '@/components/InvoiceGenerator'
+import { theme } from '@/theme'
 import { 
   LayoutDashboard, 
   Building2, 
@@ -139,112 +140,100 @@ function App() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
               {/* Total Revenue Card */}
               <div style={{ 
-                backgroundColor: 'white', 
-                padding: '24px', 
-                borderRadius: '12px', 
-                border: '1px solid #e5e7eb', 
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+                ...theme.card.base,
+                padding: '24px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Total Revenue</p>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>${dashboardStats.totalRevenue.toLocaleString()}</p>
-                    <p style={{ fontSize: '12px', color: '#10b981' }}>💰 All invoices</p>
+                    <p style={{ color: theme.colors.text.secondary, fontSize: '14px', marginBottom: '8px' }}>Total Revenue</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: theme.colors.text.primary, marginBottom: '4px' }}>${dashboardStats.totalRevenue.toLocaleString()}</p>
+                    <p style={{ fontSize: '12px', color: theme.colors.success.main }}>💰 All invoices</p>
                   </div>
                   <div style={{ 
                     width: '48px', 
                     height: '48px', 
-                    backgroundColor: '#dcfce7', 
+                    backgroundColor: theme.colors.success.bg, 
                     borderRadius: '50%', 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center' 
                   }}>
-                    <DollarSign style={{ width: '24px', height: '24px', color: '#10b981' }} />
+                    <DollarSign style={{ width: '24px', height: '24px', color: theme.colors.success.main }} />
                   </div>
                 </div>
               </div>
 
               {/* Active Clients Card */}
               <div style={{ 
-                backgroundColor: 'white', 
-                padding: '24px', 
-                borderRadius: '12px', 
-                border: '1px solid #e5e7eb', 
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+                ...theme.card.base,
+                padding: '24px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Active Clients</p>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>{dashboardStats.activeClients}</p>
-                    <p style={{ fontSize: '12px', color: '#3b82f6' }}>👥 Total clients</p>
+                    <p style={{ color: theme.colors.text.secondary, fontSize: '14px', marginBottom: '8px' }}>Active Clients</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: theme.colors.text.primary, marginBottom: '4px' }}>{dashboardStats.activeClients}</p>
+                    <p style={{ fontSize: '12px', color: theme.colors.secondary.main }}>👥 Total clients</p>
                   </div>
                   <div style={{ 
                     width: '48px', 
                     height: '48px', 
-                    backgroundColor: '#dbeafe', 
+                    backgroundColor: theme.colors.secondary.bg, 
                     borderRadius: '50%', 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center' 
                   }}>
-                    <Users style={{ width: '24px', height: '24px', color: '#3b82f6' }} />
+                    <Users style={{ width: '24px', height: '24px', color: theme.colors.secondary.main }} />
                   </div>
                 </div>
               </div>
 
               {/* Pending Invoices Card */}
               <div style={{ 
-                backgroundColor: 'white', 
-                padding: '24px', 
-                borderRadius: '12px', 
-                border: '1px solid #e5e7eb', 
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+                ...theme.card.base,
+                padding: '24px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Pending Invoices</p>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>{dashboardStats.pendingInvoices}</p>
-                    <p style={{ fontSize: '12px', color: '#f59e0b' }}>⏳ Awaiting payment</p>
+                    <p style={{ color: theme.colors.text.secondary, fontSize: '14px', marginBottom: '8px' }}>Pending Invoices</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: theme.colors.text.primary, marginBottom: '4px' }}>{dashboardStats.pendingInvoices}</p>
+                    <p style={{ fontSize: '12px', color: theme.colors.warning.main }}>⏳ Awaiting payment</p>
                   </div>
                   <div style={{ 
                     width: '48px', 
                     height: '48px', 
-                    backgroundColor: '#fed7aa', 
+                    backgroundColor: theme.colors.warning.bg, 
                     borderRadius: '50%', 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center' 
                   }}>
-                    <Clock3 style={{ width: '24px', height: '24px', color: '#f59e0b' }} />
+                    <Clock3 style={{ width: '24px', height: '24px', color: theme.colors.warning.main }} />
                   </div>
                 </div>
               </div>
 
               {/* Paid Invoices Card */}
               <div style={{ 
-                backgroundColor: 'white', 
-                padding: '24px', 
-                borderRadius: '12px', 
-                border: '1px solid #e5e7eb', 
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+                ...theme.card.base,
+                padding: '24px'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Paid Invoices</p>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>{dashboardStats.paidInvoices}</p>
-                    <p style={{ fontSize: '12px', color: '#10b981' }}>✅ Total paid</p>
+                    <p style={{ color: theme.colors.text.secondary, fontSize: '14px', marginBottom: '8px' }}>Paid Invoices</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: theme.colors.text.primary, marginBottom: '4px' }}>{dashboardStats.paidInvoices}</p>
+                    <p style={{ fontSize: '12px', color: theme.colors.success.main }}>✅ Total paid</p>
                   </div>
                   <div style={{ 
                     width: '48px', 
                     height: '48px', 
-                    backgroundColor: '#dcfce7', 
+                    backgroundColor: theme.colors.success.bg, 
                     borderRadius: '50%', 
                     display: 'flex', 
                     alignItems: 'center', 
                     justifyContent: 'center' 
                   }}>
-                    <CheckCircle style={{ width: '24px', height: '24px', color: '#10b981' }} />
+                    <CheckCircle style={{ width: '24px', height: '24px', color: theme.colors.success.main }} />
                   </div>
                 </div>
               </div>
@@ -252,17 +241,14 @@ function App() {
 
             {/* Recent Invoices */}
             <div style={{ 
-              backgroundColor: 'white', 
-              padding: '24px', 
-              borderRadius: '12px', 
-              border: '1px solid #e5e7eb', 
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+              ...theme.card.base,
+              padding: '24px'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827' }}>Recent Invoices</h2>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: theme.colors.text.primary }}>Recent Invoices</h2>
                 <button 
                   style={{ 
-                    color: '#3b82f6', 
+                    color: theme.colors.secondary.main, 
                     fontSize: '14px', 
                     fontWeight: '500', 
                     border: 'none', 
@@ -279,7 +265,7 @@ function App() {
                   <div style={{ 
                     textAlign: 'center', 
                     padding: '40px', 
-                    color: '#6b7280' 
+                    color: theme.colors.text.secondary 
                   }}>
                     No invoices yet. Create your first invoice!
                   </div>
@@ -296,36 +282,36 @@ function App() {
                         transition: 'background-color 0.2s',
                         cursor: 'pointer'
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.gray[50]}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                         <div style={{ 
                           width: '48px', 
                           height: '48px', 
-                          backgroundColor: '#3b82f6', 
+                          backgroundColor: theme.colors.secondary.main, 
                           borderRadius: '8px', 
                           display: 'flex', 
                           alignItems: 'center', 
                           justifyContent: 'center' 
                         }}>
-                          <FileText style={{ width: '24px', height: '24px', color: 'white' }} />
+                          <FileText style={{ width: '24px', height: '24px', color: theme.colors.text.white }} />
                         </div>
                         <div>
-                          <p style={{ fontWeight: 'bold', color: '#111827' }}>#{invoice.invoice_number}</p>
-                          <p style={{ fontSize: '14px', color: '#6b7280' }}>{getClientName(invoice.client_id)}</p>
+                          <p style={{ fontWeight: 'bold', color: theme.colors.text.primary }}>#{invoice.invoice_number}</p>
+                          <p style={{ fontSize: '14px', color: theme.colors.text.secondary }}>{getClientName(invoice.client_id)}</p>
                         </div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <p style={{ fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>${invoice.total_amount.toLocaleString()}</p>
+                        <p style={{ fontWeight: 'bold', color: theme.colors.text.primary, marginBottom: '4px' }}>${invoice.total_amount.toLocaleString()}</p>
                         <span style={{ 
                           display: 'inline-block',
                           padding: '2px 12px', 
                           borderRadius: '9999px', 
                           fontSize: '12px', 
                           fontWeight: '500', 
-                          backgroundColor: invoice.status === 'paid' ? '#dcfce7' : '#fef3c7', 
-                          color: invoice.status === 'paid' ? '#166534' : '#92400e'
+                          backgroundColor: invoice.status === 'paid' ? theme.colors.success.bg : theme.colors.warning.bgLight, 
+                          color: invoice.status === 'paid' ? theme.colors.success.text : theme.colors.warning.text
                         }}>
                           {invoice.status === 'submitted' ? 'pending' : invoice.status}
                         </span>
@@ -348,18 +334,18 @@ function App() {
   ]
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: theme.colors.background.main, display: 'flex' }}>
       {/* Sidebar */}
       <div style={{ 
         width: '288px', 
-        backgroundColor: '#5b68eb', 
-        color: 'white', 
+        backgroundColor: theme.colors.background.sidebar, 
+        color: theme.colors.text.white, 
         flexShrink: 0 
       }}>
         {/* Logo/Brand Section */}
         <div style={{ 
           padding: '32px', 
-          borderBottom: '1px solid rgba(255,255,255,0.2)' 
+          borderBottom: `1px solid ${theme.colors.border.light}` 
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             {company?.logos && company.logos.length > 0 ? (
@@ -372,7 +358,7 @@ function App() {
                   height: '48px', 
                   borderRadius: '12px',
                   objectFit: 'cover',
-                  border: '2px solid rgba(255,255,255,0.2)'
+                  border: `2px solid ${theme.colors.border.light}`
                 }}
               />
             ) : (
@@ -380,20 +366,20 @@ function App() {
               <div style={{ 
                 width: '48px', 
                 height: '48px', 
-                backgroundColor: 'rgba(255,255,255,0.2)', 
+                backgroundColor: theme.colors.border.light, 
                 borderRadius: '12px', 
                 display: 'flex', 
                 alignItems: 'center', 
                 justifyContent: 'center' 
               }}>
-                <FileText style={{ width: '24px', height: '24px', color: 'white' }} />
+                <FileText style={{ width: '24px', height: '24px', color: theme.colors.text.white }} />
               </div>
             )}
             <div>
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: theme.colors.text.white }}>
                 {company?.name || 'InvoiceFlow'}
               </h2>
-              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}>
+              <p style={{ fontSize: '14px', color: theme.colors.text.light }}>
                 Consulting Invoices
               </p>
             </div>
@@ -414,8 +400,8 @@ function App() {
                 padding: '12px 24px',
                 borderRadius: '12px',
                 border: 'none',
-                backgroundColor: currentPage === item.id ? 'rgba(255,255,255,0.2)' : 'transparent',
-                color: 'white',
+                backgroundColor: currentPage === item.id ? theme.colors.border.light : 'transparent',
+                color: theme.colors.text.white,
                 fontSize: '16px',
                 fontWeight: '500',
                 cursor: 'pointer',
@@ -424,7 +410,7 @@ function App() {
               }}
               onMouseEnter={(e) => {
                 if (currentPage !== item.id) {
-                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'
+                  e.currentTarget.style.backgroundColor = theme.colors.primary.bg
                 }
               }}
               onMouseLeave={(e) => {
@@ -442,21 +428,21 @@ function App() {
       </div>
 
       {/* Main Content */}
-      <div style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+      <div style={{ flex: 1, backgroundColor: theme.colors.background.main }}>
         {/* Top Header */}
         <header style={{ 
-          backgroundColor: 'white', 
-          borderBottom: '1px solid #e5e7eb', 
+          backgroundColor: theme.colors.background.card, 
+          borderBottom: `1px solid ${theme.colors.border.main}`, 
           padding: '24px 32px' 
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>
+              <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: theme.colors.text.primary, marginBottom: '4px' }}>
                 {currentPage === 'clients' ? 'Client Management' : 
                  currentPage === 'settings' ? 'Company Settings' : 
                  sidebarItems.find(item => item.id === currentPage)?.label || 'Dashboard'}
               </h1>
-              <p style={{ fontSize: '14px', color: '#6b7280' }}>
+              <p style={{ fontSize: '14px', color: theme.colors.text.secondary }}>
                 {currentPage === 'dashboard' && 'Overview of your business metrics'}
                 {currentPage === 'clients' && 'Manage your client relationships and contact information'}
                 {currentPage === 'invoices' && 'Create and manage invoices'}
@@ -467,8 +453,8 @@ function App() {
               {currentPage === 'clients' ? (
                 <button 
                   style={{
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
+                    backgroundColor: theme.colors.secondary.main,
+                    color: theme.colors.text.white,
                     padding: '10px 24px',
                     borderRadius: '8px',
                     border: 'none',
@@ -484,16 +470,16 @@ function App() {
                     // This will trigger the client form - we'll handle this through a custom event or state
                     window.dispatchEvent(new CustomEvent('addNewClient'))
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.secondary.dark}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.colors.secondary.main}
                 >
                   + Add New Client
                 </button>
               ) : currentPage === 'settings' ? null : (
                 <button 
                   style={{
-                    backgroundColor: '#3b82f6',
-                    color: 'white',
+                    backgroundColor: theme.colors.secondary.main,
+                    color: theme.colors.text.white,
                     padding: '10px 24px',
                     borderRadius: '8px',
                     border: 'none',
@@ -509,8 +495,8 @@ function App() {
                       setCurrentPage('invoices')
                     }
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.secondary.dark}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.colors.secondary.main}
                 >
                   + New Invoice
                 </button>
