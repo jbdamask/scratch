@@ -685,9 +685,10 @@ def get_invoice_pdf(invoice_id: int, download: bool = False, db: Session = Depen
 
 @app.put("/invoices/{invoice_id}/status")
 def update_invoice_status(invoice_id: int, status: str, db: Session = Depends(get_db)):
-    """Update invoice status (submitted or paid)."""
-    if status not in ["submitted", "paid"]:
-        raise HTTPException(status_code=400, detail="Status must be 'submitted' or 'paid'")
+    """Update invoice status."""
+    allowed_statuses = ["draft", "sent", "pending", "paid", "overdue", "submitted"]  # Keep submitted for backwards compatibility
+    if status not in allowed_statuses:
+        raise HTTPException(status_code=400, detail=f"Status must be one of: {', '.join(allowed_statuses)}")
     
     invoice = db.query(DBInvoice).filter(DBInvoice.id == invoice_id).first()
     if invoice is None:

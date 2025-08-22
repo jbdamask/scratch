@@ -92,8 +92,11 @@ function App() {
 
         // Calculate statistics
         const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.total_amount, 0)
-        const pendingInvoices = invoices.filter(inv => inv.status === 'submitted').length
-        const paidInvoices = invoices.filter(inv => inv.status === 'paid').length
+        const pendingInvoices = invoices.filter(inv => {
+          const status = inv.status || 'submitted' // Keep existing default
+          return ['submitted', 'sent', 'pending', 'overdue'].includes(status)
+        }).length
+        const paidInvoices = invoices.filter(inv => (inv.status || 'submitted') === 'paid').length
         const activeClients = clientsList.length
 
         setDashboardStats({
@@ -123,6 +126,19 @@ function App() {
   const getClientName = (clientId: number) => {
     const client = clients.find(c => c.id === clientId)
     return client?.name || 'Unknown Client'
+  }
+
+  // Helper function to get status display info
+  const getStatusDisplay = (status: string | undefined) => {
+    const actualStatus = status || 'draft'
+    const statusConfig = {
+      'draft': { label: 'Draft', colors: theme.colors.draft },
+      'sent': { label: 'Sent', colors: theme.colors.info },
+      'pending': { label: 'Pending', colors: theme.colors.warning },
+      'paid': { label: 'Paid', colors: theme.colors.success },
+      'overdue': { label: 'Overdue', colors: theme.colors.error }
+    }
+    return statusConfig[actualStatus] || statusConfig['draft']
   }
 
   const renderPage = () => {
@@ -310,10 +326,10 @@ function App() {
                           borderRadius: '9999px', 
                           fontSize: '12px', 
                           fontWeight: '500', 
-                          backgroundColor: invoice.status === 'paid' ? theme.colors.success.bg : theme.colors.warning.bgLight, 
-                          color: invoice.status === 'paid' ? theme.colors.success.text : theme.colors.warning.text
+                          backgroundColor: getStatusDisplay(invoice.status).colors.bg, 
+                          color: getStatusDisplay(invoice.status).colors.text
                         }}>
-                          {invoice.status === 'submitted' ? 'pending' : invoice.status}
+                          {getStatusDisplay(invoice.status).label.toLowerCase()}
                         </span>
                       </div>
                     </div>

@@ -84,7 +84,10 @@ export default function ClientManagement() {
   const getClientTotals = (clientId: number) => {
     const clientInvoices = invoices.filter(invoice => invoice.client_id === clientId)
     const pendingTotal = clientInvoices
-      .filter(invoice => (invoice.status || 'submitted') === 'submitted')
+      .filter(invoice => {
+        const status = invoice.status || 'submitted' // Keep existing default
+        return ['submitted', 'sent', 'pending', 'overdue'].includes(status)
+      })
       .reduce((sum, invoice) => sum + invoice.total_amount, 0)
     const paidTotal = clientInvoices
       .filter(invoice => (invoice.status || 'submitted') === 'paid')

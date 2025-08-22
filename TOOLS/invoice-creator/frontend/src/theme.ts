@@ -35,6 +35,23 @@ export const theme = {
       bgLight: 'rgba(255, 215, 0, 0.05)',
     },
     
+    // Additional status colors
+    info: {
+      main: '#00BFFF',
+      light: '#4DD4FF',
+      dark: '#009FDD',
+      bg: 'rgba(0, 191, 255, 0.1)',
+      text: '#0099CC',
+    },
+    
+    draft: {
+      main: '#8B949E',
+      light: '#A5B3BB',
+      dark: '#6E7681',
+      bg: 'rgba(139, 148, 158, 0.1)',
+      text: '#8B949E',
+    },
+    
     error: {
       main: '#FF1744',
       light: '#FF5983',
@@ -112,13 +129,25 @@ export const theme = {
   },
   
   status: {
-    paid: {
-      bg: 'rgba(0, 255, 65, 0.1)',
-      text: '#00FF41',
+    draft: {
+      bg: 'rgba(139, 148, 158, 0.1)',
+      text: '#8B949E',
+    },
+    sent: {
+      bg: 'rgba(0, 191, 255, 0.1)',
+      text: '#0099CC',
     },
     pending: {
       bg: 'rgba(255, 215, 0, 0.05)',
       text: '#CC8F00',
+    },
+    paid: {
+      bg: 'rgba(0, 255, 65, 0.1)',
+      text: '#00FF41',
+    },
+    overdue: {
+      bg: 'rgba(255, 23, 68, 0.1)',
+      text: '#FF1744',
     },
   },
 } as const

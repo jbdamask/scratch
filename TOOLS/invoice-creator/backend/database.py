@@ -57,7 +57,7 @@ class Invoice(Base):
     date = Column(DateTime, default=datetime.utcnow)
     message = Column(Text)
     total_amount = Column(Float)
-    status = Column(String, default="submitted", nullable=False)  # submitted, paid
+    status = Column(String, default="draft", nullable=False)  # draft, sent, pending, paid, overdue
     pdf_path = Column(String)
     markdown_path = Column(String)
     created_at = Column(DateTime, default=datetime.utcnow)
