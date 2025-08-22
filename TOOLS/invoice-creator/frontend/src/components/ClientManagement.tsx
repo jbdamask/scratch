@@ -11,8 +11,23 @@ interface Client {
   email: string
 }
 
+interface Invoice {
+  id: number
+  invoice_number: string
+  client_id: number
+  company_id: number
+  date: string
+  message?: string
+  total_amount: number
+  status: string
+  pdf_path?: string
+  markdown_path?: string
+  created_at: string
+}
+
 export default function ClientManagement() {
   const [clients, setClients] = useState<Client[]>([])
+  const [invoices, setInvoices] = useState<Invoice[]>([])
   const [editingClient, setEditingClient] = useState<Client | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -27,6 +42,7 @@ export default function ClientManagement() {
 
   useEffect(() => {
     fetchClients()
+    fetchInvoices()
     
     // Listen for add new client event from header button
     const handleAddNewClient = () => {
@@ -53,6 +69,30 @@ export default function ClientManagement() {
     }
   }
 
+  const fetchInvoices = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/invoices/')
+      if (response.ok) {
+        const data = await response.json()
+        setInvoices(data)
+      }
+    } catch (error) {
+      console.error('Error fetching invoices:', error)
+    }
+  }
+
+  const getClientTotals = (clientId: number) => {
+    const clientInvoices = invoices.filter(invoice => invoice.client_id === clientId)
+    const pendingTotal = clientInvoices
+      .filter(invoice => (invoice.status || 'submitted') === 'submitted')
+      .reduce((sum, invoice) => sum + invoice.total_amount, 0)
+    const paidTotal = clientInvoices
+      .filter(invoice => (invoice.status || 'submitted') === 'paid')
+      .reduce((sum, invoice) => sum + invoice.total_amount, 0)
+    
+    return { pendingTotal, paidTotal }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!editingClient) return
@@ -76,6 +116,7 @@ export default function ClientManagement() {
 
       if (response.ok) {
         await fetchClients()
+        await fetchInvoices() // Refresh invoices to get updated totals
         setEditingClient(null)
         setShowForm(false)
         alert('Client saved successfully!')
@@ -105,6 +146,7 @@ export default function ClientManagement() {
 
       if (response.ok) {
         await fetchClients()
+        await fetchInvoices() // Refresh invoices to get updated totals  
         alert('Client deleted successfully!')
       } else {
         throw new Error('Failed to delete client')
@@ -510,6 +552,41 @@ export default function ClientManagement() {
                         <span className="text-sm leading-relaxed" style={{ color: theme.colors.text.secondary }}>{client.address}</span>
                       </div>
                     )}
+                    
+                    {/* Financial Summary */}
+                    {client.id && (() => {
+                      const { pendingTotal, paidTotal } = getClientTotals(client.id)
+                      if (pendingTotal > 0 || paidTotal > 0) {
+                        return (
+                          <div style={{ 
+                            marginTop: '16px', 
+                            paddingTop: '16px', 
+                            borderTop: `1px solid ${theme.colors.border.main}`,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}>
+                            {pendingTotal > 0 && (
+                              <div>
+                                <span className="text-sm" style={{ color: theme.colors.text.secondary }}>Pending: </span>
+                                <span className="text-lg font-semibold" style={{ color: theme.colors.warning.main }}>
+                                  ${pendingTotal.toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                            {paidTotal > 0 && (
+                              <div>
+                                <span className="text-sm" style={{ color: theme.colors.text.secondary }}>Paid: </span>
+                                <span className="text-lg font-semibold" style={{ color: theme.colors.success.main }}>
+                                  ${paidTotal.toLocaleString()}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )
+                      }
+                      return null
+                    })()}
                   </div>
                 </div>
               </div>
