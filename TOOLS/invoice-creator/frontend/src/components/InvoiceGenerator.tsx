@@ -394,7 +394,7 @@ export default function InvoiceGenerator() {
               </h3>
               
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                {/* Invoice Number */}
+                {/* Invoice Number - Auto-generated */}
                 <div>
                   <label style={{ 
                     display: 'block', 
@@ -403,18 +403,20 @@ export default function InvoiceGenerator() {
                     color: '#374151', 
                     marginBottom: '8px' 
                   }}>
-                    Invoice Number
+                    Invoice Number (Auto-generated)
                   </label>
                   <Input
                     value={invoice.invoice_number}
-                    onChange={(e) => setInvoice(prev => ({ ...prev, invoice_number: e.target.value }))}
-                    required
+                    readOnly
                     style={{ 
                       width: '100%',
                       padding: '10px 12px',
                       border: '1px solid #d1d5db',
                       borderRadius: '8px',
-                      fontSize: '14px'
+                      fontSize: '14px',
+                      backgroundColor: '#f9fafb',
+                      color: '#6b7280',
+                      cursor: 'not-allowed'
                     }}
                   />
                 </div>
