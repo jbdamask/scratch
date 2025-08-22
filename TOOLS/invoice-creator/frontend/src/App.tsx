@@ -57,6 +57,24 @@ function App() {
   })
   const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([])
   const [clients, setClients] = useState<Client[]>([])
+  const [company, setCompany] = useState<any>(null)
+
+  // Fetch company data for branding
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/companies/')
+        const companies = await response.json()
+        if (companies.length > 0) {
+          setCompany(companies[0]) // Use first company
+        }
+      } catch (error) {
+        console.error('Error fetching company data:', error)
+      }
+    }
+
+    fetchCompanyData()
+  }, [])
 
   // Fetch dashboard data
   useEffect(() => {
@@ -344,20 +362,40 @@ function App() {
           borderBottom: '1px solid rgba(255,255,255,0.2)' 
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ 
-              width: '48px', 
-              height: '48px', 
-              backgroundColor: 'rgba(255,255,255,0.2)', 
-              borderRadius: '12px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <FileText style={{ width: '24px', height: '24px', color: 'white' }} />
-            </div>
+            {company?.logos && company.logos.length > 0 ? (
+              // Show company logo if available
+              <img 
+                src={`http://localhost:8000${company.logos.find((logo: any) => logo.is_default)?.file_path || company.logos[0].file_path}`}
+                alt={`${company.name} logo`}
+                style={{ 
+                  width: '48px', 
+                  height: '48px', 
+                  borderRadius: '12px',
+                  objectFit: 'cover',
+                  border: '2px solid rgba(255,255,255,0.2)'
+                }}
+              />
+            ) : (
+              // Fallback to icon if no logo
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                backgroundColor: 'rgba(255,255,255,0.2)', 
+                borderRadius: '12px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <FileText style={{ width: '24px', height: '24px', color: 'white' }} />
+              </div>
+            )}
             <div>
-              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>InvoiceFlow</h2>
-              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}>Consulting Invoices</p>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>
+                {company?.name || 'InvoiceFlow'}
+              </h2>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}>
+                Consulting Invoices
+              </p>
             </div>
           </div>
         </div>
