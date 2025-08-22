@@ -192,149 +192,132 @@ export default function ClientManagement() {
 
           {/* Form Content */}
           <form onSubmit={handleSubmit} style={{ padding: '32px' }}>
-            <div style={{ 
-              display: 'grid', 
-              gridTemplateColumns: 'repeat(2, 1fr)', 
-              gap: '20px',
-              marginBottom: '24px'
-            }}>
-              {/* Client Name */}
-              <div>
-                <label style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: '#374151', 
-                  marginBottom: '8px' 
-                }}>
-                  <Building size={16} />
-                  Client Name
-                </label>
-                <input
-                  value={editingClient.name}
-                  onChange={(e) => handleChange('name', e.target.value)}
-                  required
-                  style={{ 
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
+            {/* Client Name */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block',
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: '#374151', 
+                marginBottom: '8px' 
+              }}>
+                Client Name
+              </label>
+              <input
+                value={editingClient.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                required
+                style={{ 
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              />
+            </div>
 
-              {/* Primary Contact */}
-              <div>
-                <label style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: '#374151', 
-                  marginBottom: '8px' 
-                }}>
-                  <User size={16} />
-                  Primary Contact
-                </label>
-                <input
-                  value={editingClient.primary_contact}
-                  onChange={(e) => handleChange('primary_contact', e.target.value)}
-                  style={{ 
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
+            {/* Primary Contact */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block',
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: '#374151', 
+                marginBottom: '8px' 
+              }}>
+                Primary Contact
+              </label>
+              <input
+                value={editingClient.primary_contact}
+                onChange={(e) => handleChange('primary_contact', e.target.value)}
+                style={{ 
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              />
+            </div>
 
-              {/* Address */}
-              <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: '#374151', 
-                  marginBottom: '8px' 
-                }}>
-                  <MapPin size={16} />
-                  Address
-                </label>
-                <input
-                  value={editingClient.address}
-                  onChange={(e) => handleChange('address', e.target.value)}
-                  placeholder="Street, City, State, ZIP"
-                  style={{ 
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
+            {/* Address */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block',
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: '#374151', 
+                marginBottom: '8px' 
+              }}>
+                Address
+              </label>
+              <input
+                value={editingClient.address}
+                onChange={(e) => handleChange('address', e.target.value)}
+                placeholder="Street, City, State, ZIP"
+                style={{ 
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              />
+            </div>
 
-              {/* Phone Number */}
-              <div>
-                <label style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: '#374151', 
-                  marginBottom: '8px' 
-                }}>
-                  <Phone size={16} />
-                  Phone Number
-                </label>
-                <input
-                  value={editingClient.phone_number}
-                  onChange={(e) => handleChange('phone_number', e.target.value)}
-                  style={{ 
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
+            {/* Phone Number */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ 
+                display: 'block',
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: '#374151', 
+                marginBottom: '8px' 
+              }}>
+                Phone Number
+              </label>
+              <input
+                value={editingClient.phone_number}
+                onChange={(e) => handleChange('phone_number', e.target.value)}
+                style={{ 
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              />
+            </div>
 
-              {/* Email */}
-              <div>
-                <label style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: '#374151', 
-                  marginBottom: '8px' 
-                }}>
-                  <Mail size={16} />
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={editingClient.email}
-                  onChange={(e) => handleChange('email', e.target.value)}
-                  style={{ 
-                    width: '100%',
-                    padding: '10px 12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    fontSize: '14px'
-                  }}
-                />
-              </div>
+            {/* Email */}
+            <div style={{ marginBottom: '32px' }}>
+              <label style={{ 
+                display: 'block',
+                fontSize: '14px', 
+                fontWeight: '500', 
+                color: '#374151', 
+                marginBottom: '8px' 
+              }}>
+                Email
+              </label>
+              <input
+                type="email"
+                value={editingClient.email}
+                onChange={(e) => handleChange('email', e.target.value)}
+                style={{ 
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  backgroundColor: 'white'
+                }}
+              />
             </div>
 
             {/* Form Actions */}
@@ -350,14 +333,7 @@ export default function ClientManagement() {
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  cursor: loading ? 'not-allowed' : 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  if (!loading) e.currentTarget.style.backgroundColor = '#2563eb'
-                }}
-                onMouseLeave={(e) => {
-                  if (!loading) e.currentTarget.style.backgroundColor = '#3b82f6'
+                  cursor: loading ? 'not-allowed' : 'pointer'
                 }}
               >
                 {loading ? 'Saving...' : 'Save Client'}
@@ -376,16 +352,7 @@ export default function ClientManagement() {
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f3f4f6'
-                  e.currentTarget.style.borderColor = '#9ca3af'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white'
-                  e.currentTarget.style.borderColor = '#d1d5db'
+                  cursor: 'pointer'
                 }}
               >
                 Cancel
@@ -395,286 +362,291 @@ export default function ClientManagement() {
         </div>
       )}
 
-      {/* Client Stats */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(3, 1fr)', 
-        gap: '24px',
-        marginBottom: '32px'
-      }}>
+      {/* Client Stats - Only show when not in edit mode */}
+      {!showForm && (
         <div style={{ 
-          backgroundColor: 'white', 
-          padding: '24px', 
-          borderRadius: '12px', 
-          border: '1px solid #e5e7eb', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(3, 1fr)', 
+          gap: '24px',
+          marginBottom: '32px'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Total Clients</p>
-              <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>{clients.length}</p>
-            </div>
-            <div style={{ 
-              width: '48px', 
-              height: '48px', 
-              backgroundColor: '#dbeafe', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <Users style={{ width: '24px', height: '24px', color: '#3b82f6' }} />
-            </div>
-          </div>
-        </div>
-
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '24px', 
-          borderRadius: '12px', 
-          border: '1px solid #e5e7eb', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Active Projects</p>
-              <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>
-                {Math.floor(clients.length * 0.7)}
-              </p>
-            </div>
-            <div style={{ 
-              width: '48px', 
-              height: '48px', 
-              backgroundColor: '#dcfce7', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <Building style={{ width: '24px', height: '24px', color: '#10b981' }} />
-            </div>
-          </div>
-        </div>
-
-        <div style={{ 
-          backgroundColor: 'white', 
-          padding: '24px', 
-          borderRadius: '12px', 
-          border: '1px solid #e5e7eb', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div>
-              <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>New This Month</p>
-              <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>
-                {Math.max(1, Math.floor(clients.length * 0.2))}
-              </p>
-            </div>
-            <div style={{ 
-              width: '48px', 
-              height: '48px', 
-              backgroundColor: '#fef3c7', 
-              borderRadius: '50%', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <Plus style={{ width: '24px', height: '24px', color: '#f59e0b' }} />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Clients Grid */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: clients.length === 0 ? '1fr' : 'repeat(auto-fill, minmax(350px, 1fr))', 
-        gap: '24px' 
-      }}>
-        {clients.length === 0 ? (
           <div style={{ 
             backgroundColor: 'white', 
-            padding: '64px', 
+            padding: '24px', 
             borderRadius: '12px', 
-            border: '1px dashed #d1d5db',
-            textAlign: 'center'
+            border: '1px solid #e5e7eb', 
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
           }}>
-            <Users style={{ 
-              width: '48px', 
-              height: '48px', 
-              color: '#d1d5db', 
-              margin: '0 auto 16px' 
-            }} />
-            <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '24px' }}>
-              No clients yet. Add your first client to get started.
-            </p>
-            <button
-              onClick={() => {
-                setEditingClient(emptyClient)
-                setShowForm(true)
-              }}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '12px 24px',
-                backgroundColor: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
-            >
-              <Plus size={20} />
-              Add First Client
-            </button>
-          </div>
-        ) : (
-          clients.map((client) => (
-            <div 
-              key={client.id}
-              style={{ 
-                backgroundColor: 'white', 
-                borderRadius: '12px', 
-                border: '1px solid #e5e7eb', 
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                overflow: 'hidden',
-                transition: 'all 0.3s',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
-                e.currentTarget.style.transform = 'translateY(-2px)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
-                e.currentTarget.style.transform = 'translateY(0)'
-              }}
-            >
-              {/* Client Card Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Total Clients</p>
+                <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>{clients.length}</p>
+              </div>
               <div style={{ 
-                padding: '20px 24px', 
-                borderBottom: '1px solid #e5e7eb',
-                background: 'linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%)'
+                width: '48px', 
+                height: '48px', 
+                backgroundColor: '#dbeafe', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ 
-                    fontSize: '18px', 
-                    fontWeight: '600', 
-                    color: '#111827',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px'
-                  }}>
-                    <Building size={18} color="#6b7280" />
-                    {client.name}
-                  </h3>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleEdit(client)
-                      }}
-                      style={{
-                        padding: '8px',
-                        backgroundColor: '#eff6ff',
-                        color: '#3b82f6',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#dbeafe'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#eff6ff'
-                      }}
-                    >
-                      <Edit size={16} />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        client.id && handleDelete(client.id)
-                      }}
-                      style={{
-                        padding: '8px',
-                        backgroundColor: '#fee2e2',
-                        color: '#dc2626',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#fca5a5'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#fee2e2'
-                      }}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                <Users style={{ width: '24px', height: '24px', color: '#3b82f6' }} />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ 
+            backgroundColor: 'white', 
+            padding: '24px', 
+            borderRadius: '12px', 
+            border: '1px solid #e5e7eb', 
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Active Projects</p>
+                <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>
+                  {Math.floor(clients.length * 0.7)}
+                </p>
+              </div>
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                backgroundColor: '#dcfce7', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <Building style={{ width: '24px', height: '24px', color: '#10b981' }} />
+              </div>
+            </div>
+          </div>
+
+          <div style={{ 
+            backgroundColor: 'white', 
+            padding: '24px', 
+            borderRadius: '12px', 
+            border: '1px solid #e5e7eb', 
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>New This Month</p>
+                <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827' }}>
+                  {Math.max(1, Math.floor(clients.length * 0.2))}
+                </p>
+              </div>
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                backgroundColor: '#fef3c7', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <Plus style={{ width: '24px', height: '24px', color: '#f59e0b' }} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clients Grid - Only show when not in edit mode */}
+      {!showForm && (
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: clients.length === 0 ? '1fr' : 'repeat(auto-fill, minmax(350px, 1fr))', 
+          gap: '24px' 
+        }}>
+          {clients.length === 0 ? (
+            <div style={{ 
+              backgroundColor: 'white', 
+              padding: '64px', 
+              borderRadius: '12px', 
+              border: '1px dashed #d1d5db',
+              textAlign: 'center'
+            }}>
+              <Users style={{ 
+                width: '48px', 
+                height: '48px', 
+                color: '#d1d5db', 
+                margin: '0 auto 16px' 
+              }} />
+              <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '24px' }}>
+                No clients yet. Add your first client to get started.
+              </p>
+              <button
+                onClick={() => {
+                  setEditingClient(emptyClient)
+                  setShowForm(true)
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 24px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+              >
+                <Plus size={20} />
+                Add First Client
+              </button>
+            </div>
+          ) : (
+            clients.map((client) => (
+              <div 
+                key={client.id}
+                onClick={() => handleEdit(client)}
+                style={{ 
+                  backgroundColor: 'white', 
+                  borderRadius: '12px', 
+                  border: '1px solid #e5e7eb', 
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                }}
+              >
+                {/* Client Card Header */}
+                <div style={{ 
+                  padding: '20px 24px', 
+                  borderBottom: '1px solid #e5e7eb',
+                  background: 'linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%)'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ 
+                      fontSize: '18px', 
+                      fontWeight: '600', 
+                      color: '#111827',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <Building size={18} color="#6b7280" />
+                      {client.name}
+                    </h3>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleEdit(client)
+                        }}
+                        style={{
+                          padding: '8px',
+                          backgroundColor: '#eff6ff',
+                          color: '#3b82f6',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#dbeafe'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#eff6ff'
+                        }}
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          client.id && handleDelete(client.id)
+                        }}
+                        style={{
+                          padding: '8px',
+                          backgroundColor: '#fee2e2',
+                          color: '#dc2626',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#fca5a5'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#fee2e2'
+                        }}
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Client Card Content */}
+                <div style={{ padding: '20px 24px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {client.primary_contact && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <User size={16} color="#6b7280" />
+                        <span style={{ fontSize: '14px', color: '#374151' }}>{client.primary_contact}</span>
+                      </div>
+                    )}
+                    {client.email && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Mail size={16} color="#6b7280" />
+                        <a 
+                          href={`mailto:${client.email}`}
+                          style={{ 
+                            fontSize: '14px', 
+                            color: '#3b82f6',
+                            textDecoration: 'none'
+                          }}
+                          onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
+                          onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
+                        >
+                          {client.email}
+                        </a>
+                      </div>
+                    )}
+                    {client.phone_number && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Phone size={16} color="#6b7280" />
+                        <span style={{ fontSize: '14px', color: '#374151' }}>{client.phone_number}</span>
+                      </div>
+                    )}
+                    {client.address && (
+                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                        <MapPin size={16} color="#6b7280" style={{ marginTop: '2px' }} />
+                        <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>{client.address}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
-
-              {/* Client Card Content */}
-              <div style={{ padding: '20px 24px' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  {client.primary_contact && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <User size={16} color="#6b7280" />
-                      <span style={{ fontSize: '14px', color: '#374151' }}>{client.primary_contact}</span>
-                    </div>
-                  )}
-                  {client.email && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Mail size={16} color="#6b7280" />
-                      <a 
-                        href={`mailto:${client.email}`}
-                        style={{ 
-                          fontSize: '14px', 
-                          color: '#3b82f6',
-                          textDecoration: 'none'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                        onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                      >
-                        {client.email}
-                      </a>
-                    </div>
-                  )}
-                  {client.phone_number && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Phone size={16} color="#6b7280" />
-                      <span style={{ fontSize: '14px', color: '#374151' }}>{client.phone_number}</span>
-                    </div>
-                  )}
-                  {client.address && (
-                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                      <MapPin size={16} color="#6b7280" style={{ marginTop: '2px' }} />
-                      <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>{client.address}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   )
 }

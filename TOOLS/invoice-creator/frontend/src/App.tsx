@@ -329,37 +329,6 @@ function App() {
           ))}
         </nav>
 
-        {/* Bottom Profile/Settings */}
-        <div style={{ 
-          position: 'absolute', 
-          bottom: '32px', 
-          left: '24px', 
-          right: '24px' 
-        }}>
-          <div style={{ 
-            backgroundColor: 'rgba(255,255,255,0.1)', 
-            borderRadius: '12px', 
-            padding: '16px' 
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                backgroundColor: 'rgba(255,255,255,0.2)', 
-                borderRadius: '50%', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center' 
-              }}>
-                <Settings style={{ width: '20px', height: '20px', color: 'white' }} />
-              </div>
-              <div>
-                <p style={{ fontSize: '14px', fontWeight: '500', color: 'white' }}>Settings</p>
-                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Preferences</p>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Main Content */}
