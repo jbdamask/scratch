@@ -683,6 +683,34 @@ def get_invoice_pdf(invoice_id: int, download: bool = False, db: Session = Depen
         headers=headers
     )
 
+@app.put("/invoices/{invoice_id}/status")
+def update_invoice_status(invoice_id: int, status: str, db: Session = Depends(get_db)):
+    """Update invoice status (submitted or paid)."""
+    if status not in ["submitted", "paid"]:
+        raise HTTPException(status_code=400, detail="Status must be 'submitted' or 'paid'")
+    
+    invoice = db.query(DBInvoice).filter(DBInvoice.id == invoice_id).first()
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    invoice.status = status
+    db.commit()
+    db.refresh(invoice)
+    
+    return {"message": f"Invoice status updated to {status}", "status": status}
+
+@app.post("/invoices/migrate-status")
+def migrate_invoice_status(db: Session = Depends(get_db)):
+    """Migrate existing invoices to have default status if missing."""
+    # Update all invoices that have NULL or empty status
+    updated_count = db.query(DBInvoice).filter(
+        (DBInvoice.status == None) | (DBInvoice.status == "")
+    ).update({"status": "submitted"})
+    
+    db.commit()
+    
+    return {"message": f"Updated {updated_count} invoices with default status", "count": updated_count}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

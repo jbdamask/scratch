@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import CompanyConfig from '@/components/CompanyConfig'
 import ClientManagement from '@/components/ClientManagement'
@@ -16,8 +16,95 @@ import {
 
 type Page = 'dashboard' | 'settings' | 'clients' | 'invoices'
 
+interface Invoice {
+  id: number
+  invoice_number: string
+  client_id: number
+  company_id: number
+  date: string
+  message?: string
+  total_amount: number
+  status: string
+  pdf_path?: string
+  markdown_path?: string
+  created_at: string
+}
+
+interface Client {
+  id: number
+  name: string
+  address?: string
+  primary_contact?: string
+  phone_number?: string
+  email?: string
+  created_at: string
+}
+
+interface DashboardStats {
+  totalRevenue: number
+  activeClients: number
+  pendingInvoices: number
+  paidInvoices: number
+}
+
 function App() {
   const [currentPage, setCurrentPage] = useState<Page>('dashboard')
+  const [dashboardStats, setDashboardStats] = useState<DashboardStats>({
+    totalRevenue: 0,
+    activeClients: 0,
+    pendingInvoices: 0,
+    paidInvoices: 0
+  })
+  const [recentInvoices, setRecentInvoices] = useState<Invoice[]>([])
+  const [clients, setClients] = useState<Client[]>([])
+
+  // Fetch dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch invoices
+        const invoicesResponse = await fetch('http://localhost:8000/invoices/')
+        const invoices: Invoice[] = await invoicesResponse.json()
+        
+        // Fetch clients
+        const clientsResponse = await fetch('http://localhost:8000/clients/')
+        const clientsList: Client[] = await clientsResponse.json()
+        setClients(clientsList)
+
+        // Calculate statistics
+        const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.total_amount, 0)
+        const pendingInvoices = invoices.filter(inv => inv.status === 'submitted').length
+        const paidInvoices = invoices.filter(inv => inv.status === 'paid').length
+        const activeClients = clientsList.length
+
+        setDashboardStats({
+          totalRevenue,
+          activeClients,
+          pendingInvoices,
+          paidInvoices
+        })
+
+        // Get recent invoices (last 5, sorted by creation date)
+        const recent = invoices
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 5)
+        setRecentInvoices(recent)
+
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      }
+    }
+
+    if (currentPage === 'dashboard') {
+      fetchDashboardData()
+    }
+  }, [currentPage])
+
+  // Helper function to get client name by ID
+  const getClientName = (clientId: number) => {
+    const client = clients.find(c => c.id === clientId)
+    return client?.name || 'Unknown Client'
+  }
 
   const renderPage = () => {
     switch (currentPage) {
@@ -43,8 +130,8 @@ function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Total Revenue</p>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>$45,670</p>
-                    <p style={{ fontSize: '12px', color: '#10b981' }}>📈 +12.5% from last month</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>${dashboardStats.totalRevenue.toLocaleString()}</p>
+                    <p style={{ fontSize: '12px', color: '#10b981' }}>💰 All invoices</p>
                   </div>
                   <div style={{ 
                     width: '48px', 
@@ -71,8 +158,8 @@ function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Active Clients</p>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>12</p>
-                    <p style={{ fontSize: '12px', color: '#3b82f6' }}>👤 +2 new this month</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>{dashboardStats.activeClients}</p>
+                    <p style={{ fontSize: '12px', color: '#3b82f6' }}>👥 Total clients</p>
                   </div>
                   <div style={{ 
                     width: '48px', 
@@ -99,8 +186,8 @@ function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Pending Invoices</p>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>3</p>
-                    <p style={{ fontSize: '12px', color: '#f59e0b' }}>📄 Awaiting payment</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>{dashboardStats.pendingInvoices}</p>
+                    <p style={{ fontSize: '12px', color: '#f59e0b' }}>⏳ Awaiting payment</p>
                   </div>
                   <div style={{ 
                     width: '48px', 
@@ -127,8 +214,8 @@ function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
                     <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Paid Invoices</p>
-                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>28</p>
-                    <p style={{ fontSize: '12px', color: '#10b981' }}>✅ This month</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>{dashboardStats.paidInvoices}</p>
+                    <p style={{ fontSize: '12px', color: '#10b981' }}>✅ Total paid</p>
                   </div>
                   <div style={{ 
                     width: '48px', 
@@ -155,94 +242,79 @@ function App() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                 <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827' }}>Recent Invoices</h2>
-                <button style={{ color: '#3b82f6', fontSize: '14px', fontWeight: '500' }}>View All</button>
+                <button 
+                  style={{ 
+                    color: '#3b82f6', 
+                    fontSize: '14px', 
+                    fontWeight: '500', 
+                    border: 'none', 
+                    background: 'transparent', 
+                    cursor: 'pointer' 
+                  }}
+                  onClick={() => setCurrentPage('invoices')}
+                >
+                  View All
+                </button>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {/* Invoice 1 */}
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  padding: '16px', 
-                  borderRadius: '8px',
-                  transition: 'background-color 0.2s',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ 
-                      width: '48px', 
-                      height: '48px', 
-                      backgroundColor: '#3b82f6', 
-                      borderRadius: '8px', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center' 
-                    }}>
-                      <FileText style={{ width: '24px', height: '24px', color: 'white' }} />
-                    </div>
-                    <div>
-                      <p style={{ fontWeight: 'bold', color: '#111827' }}>INV-001</p>
-                      <p style={{ fontSize: '14px', color: '#6b7280' }}>Acme Corp</p>
-                    </div>
+                {recentInvoices.length === 0 ? (
+                  <div style={{ 
+                    textAlign: 'center', 
+                    padding: '40px', 
+                    color: '#6b7280' 
+                  }}>
+                    No invoices yet. Create your first invoice!
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>$2500</p>
-                    <span style={{ 
-                      display: 'inline-block',
-                      padding: '2px 12px', 
-                      borderRadius: '9999px', 
-                      fontSize: '12px', 
-                      fontWeight: '500', 
-                      backgroundColor: '#dcfce7', 
-                      color: '#166534' 
-                    }}>paid</span>
-                  </div>
-                </div>
-
-                {/* Invoice 2 */}
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  padding: '16px', 
-                  borderRadius: '8px',
-                  transition: 'background-color 0.2s',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    <div style={{ 
-                      width: '48px', 
-                      height: '48px', 
-                      backgroundColor: '#3b82f6', 
-                      borderRadius: '8px', 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center' 
-                    }}>
-                      <FileText style={{ width: '24px', height: '24px', color: 'white' }} />
+                ) : (
+                  recentInvoices.map((invoice) => (
+                    <div 
+                      key={invoice.id}
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        padding: '16px', 
+                        borderRadius: '8px',
+                        transition: 'background-color 0.2s',
+                        cursor: 'pointer'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ 
+                          width: '48px', 
+                          height: '48px', 
+                          backgroundColor: '#3b82f6', 
+                          borderRadius: '8px', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center' 
+                        }}>
+                          <FileText style={{ width: '24px', height: '24px', color: 'white' }} />
+                        </div>
+                        <div>
+                          <p style={{ fontWeight: 'bold', color: '#111827' }}>#{invoice.invoice_number}</p>
+                          <p style={{ fontSize: '14px', color: '#6b7280' }}>{getClientName(invoice.client_id)}</p>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <p style={{ fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>${invoice.total_amount.toLocaleString()}</p>
+                        <span style={{ 
+                          display: 'inline-block',
+                          padding: '2px 12px', 
+                          borderRadius: '9999px', 
+                          fontSize: '12px', 
+                          fontWeight: '500', 
+                          backgroundColor: invoice.status === 'paid' ? '#dcfce7' : '#fef3c7', 
+                          color: invoice.status === 'paid' ? '#166534' : '#92400e'
+                        }}>
+                          {invoice.status === 'submitted' ? 'pending' : invoice.status}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <p style={{ fontWeight: 'bold', color: '#111827' }}>INV-002</p>
-                      <p style={{ fontSize: '14px', color: '#6b7280' }}>TechStart Inc</p>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <p style={{ fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>$1800</p>
-                    <span style={{ 
-                      display: 'inline-block',
-                      padding: '2px 12px', 
-                      borderRadius: '9999px', 
-                      fontSize: '12px', 
-                      fontWeight: '500', 
-                      backgroundColor: '#fef3c7', 
-                      color: '#92400e' 
-                    }}>pending</span>
-                  </div>
-                </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

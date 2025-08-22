@@ -30,6 +30,7 @@ interface Invoice {
   date: string
   message: string
   total_amount: number
+  status: string
   pdf_path: string
   markdown_path: string
   created_at: string
@@ -75,6 +76,7 @@ export default function InvoiceGenerator() {
   const [hourlyRate, setHourlyRate] = useState(100)
   const [worklogEntries, setWorklogEntries] = useState<WorklogEntry[]>([])
   const [showWorklogView, setShowWorklogView] = useState(false)
+  const [draggedInvoice, setDraggedInvoice] = useState<Invoice | null>(null)
 
   useEffect(() => {
     fetchInvoices()
@@ -95,6 +97,11 @@ export default function InvoiceGenerator() {
 
   const fetchInvoices = async () => {
     try {
+      // First, migrate any existing invoices to have default status
+      await fetch('http://localhost:8000/invoices/migrate-status', {
+        method: 'POST'
+      })
+      
       const response = await fetch('http://localhost:8000/invoices/')
       if (response.ok) {
         const data = await response.json()
@@ -175,6 +182,52 @@ export default function InvoiceGenerator() {
   const handleInvoiceClick = (invoice: Invoice) => {
     // Just open PDF in new tab - simpler and more reliable
     window.open(`http://localhost:8000/invoices/${invoice.id}/pdf`, '_blank')
+  }
+
+  const updateInvoiceStatus = async (invoiceId: number, newStatus: string) => {
+    try {
+      const response = await fetch(`http://localhost:8000/invoices/${invoiceId}/status?status=${newStatus}`, {
+        method: 'PUT'
+      })
+
+      if (response.ok) {
+        // Update local state
+        setInvoices(prev => 
+          prev.map(invoice => 
+            invoice.id === invoiceId 
+              ? { ...invoice, status: newStatus }
+              : invoice
+          )
+        )
+      } else {
+        throw new Error('Failed to update invoice status')
+      }
+    } catch (error) {
+      console.error('Error updating invoice status:', error)
+      alert('Error updating invoice status')
+    }
+  }
+
+  const handleDragStart = (e: React.DragEvent, invoice: Invoice) => {
+    setDraggedInvoice(invoice)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragEnd = () => {
+    setDraggedInvoice(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDrop = (e: React.DragEvent, targetStatus: string) => {
+    e.preventDefault()
+    if (draggedInvoice && draggedInvoice.status !== targetStatus) {
+      updateInvoiceStatus(draggedInvoice.id, targetStatus)
+    }
+    setDraggedInvoice(null)
   }
 
   const handleCSVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -979,76 +1032,189 @@ export default function InvoiceGenerator() {
           </button>
         </div>
       ) : (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-          gap: '24px'
-        }}>
-          {invoices.map((invoice) => (
-            <div
-              key={invoice.id}
-              onClick={() => handleInvoiceClick(invoice)}
-              style={{
-                backgroundColor: 'white',
-                borderRadius: '12px',
-                border: '1px solid #e5e7eb',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                padding: '24px',
-                transition: 'all 0.2s',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'
-                e.currentTarget.style.transform = 'translateY(-2px)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)'
-                e.currentTarget.style.transform = 'translateY(0px)'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
-                <div>
-                  <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginBottom: '4px' }}>
-                    Invoice #{invoice.invoice_number}
-                  </h3>
-                  <p style={{ fontSize: '14px', color: '#6b7280' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+          {/* Pending Invoices Column */}
+          <div
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, 'submitted')}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: draggedInvoice?.status === 'submitted' ? '2px dashed #d1d5db' : '1px solid #e5e7eb',
+              minHeight: '400px'
+            }}
+          >
+            <div style={{ 
+              padding: '20px 24px',
+              borderBottom: '1px solid #e5e7eb',
+              backgroundColor: '#fef3c7',
+              borderTopLeftRadius: '12px',
+              borderTopRightRadius: '12px'
+            }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#92400e', margin: 0 }}>
+                📄 Pending Invoices ({invoices.filter(i => (i.status || 'submitted') === 'submitted').length})
+              </h3>
+            </div>
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {invoices.filter(invoice => {
+                const status = invoice.status || 'submitted' // Default to submitted if no status
+                return status === 'submitted'
+              }).map((invoice) => (
+                <div
+                  key={invoice.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, invoice)}
+                  onDragEnd={handleDragEnd}
+                  onClick={() => handleInvoiceClick(invoice)}
+                  style={{
+                    backgroundColor: draggedInvoice?.id === invoice.id ? '#f9fafb' : 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    cursor: 'move',
+                    transition: 'all 0.2s',
+                    opacity: draggedInvoice?.id === invoice.id ? 0.5 : 1
+                  }}
+                  onMouseEnter={(e) => {
+                    if (draggedInvoice?.id !== invoice.id) {
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
+                    <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                      #{invoice.invoice_number}
+                    </h4>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#f59e0b' }}>
+                      ${invoice.total_amount.toFixed(2)}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
                     {getClientName(invoice.client_id)}
                   </p>
-                </div>
-                <FileText size={24} color="#3b82f6" />
-              </div>
-              
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Date:</span>
-                  <span style={{ fontSize: '14px', color: '#111827' }}>{formatDate(invoice.date)}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '14px', color: '#6b7280' }}>Amount:</span>
-                  <span style={{ fontSize: '16px', fontWeight: '600', color: '#10b981' }}>
-                    ${invoice.total_amount.toFixed(2)}
-                  </span>
-                </div>
-              </div>
-              
-              {invoice.message && (
-                <div style={{ 
-                  padding: '12px',
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '6px',
-                  marginBottom: '16px'
-                }}>
-                  <p style={{ fontSize: '14px', color: '#6b7280', fontStyle: 'italic' }}>
-                    "{invoice.message}"
+                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
+                    {formatDate(invoice.date)}
                   </p>
                 </div>
-              )}
+              ))}
               
-              <div style={{ fontSize: '12px', color: '#9ca3af' }}>
-                Created: {formatDate(invoice.created_at)}
-              </div>
+              {/* Pending Invoices Total */}
+              {invoices.filter(i => (i.status || 'submitted') === 'submitted').length > 0 && (
+                <div style={{
+                  marginTop: '16px',
+                  padding: '16px',
+                  backgroundColor: '#fef3c7',
+                  borderRadius: '8px',
+                  border: '1px solid #f59e0b'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#92400e' }}>
+                      Total Pending:
+                    </span>
+                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#92400e' }}>
+                      ${invoices
+                        .filter(i => (i.status || 'submitted') === 'submitted')
+                        .reduce((sum, inv) => sum + inv.total_amount, 0)
+                        .toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
-          ))}
+          </div>
+
+          {/* Paid Invoices Column */}
+          <div
+            onDragOver={handleDragOver}
+            onDrop={(e) => handleDrop(e, 'paid')}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              border: draggedInvoice?.status === 'paid' ? '2px dashed #d1d5db' : '1px solid #e5e7eb',
+              minHeight: '400px'
+            }}
+          >
+            <div style={{ 
+              padding: '20px 24px',
+              borderBottom: '1px solid #e5e7eb',
+              backgroundColor: '#dcfce7',
+              borderTopLeftRadius: '12px',
+              borderTopRightRadius: '12px'
+            }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#166534', margin: 0 }}>
+                ✅ Paid Invoices ({invoices.filter(i => (i.status || 'submitted') === 'paid').length})
+              </h3>
+            </div>
+            <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {invoices.filter(invoice => (invoice.status || 'submitted') === 'paid').map((invoice) => (
+                <div
+                  key={invoice.id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, invoice)}
+                  onDragEnd={handleDragEnd}
+                  onClick={() => handleInvoiceClick(invoice)}
+                  style={{
+                    backgroundColor: draggedInvoice?.id === invoice.id ? '#f9fafb' : 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    cursor: 'move',
+                    transition: 'all 0.2s',
+                    opacity: draggedInvoice?.id === invoice.id ? 0.5 : 1
+                  }}
+                  onMouseEnter={(e) => {
+                    if (draggedInvoice?.id !== invoice.id) {
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)'
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = 'none'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
+                    <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                      #{invoice.invoice_number}
+                    </h4>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#10b981' }}>
+                      ${invoice.total_amount.toFixed(2)}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
+                    {getClientName(invoice.client_id)}
+                  </p>
+                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
+                    {formatDate(invoice.date)}
+                  </p>
+                </div>
+              ))}
+              
+              {/* Paid Invoices Total */}
+              {invoices.filter(i => (i.status || 'submitted') === 'paid').length > 0 && (
+                <div style={{
+                  marginTop: '16px',
+                  padding: '16px',
+                  backgroundColor: '#dcfce7',
+                  borderRadius: '8px',
+                  border: '1px solid #10b981'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#166534' }}>
+                      Total Paid:
+                    </span>
+                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#166534' }}>
+                      ${invoices
+                        .filter(i => (i.status || 'submitted') === 'paid')
+                        .reduce((sum, inv) => sum + inv.total_amount, 0)
+                        .toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

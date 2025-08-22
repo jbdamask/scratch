@@ -74,6 +74,7 @@ class InvoiceBase(BaseModel):
     date: datetime
     message: Optional[str] = None
     total_amount: float
+    status: str = "submitted"
 
 class InvoiceCreate(InvoiceBase):
     items: List[InvoiceItemCreate]
