@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { theme } from '@/theme'
 
 interface CompanyLogo {
   id: number
@@ -185,9 +186,10 @@ export default function CompanyConfig() {
     width: '100%',
     padding: '8px 12px',
     fontSize: '14px',
-    border: '1px solid #d1d5db',
+    border: `1px solid ${theme.colors.border.main}`,
     borderRadius: '6px',
-    backgroundColor: 'white'
+    backgroundColor: theme.colors.background.card,
+    color: theme.colors.text.primary
   }
 
   const labelStyle = {
@@ -195,12 +197,12 @@ export default function CompanyConfig() {
     marginBottom: '6px',
     fontSize: '14px',
     fontWeight: '500',
-    color: '#374151'
+    color: theme.colors.text.secondary
   }
 
   return (
     <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <form onSubmit={handleSubmit} style={{ backgroundColor: 'white', padding: '24px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+      <form onSubmit={handleSubmit} style={{ ...theme.card.base, padding: '24px' }}>
         {/* Company Name */}
         <div style={{ marginBottom: '16px' }}>
           <label htmlFor="name" style={labelStyle}>
@@ -292,8 +294,8 @@ export default function CompanyConfig() {
               style={{
                 display: 'inline-block',
                 padding: '8px 16px',
-                backgroundColor: ((company.logos?.length || 0) + tempLogos.length) >= 5 ? '#e5e7eb' : '#3b82f6',
-                color: ((company.logos?.length || 0) + tempLogos.length) >= 5 ? '#9ca3af' : 'white',
+                backgroundColor: ((company.logos?.length || 0) + tempLogos.length) >= 5 ? theme.colors.gray[200] : theme.colors.secondary.main,
+                color: ((company.logos?.length || 0) + tempLogos.length) >= 5 ? theme.colors.gray[400] : theme.colors.text.white,
                 borderRadius: '6px',
                 cursor: ((company.logos?.length || 0) + tempLogos.length) >= 5 ? 'not-allowed' : 'pointer',
                 fontSize: '14px',
@@ -312,10 +314,10 @@ export default function CompanyConfig() {
                 <div
                   key={logo.id}
                   style={{
-                    border: logo.is_default ? '2px solid #3b82f6' : '1px solid #e5e7eb',
+                    border: logo.is_default ? `2px solid ${theme.colors.secondary.main}` : `1px solid ${theme.colors.border.main}`,
                     borderRadius: '6px',
                     padding: '8px',
-                    backgroundColor: 'white'
+                    backgroundColor: theme.colors.background.card
                   }}
                 >
                   <img
@@ -325,7 +327,7 @@ export default function CompanyConfig() {
                   />
                   <div style={{ marginTop: '8px', fontSize: '12px', textAlign: 'center' }}>
                     {logo.is_default && (
-                      <div style={{ color: '#3b82f6', fontWeight: 'bold', marginBottom: '4px' }}>
+                      <div style={{ color: theme.colors.secondary.main, fontWeight: 'bold', marginBottom: '4px' }}>
                         ★ Default
                       </div>
                     )}
@@ -336,8 +338,8 @@ export default function CompanyConfig() {
                         padding: '2px 8px',
                         marginRight: '4px',
                         fontSize: '11px',
-                        backgroundColor: '#f3f4f6',
-                        border: '1px solid #d1d5db',
+                        backgroundColor: theme.colors.gray[100],
+                        border: `1px solid ${theme.colors.border.main}`,
                         borderRadius: '4px',
                         cursor: 'pointer'
                       }}
@@ -350,11 +352,11 @@ export default function CompanyConfig() {
                       style={{
                         padding: '2px 8px',
                         fontSize: '11px',
-                        backgroundColor: '#fee2e2',
-                        border: '1px solid #fecaca',
+                        backgroundColor: theme.colors.error.bg,
+                        border: `1px solid ${theme.colors.error.light}`,
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        color: '#dc2626'
+                        color: theme.colors.error.main
                       }}
                     >
                       Delete
@@ -368,10 +370,10 @@ export default function CompanyConfig() {
                 <div
                   key={`temp-${index}`}
                   style={{
-                    border: '1px dashed #e5e7eb',
+                    border: `1px dashed ${theme.colors.border.main}`,
                     borderRadius: '6px',
                     padding: '8px',
-                    backgroundColor: '#fafafa'
+                    backgroundColor: theme.colors.gray[50]
                   }}
                 >
                   <img
@@ -380,18 +382,18 @@ export default function CompanyConfig() {
                     style={{ width: '100px', height: '100px', objectFit: 'contain' }}
                   />
                   <div style={{ marginTop: '8px', fontSize: '12px', textAlign: 'center' }}>
-                    <div style={{ color: '#f59e0b', marginBottom: '4px' }}>Pending</div>
+                    <div style={{ color: theme.colors.warning.main, marginBottom: '4px' }}>Pending</div>
                     <button
                       type="button"
                       onClick={() => handleRemoveTempLogo(index)}
                       style={{
                         padding: '2px 8px',
                         fontSize: '11px',
-                        backgroundColor: '#fee2e2',
-                        border: '1px solid #fecaca',
+                        backgroundColor: theme.colors.error.bg,
+                        border: `1px solid ${theme.colors.error.light}`,
                         borderRadius: '4px',
                         cursor: 'pointer',
-                        color: '#dc2626'
+                        color: theme.colors.error.main
                       }}
                     >
                       Remove
@@ -409,7 +411,7 @@ export default function CompanyConfig() {
           disabled={loading}
           style={{
             padding: '10px 24px',
-            backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+            backgroundColor: loading ? theme.colors.gray[400] : theme.colors.secondary.main,
             color: 'white',
             border: 'none',
             borderRadius: '6px',

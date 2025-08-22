@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { theme } from '@/theme'
 import { Upload, Plus, Trash2, FileText, Calendar, User, DollarSign, FileSpreadsheet, ArrowLeft } from 'lucide-react'
 
 interface Client {
@@ -390,16 +391,13 @@ export default function InvoiceGenerator() {
     return (
       <div style={{ padding: '32px' }}>
         <div style={{ 
-          backgroundColor: 'white', 
-          borderRadius: '12px', 
-          border: '1px solid #e5e7eb', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+          ...theme.card.base,
         }}>
           {/* Header */}
           <div style={{ 
             padding: '24px 32px', 
-            borderBottom: '1px solid #e5e7eb',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderBottom: `1px solid ${theme.colors.border.main}`,
+            background: `linear-gradient(135deg, ${theme.colors.primary.main} 0%, ${theme.colors.secondary.main} 100%)`,
             borderTopLeftRadius: '12px',
             borderTopRightRadius: '12px'
           }}>
@@ -447,13 +445,13 @@ export default function InvoiceGenerator() {
               <h3 style={{ 
                 fontSize: '18px', 
                 fontWeight: '600', 
-                color: '#111827', 
+                color: theme.colors.text.primary, 
                 marginBottom: '20px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}>
-                <FileText style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+                <FileText style={{ width: '20px', height: '20px', color: theme.colors.text.secondary }} />
                 Invoice Details
               </h3>
               
@@ -464,7 +462,7 @@ export default function InvoiceGenerator() {
                     display: 'block', 
                     fontSize: '14px', 
                     fontWeight: '500', 
-                    color: '#374151', 
+                    color: theme.colors.text.secondary, 
                     marginBottom: '8px' 
                   }}>
                     Invoice Number (Auto-generated)
@@ -475,11 +473,11 @@ export default function InvoiceGenerator() {
                     style={{ 
                       width: '100%',
                       padding: '10px 12px',
-                      border: '1px solid #d1d5db',
+                      border: `1px solid ${theme.colors.border.main}`,
                       borderRadius: '8px',
                       fontSize: '14px',
-                      backgroundColor: '#f9fafb',
-                      color: '#6b7280',
+                      backgroundColor: theme.colors.gray[50],
+                      color: theme.colors.text.secondary,
                       cursor: 'not-allowed'
                     }}
                   />
@@ -491,7 +489,7 @@ export default function InvoiceGenerator() {
                     display: 'block', 
                     fontSize: '14px', 
                     fontWeight: '500', 
-                    color: '#374151', 
+                    color: theme.colors.text.secondary, 
                     marginBottom: '8px' 
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -507,7 +505,7 @@ export default function InvoiceGenerator() {
                     style={{ 
                       width: '100%',
                       padding: '10px 12px',
-                      border: '1px solid #d1d5db',
+                      border: `1px solid ${theme.colors.border.main}`,
                       borderRadius: '8px',
                       fontSize: '14px'
                     }}
@@ -520,7 +518,7 @@ export default function InvoiceGenerator() {
                     display: 'block', 
                     fontSize: '14px', 
                     fontWeight: '500', 
-                    color: '#374151', 
+                    color: theme.colors.text.secondary, 
                     marginBottom: '8px' 
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -534,10 +532,10 @@ export default function InvoiceGenerator() {
                     style={{ 
                       width: '100%',
                       padding: '10px 12px',
-                      border: '1px solid #d1d5db',
+                      border: `1px solid ${theme.colors.border.main}`,
                       borderRadius: '8px',
                       fontSize: '14px',
-                      backgroundColor: 'white',
+                      backgroundColor: theme.colors.background.card,
                       cursor: 'pointer'
                     }}
                     required
@@ -580,7 +578,7 @@ export default function InvoiceGenerator() {
 
             {/* Invoice Items Section */}
             <div style={{ 
-              backgroundColor: '#f9fafb', 
+              backgroundColor: theme.colors.gray[50], 
               padding: '24px', 
               borderRadius: '12px',
               marginBottom: '24px'
@@ -599,7 +597,7 @@ export default function InvoiceGenerator() {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  <DollarSign style={{ width: '20px', height: '20px', color: '#6b7280' }} />
+                  <DollarSign style={{ width: '20px', height: '20px', color: theme.colors.text.secondary }} />
                   Invoice Items
                 </h3>
                 
@@ -609,7 +607,7 @@ export default function InvoiceGenerator() {
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '8px',
-                    backgroundColor: 'white',
+                    backgroundColor: theme.colors.background.card,
                     padding: '8px 12px',
                     borderRadius: '8px',
                     border: '1px solid #e5e7eb'
@@ -624,7 +622,7 @@ export default function InvoiceGenerator() {
                       style={{ 
                         width: '80px',
                         padding: '4px 8px',
-                        border: '1px solid #d1d5db',
+                        border: `1px solid ${theme.colors.border.main}`,
                         borderRadius: '6px',
                         fontSize: '14px'
                       }}
@@ -655,9 +653,9 @@ export default function InvoiceGenerator() {
                         alignItems: 'center',
                         gap: '8px',
                         padding: '10px 16px',
-                        backgroundColor: 'white',
+                        backgroundColor: theme.colors.background.card,
                         color: '#4b5563',
-                        border: '1px solid #d1d5db',
+                        border: `1px solid ${theme.colors.border.main}`,
                         borderRadius: '8px',
                         fontSize: '14px',
                         fontWeight: '500',
@@ -679,7 +677,7 @@ export default function InvoiceGenerator() {
                       alignItems: 'center',
                       gap: '8px',
                       padding: '10px 16px',
-                      backgroundColor: '#3b82f6',
+                      backgroundColor: theme.colors.secondary.main,
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
@@ -735,11 +733,11 @@ export default function InvoiceGenerator() {
                       gap: '12px', 
                       alignItems: 'center', 
                       padding: '12px 16px', 
-                      backgroundColor: 'white', 
+                      backgroundColor: theme.colors.background.card, 
                       borderRadius: '8px',
                       fontSize: '14px',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: theme.colors.text.secondary,
                       marginBottom: '8px'
                     }}>
                       <div>Name</div>
@@ -755,7 +753,7 @@ export default function InvoiceGenerator() {
                         gap: '12px', 
                         alignItems: 'center', 
                         padding: '12px 16px', 
-                        backgroundColor: 'white',
+                        backgroundColor: theme.colors.background.card,
                         border: '1px solid #e5e7eb', 
                         borderRadius: '8px',
                         marginBottom: '4px'
@@ -764,7 +762,7 @@ export default function InvoiceGenerator() {
                           <span style={{ fontSize: '14px', color: '#111827' }}>{entry.name}</span>
                         </div>
                         <div>
-                          <span style={{ fontSize: '14px', color: '#6b7280' }}>{entry.date}</span>
+                          <span style={{ fontSize: '14px', color: theme.colors.text.secondary }}>{entry.date}</span>
                         </div>
                         <div>
                           <span style={{ fontSize: '14px', color: '#111827' }}>{entry.activities}</span>
@@ -807,11 +805,11 @@ export default function InvoiceGenerator() {
                       gap: '12px', 
                       alignItems: 'center', 
                       padding: '12px 16px', 
-                      backgroundColor: 'white', 
+                      backgroundColor: theme.colors.background.card, 
                       borderRadius: '8px',
                       fontSize: '14px',
                       fontWeight: '600',
-                      color: '#374151',
+                      color: theme.colors.text.secondary,
                       marginBottom: '8px'
                     }}>
                       <div>Description</div>
@@ -825,7 +823,7 @@ export default function InvoiceGenerator() {
                       <div style={{ 
                         padding: '48px', 
                         textAlign: 'center',
-                        backgroundColor: 'white',
+                        backgroundColor: theme.colors.background.card,
                         borderRadius: '8px',
                         border: '1px dashed #d1d5db'
                       }}>
@@ -835,7 +833,7 @@ export default function InvoiceGenerator() {
                           color: '#d1d5db', 
                           margin: '0 auto 16px' 
                         }} />
-                        <p style={{ color: '#6b7280', fontSize: '14px' }}>
+                        <p style={{ color: theme.colors.text.secondary, fontSize: '14px' }}>
                           No items added yet. Add items manually or upload a CSV file.
                         </p>
                       </div>
@@ -847,7 +845,7 @@ export default function InvoiceGenerator() {
                           gap: '12px', 
                           alignItems: 'center', 
                           padding: '12px 16px', 
-                          backgroundColor: 'white',
+                          backgroundColor: theme.colors.background.card,
                           border: '1px solid #e5e7eb', 
                           borderRadius: '8px',
                           marginBottom: '4px'
@@ -860,7 +858,7 @@ export default function InvoiceGenerator() {
                               style={{ 
                                 width: '100%',
                                 padding: '8px 12px',
-                                border: '1px solid #d1d5db',
+                                border: `1px solid ${theme.colors.border.main}`,
                                 borderRadius: '6px',
                                 fontSize: '14px'
                               }}
@@ -876,7 +874,7 @@ export default function InvoiceGenerator() {
                               style={{ 
                                 width: '100%',
                                 padding: '8px 12px',
-                                border: '1px solid #d1d5db',
+                                border: `1px solid ${theme.colors.border.main}`,
                                 borderRadius: '6px',
                                 fontSize: '14px'
                               }}
@@ -892,7 +890,7 @@ export default function InvoiceGenerator() {
                               style={{ 
                                 width: '100%',
                                 padding: '8px 12px',
-                                border: '1px solid #d1d5db',
+                                border: `1px solid ${theme.colors.border.main}`,
                                 borderRadius: '6px',
                                 fontSize: '14px'
                               }}
@@ -908,7 +906,7 @@ export default function InvoiceGenerator() {
                                 border: '1px solid #e5e7eb',
                                 borderRadius: '6px',
                                 fontSize: '14px',
-                                backgroundColor: '#f9fafb',
+                                backgroundColor: theme.colors.gray[50],
                                 color: '#111827',
                                 fontWeight: '500'
                               }}
@@ -946,7 +944,7 @@ export default function InvoiceGenerator() {
                 <div style={{ 
                   marginTop: '24px', 
                   padding: '20px', 
-                  backgroundColor: 'white', 
+                  backgroundColor: theme.colors.background.card, 
                   borderRadius: '8px',
                   border: '2px solid #3b82f6',
                   display: 'flex',
@@ -970,7 +968,7 @@ export default function InvoiceGenerator() {
               style={{
                 width: '100%',
                 padding: '16px',
-                backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+                backgroundColor: loading ? theme.colors.gray[400] : theme.colors.secondary.main,
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -998,17 +996,15 @@ export default function InvoiceGenerator() {
     <div style={{ padding: '32px' }}>
       {invoices.length === 0 ? (
         <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          border: '1px solid #e5e7eb',
+          ...theme.card.base,
           padding: '64px',
           textAlign: 'center'
         }}>
-          <FileText style={{ width: '64px', height: '64px', color: '#d1d5db', margin: '0 auto 24px' }} />
-          <h3 style={{ fontSize: '20px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+          <FileText style={{ width: '64px', height: '64px', color: theme.colors.gray[400], margin: '0 auto 24px' }} />
+          <h3 style={{ fontSize: '20px', fontWeight: '600', color: theme.colors.text.primary, marginBottom: '8px' }}>
             No invoices yet
           </h3>
-          <p style={{ fontSize: '16px', color: '#6b7280', marginBottom: '24px' }}>
+          <p style={{ fontSize: '16px', color: theme.colors.text.secondary, marginBottom: '24px' }}>
             Create your first invoice to get started
           </p>
           <button
@@ -1018,7 +1014,7 @@ export default function InvoiceGenerator() {
               alignItems: 'center',
               gap: '8px',
               padding: '12px 20px',
-              backgroundColor: '#3b82f6',
+              backgroundColor: theme.colors.secondary.main,
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -1038,20 +1034,20 @@ export default function InvoiceGenerator() {
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, 'submitted')}
             style={{
-              backgroundColor: 'white',
+              backgroundColor: theme.colors.background.card,
               borderRadius: '12px',
-              border: draggedInvoice?.status === 'submitted' ? '2px dashed #d1d5db' : '1px solid #e5e7eb',
+              border: draggedInvoice?.status === 'submitted' ? `2px dashed ${theme.colors.border.main}` : `1px solid ${theme.colors.border.main}`,
               minHeight: '400px'
             }}
           >
             <div style={{ 
               padding: '20px 24px',
-              borderBottom: '1px solid #e5e7eb',
-              backgroundColor: '#fef3c7',
+              borderBottom: `1px solid ${theme.colors.border.main}`,
+              backgroundColor: theme.colors.warning.bgLight,
               borderTopLeftRadius: '12px',
               borderTopRightRadius: '12px'
             }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#92400e', margin: 0 }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: theme.colors.warning.text, margin: 0 }}>
                 📄 Pending Invoices ({invoices.filter(i => (i.status || 'submitted') === 'submitted').length})
               </h3>
             </div>
@@ -1067,8 +1063,8 @@ export default function InvoiceGenerator() {
                   onDragEnd={handleDragEnd}
                   onClick={() => handleInvoiceClick(invoice)}
                   style={{
-                    backgroundColor: draggedInvoice?.id === invoice.id ? '#f9fafb' : 'white',
-                    border: '1px solid #e5e7eb',
+                    backgroundColor: draggedInvoice?.id === invoice.id ? theme.colors.gray[100] : theme.colors.background.card,
+                    border: `1px solid ${theme.colors.border.main}`,
                     borderRadius: '8px',
                     padding: '16px',
                     cursor: 'move',
@@ -1085,17 +1081,17 @@ export default function InvoiceGenerator() {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
-                    <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                    <h4 style={{ fontSize: '16px', fontWeight: '600', color: theme.colors.text.primary, margin: 0 }}>
                       #{invoice.invoice_number}
                     </h4>
                     <span style={{ fontSize: '14px', fontWeight: '600', color: '#f59e0b' }}>
                       ${invoice.total_amount.toFixed(2)}
                     </span>
                   </div>
-                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
+                  <p style={{ fontSize: '14px', color: theme.colors.text.secondary, margin: '4px 0' }}>
                     {getClientName(invoice.client_id)}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
+                  <p style={{ fontSize: '12px', color: theme.colors.gray[400], margin: 0 }}>
                     {formatDate(invoice.date)}
                   </p>
                 </div>
@@ -1106,15 +1102,15 @@ export default function InvoiceGenerator() {
                 <div style={{
                   marginTop: '16px',
                   padding: '16px',
-                  backgroundColor: '#fef3c7',
+                  backgroundColor: theme.colors.warning.bgLight,
                   borderRadius: '8px',
-                  border: '1px solid #f59e0b'
+                  border: `1px solid ${theme.colors.warning.main}`
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#92400e' }}>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: theme.colors.warning.text }}>
                       Total Pending:
                     </span>
-                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#92400e' }}>
+                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: theme.colors.warning.text }}>
                       ${invoices
                         .filter(i => (i.status || 'submitted') === 'submitted')
                         .reduce((sum, inv) => sum + inv.total_amount, 0)
@@ -1131,20 +1127,20 @@ export default function InvoiceGenerator() {
             onDragOver={handleDragOver}
             onDrop={(e) => handleDrop(e, 'paid')}
             style={{
-              backgroundColor: 'white',
+              backgroundColor: theme.colors.background.card,
               borderRadius: '12px',
-              border: draggedInvoice?.status === 'paid' ? '2px dashed #d1d5db' : '1px solid #e5e7eb',
+              border: draggedInvoice?.status === 'paid' ? `2px dashed ${theme.colors.border.main}` : `1px solid ${theme.colors.border.main}`,
               minHeight: '400px'
             }}
           >
             <div style={{ 
               padding: '20px 24px',
-              borderBottom: '1px solid #e5e7eb',
-              backgroundColor: '#dcfce7',
+              borderBottom: `1px solid ${theme.colors.border.main}`,
+              backgroundColor: theme.colors.success.bg,
               borderTopLeftRadius: '12px',
               borderTopRightRadius: '12px'
             }}>
-              <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#166534', margin: 0 }}>
+              <h3 style={{ fontSize: '18px', fontWeight: '600', color: theme.colors.success.text, margin: 0 }}>
                 ✅ Paid Invoices ({invoices.filter(i => (i.status || 'submitted') === 'paid').length})
               </h3>
             </div>
@@ -1157,8 +1153,8 @@ export default function InvoiceGenerator() {
                   onDragEnd={handleDragEnd}
                   onClick={() => handleInvoiceClick(invoice)}
                   style={{
-                    backgroundColor: draggedInvoice?.id === invoice.id ? '#f9fafb' : 'white',
-                    border: '1px solid #e5e7eb',
+                    backgroundColor: draggedInvoice?.id === invoice.id ? theme.colors.gray[100] : theme.colors.background.card,
+                    border: `1px solid ${theme.colors.border.main}`,
                     borderRadius: '8px',
                     padding: '16px',
                     cursor: 'move',
@@ -1175,17 +1171,17 @@ export default function InvoiceGenerator() {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '8px' }}>
-                    <h4 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                    <h4 style={{ fontSize: '16px', fontWeight: '600', color: theme.colors.text.primary, margin: 0 }}>
                       #{invoice.invoice_number}
                     </h4>
                     <span style={{ fontSize: '14px', fontWeight: '600', color: '#10b981' }}>
                       ${invoice.total_amount.toFixed(2)}
                     </span>
                   </div>
-                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '4px 0' }}>
+                  <p style={{ fontSize: '14px', color: theme.colors.text.secondary, margin: '4px 0' }}>
                     {getClientName(invoice.client_id)}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
+                  <p style={{ fontSize: '12px', color: theme.colors.gray[400], margin: 0 }}>
                     {formatDate(invoice.date)}
                   </p>
                 </div>
@@ -1196,15 +1192,15 @@ export default function InvoiceGenerator() {
                 <div style={{
                   marginTop: '16px',
                   padding: '16px',
-                  backgroundColor: '#dcfce7',
+                  backgroundColor: theme.colors.success.bg,
                   borderRadius: '8px',
-                  border: '1px solid #10b981'
+                  border: `1px solid ${theme.colors.success.main}`
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: '16px', fontWeight: '600', color: '#166534' }}>
+                    <span style={{ fontSize: '16px', fontWeight: '600', color: theme.colors.success.text }}>
                       Total Paid:
                     </span>
-                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: '#166534' }}>
+                    <span style={{ fontSize: '20px', fontWeight: 'bold', color: theme.colors.success.text }}>
                       ${invoices
                         .filter(i => (i.status || 'submitted') === 'paid')
                         .reduce((sum, inv) => sum + inv.total_amount, 0)

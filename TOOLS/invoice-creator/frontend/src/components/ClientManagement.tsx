@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { theme } from '@/theme'
 import { Plus, Edit, Trash2, Users, Mail, Phone, MapPin, User, Building } from 'lucide-react'
 
 interface Client {
@@ -124,18 +125,15 @@ export default function ClientManagement() {
       {/* Add/Edit Form */}
       {showForm && editingClient && (
         <div style={{ 
-          backgroundColor: 'white', 
-          borderRadius: '12px', 
-          border: '1px solid #e5e7eb', 
-          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          ...theme.card.base,
           marginBottom: '32px',
           overflow: 'hidden'
         }}>
           {/* Form Header */}
           <div style={{ 
             padding: '24px 32px', 
-            borderBottom: '1px solid #e5e7eb',
-            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+            borderBottom: `1px solid ${theme.colors.border.main}`,
+            background: `linear-gradient(135deg, ${theme.colors.primary.main} 0%, ${theme.colors.secondary.main} 100%)`
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ 
@@ -163,7 +161,7 @@ export default function ClientManagement() {
                 display: 'block',
                 fontSize: '14px', 
                 fontWeight: '500', 
-                color: '#374151', 
+                color: theme.colors.text.secondary, 
                 marginBottom: '8px' 
               }}>
                 Client Name
@@ -175,10 +173,11 @@ export default function ClientManagement() {
                 style={{ 
                   width: '100%',
                   padding: '10px 12px',
-                  border: '1px solid #d1d5db',
+                  border: `1px solid ${theme.colors.border.main}`,
                   borderRadius: '8px',
                   fontSize: '14px',
-                  backgroundColor: 'white'
+                  backgroundColor: theme.colors.background.card,
+                  color: theme.colors.text.primary
                 }}
               />
             </div>
@@ -189,7 +188,7 @@ export default function ClientManagement() {
                 display: 'block',
                 fontSize: '14px', 
                 fontWeight: '500', 
-                color: '#374151', 
+                color: theme.colors.text.secondary, 
                 marginBottom: '8px' 
               }}>
                 Primary Contact
@@ -200,10 +199,11 @@ export default function ClientManagement() {
                 style={{ 
                   width: '100%',
                   padding: '10px 12px',
-                  border: '1px solid #d1d5db',
+                  border: `1px solid ${theme.colors.border.main}`,
                   borderRadius: '8px',
                   fontSize: '14px',
-                  backgroundColor: 'white'
+                  backgroundColor: theme.colors.background.card,
+                  color: theme.colors.text.primary
                 }}
               />
             </div>
@@ -214,7 +214,7 @@ export default function ClientManagement() {
                 display: 'block',
                 fontSize: '14px', 
                 fontWeight: '500', 
-                color: '#374151', 
+                color: theme.colors.text.secondary, 
                 marginBottom: '8px' 
               }}>
                 Address
@@ -226,10 +226,11 @@ export default function ClientManagement() {
                 style={{ 
                   width: '100%',
                   padding: '10px 12px',
-                  border: '1px solid #d1d5db',
+                  border: `1px solid ${theme.colors.border.main}`,
                   borderRadius: '8px',
                   fontSize: '14px',
-                  backgroundColor: 'white'
+                  backgroundColor: theme.colors.background.card,
+                  color: theme.colors.text.primary
                 }}
               />
             </div>
@@ -240,7 +241,7 @@ export default function ClientManagement() {
                 display: 'block',
                 fontSize: '14px', 
                 fontWeight: '500', 
-                color: '#374151', 
+                color: theme.colors.text.secondary, 
                 marginBottom: '8px' 
               }}>
                 Phone Number
@@ -251,10 +252,11 @@ export default function ClientManagement() {
                 style={{ 
                   width: '100%',
                   padding: '10px 12px',
-                  border: '1px solid #d1d5db',
+                  border: `1px solid ${theme.colors.border.main}`,
                   borderRadius: '8px',
                   fontSize: '14px',
-                  backgroundColor: 'white'
+                  backgroundColor: theme.colors.background.card,
+                  color: theme.colors.text.primary
                 }}
               />
             </div>
@@ -265,7 +267,7 @@ export default function ClientManagement() {
                 display: 'block',
                 fontSize: '14px', 
                 fontWeight: '500', 
-                color: '#374151', 
+                color: theme.colors.text.secondary, 
                 marginBottom: '8px' 
               }}>
                 Email
@@ -277,10 +279,11 @@ export default function ClientManagement() {
                 style={{ 
                   width: '100%',
                   padding: '10px 12px',
-                  border: '1px solid #d1d5db',
+                  border: `1px solid ${theme.colors.border.main}`,
                   borderRadius: '8px',
                   fontSize: '14px',
-                  backgroundColor: 'white'
+                  backgroundColor: theme.colors.background.card,
+                  color: theme.colors.text.primary
                 }}
               />
             </div>
@@ -292,7 +295,7 @@ export default function ClientManagement() {
                 disabled={loading}
                 style={{
                   padding: '12px 24px',
-                  backgroundColor: loading ? '#9ca3af' : '#3b82f6',
+                  backgroundColor: loading ? theme.colors.gray[400] : theme.colors.secondary.main,
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -311,9 +314,9 @@ export default function ClientManagement() {
                 }}
                 style={{
                   padding: '12px 24px',
-                  backgroundColor: 'white',
-                  color: '#374151',
-                  border: '1px solid #d1d5db',
+                  backgroundColor: theme.colors.background.card,
+                  color: theme.colors.text.secondary,
+                  border: `1px solid ${theme.colors.border.main}`,
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '500',
@@ -340,16 +343,16 @@ export default function ClientManagement() {
               backgroundColor: 'white', 
               padding: '64px', 
               borderRadius: '12px', 
-              border: '1px dashed #d1d5db',
+              border: `1px dashed ${theme.colors.border.main}`,
               textAlign: 'center'
             }}>
               <Users style={{ 
                 width: '48px', 
                 height: '48px', 
-                color: '#d1d5db', 
+                color: theme.colors.gray[400], 
                 margin: '0 auto 16px' 
               }} />
-              <p style={{ color: '#6b7280', fontSize: '16px', marginBottom: '24px' }}>
+              <p style={{ color: theme.colors.text.secondary, fontSize: '16px', marginBottom: '24px' }}>
                 No clients yet. Add your first client to get started.
               </p>
               <button
@@ -362,7 +365,7 @@ export default function ClientManagement() {
                   alignItems: 'center',
                   gap: '8px',
                   padding: '12px 24px',
-                  backgroundColor: '#3b82f6',
+                  backgroundColor: theme.colors.secondary.main,
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -371,8 +374,8 @@ export default function ClientManagement() {
                   cursor: 'pointer',
                   transition: 'background-color 0.2s'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = theme.colors.secondary.dark}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = theme.colors.secondary.main}
               >
                 <Plus size={20} />
                 Add First Client
@@ -384,9 +387,9 @@ export default function ClientManagement() {
                 key={client.id}
                 onClick={() => handleEdit(client)}
                 style={{ 
-                  backgroundColor: 'white', 
+                  backgroundColor: theme.colors.background.card, 
                   borderRadius: '12px', 
-                  border: '1px solid #e5e7eb', 
+                  border: `1px solid ${theme.colors.border.main}`, 
                   boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                   overflow: 'hidden',
                   transition: 'all 0.3s',
@@ -404,19 +407,19 @@ export default function ClientManagement() {
                 {/* Client Card Header */}
                 <div style={{ 
                   padding: '20px 24px', 
-                  borderBottom: '1px solid #e5e7eb',
-                  background: 'linear-gradient(135deg, #f3f4f6 0%, #ffffff 100%)'
+                  borderBottom: `1px solid ${theme.colors.border.main}`,
+                  background: `linear-gradient(135deg, ${theme.colors.gray[100]} 0%, ${theme.colors.background.card} 100%)`
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ 
                       fontSize: '18px', 
                       fontWeight: '600', 
-                      color: '#111827',
+                      color: theme.colors.text.primary,
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px'
                     }}>
-                      <Building size={18} color="#6b7280" />
+                      <Building size={18} color={theme.colors.text.secondary} />
                       {client.name}
                     </h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
@@ -427,8 +430,8 @@ export default function ClientManagement() {
                         }}
                         style={{
                           padding: '8px',
-                          backgroundColor: '#eff6ff',
-                          color: '#3b82f6',
+                          backgroundColor: theme.colors.secondary.bg,
+                          color: theme.colors.secondary.main,
                           border: 'none',
                           borderRadius: '6px',
                           cursor: 'pointer',
@@ -438,10 +441,10 @@ export default function ClientManagement() {
                           justifyContent: 'center'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#dbeafe'
+                          e.currentTarget.style.backgroundColor = theme.colors.secondary.light
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#eff6ff'
+                          e.currentTarget.style.backgroundColor = theme.colors.secondary.bg
                         }}
                       >
                         <Edit size={16} />
@@ -453,8 +456,8 @@ export default function ClientManagement() {
                         }}
                         style={{
                           padding: '8px',
-                          backgroundColor: '#fee2e2',
-                          color: '#dc2626',
+                          backgroundColor: theme.colors.error.bg,
+                          color: theme.colors.error.main,
                           border: 'none',
                           borderRadius: '6px',
                           cursor: 'pointer',
@@ -464,10 +467,10 @@ export default function ClientManagement() {
                           justifyContent: 'center'
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = '#fca5a5'
+                          e.currentTarget.style.backgroundColor = theme.colors.error.light
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = '#fee2e2'
+                          e.currentTarget.style.backgroundColor = theme.colors.error.bg
                         }}
                       >
                         <Trash2 size={16} />
@@ -481,18 +484,18 @@ export default function ClientManagement() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {client.primary_contact && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <User size={16} color="#6b7280" />
-                        <span style={{ fontSize: '14px', color: '#374151' }}>{client.primary_contact}</span>
+                        <User size={16} color={theme.colors.text.secondary} />
+                        <span style={{ fontSize: '14px', color: theme.colors.text.secondary }}>{client.primary_contact}</span>
                       </div>
                     )}
                     {client.email && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Mail size={16} color="#6b7280" />
+                        <Mail size={16} color={theme.colors.text.secondary} />
                         <a 
                           href={`mailto:${client.email}`}
                           style={{ 
                             fontSize: '14px', 
-                            color: '#3b82f6',
+                            color: theme.colors.secondary.main,
                             textDecoration: 'none'
                           }}
                           onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
@@ -504,14 +507,14 @@ export default function ClientManagement() {
                     )}
                     {client.phone_number && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Phone size={16} color="#6b7280" />
-                        <span style={{ fontSize: '14px', color: '#374151' }}>{client.phone_number}</span>
+                        <Phone size={16} color={theme.colors.text.secondary} />
+                        <span style={{ fontSize: '14px', color: theme.colors.text.secondary }}>{client.phone_number}</span>
                       </div>
                     )}
                     {client.address && (
                       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                        <MapPin size={16} color="#6b7280" style={{ marginTop: '2px' }} />
-                        <span style={{ fontSize: '14px', color: '#374151', lineHeight: '1.5' }}>{client.address}</span>
+                        <MapPin size={16} color={theme.colors.text.secondary} style={{ marginTop: '2px' }} />
+                        <span style={{ fontSize: '14px', color: theme.colors.text.secondary, lineHeight: '1.5' }}>{client.address}</span>
                       </div>
                     )}
                   </div>
