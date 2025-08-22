@@ -5,14 +5,14 @@
 echo "🎬 Starting YouTube Transcriber..."
 
 # Check if virtual environment exists
-if [ ! -d "venv" ]; then
+if [ ! -d ".venv" ]; then
     echo "Creating virtual environment..."
-    python -m venv venv
+    python -m venv .venv
 fi
 
 # Activate virtual environment
 echo "Activating virtual environment..."
-source venv/bin/activate
+source .venv/bin/activate
 
 # Install dependencies if needed
 if [ ! -f "backend/.deps_installed" ]; then
