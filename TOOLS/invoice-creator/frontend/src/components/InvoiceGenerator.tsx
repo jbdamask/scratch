@@ -362,26 +362,45 @@ export default function InvoiceGenerator() {
                     </div>
                     
                     {/* Worklog Column Headers */}
-                    <div className="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded text-sm font-medium">
-                      <div className="col-span-2">Name</div>
-                      <div className="col-span-2">Date</div>
-                      <div className="col-span-6">Activities</div>
-                      <div className="col-span-2">Hours</div>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '2fr 2fr 6fr 2fr', 
+                      gap: '8px', 
+                      alignItems: 'center', 
+                      padding: '8px', 
+                      backgroundColor: '#f9fafb', 
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}>
+                      <div>Name</div>
+                      <div>Date</div>
+                      <div>Activities</div>
+                      <div>Hours</div>
                     </div>
                     
                     {worklogEntries.map((entry, index) => (
-                      <div key={index} className="grid grid-cols-12 gap-2 items-center p-2 border rounded">
-                        <div className="col-span-2">
-                          <span className="text-sm">{entry.name}</span>
+                      <div key={index} style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '2fr 2fr 6fr 2fr', 
+                        gap: '8px', 
+                        alignItems: 'center', 
+                        padding: '8px', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '6px',
+                        marginTop: '8px'
+                      }}>
+                        <div>
+                          <span style={{ fontSize: '14px' }}>{entry.name}</span>
                         </div>
-                        <div className="col-span-2">
-                          <span className="text-sm">{entry.date}</span>
+                        <div>
+                          <span style={{ fontSize: '14px' }}>{entry.date}</span>
                         </div>
-                        <div className="col-span-6">
-                          <span className="text-sm">{entry.activities}</span>
+                        <div>
+                          <span style={{ fontSize: '14px' }}>{entry.activities}</span>
                         </div>
-                        <div className="col-span-2">
-                          <span className="text-sm font-medium">{entry.hours}</span>
+                        <div>
+                          <span style={{ fontSize: '14px', fontWeight: '500' }}>{entry.hours}</span>
                         </div>
                       </div>
                     ))}
@@ -402,53 +421,77 @@ export default function InvoiceGenerator() {
                   // Invoice Items View
                   <>
                     {/* Column Headers */}
-                    <div className="grid grid-cols-12 gap-2 items-center p-2 bg-gray-50 rounded text-sm font-medium">
-                      <div className="col-span-5">Description</div>
-                      <div className="col-span-2">Hours</div>
-                      <div className="col-span-2">Rate</div>
-                      <div className="col-span-2">Amount</div>
-                      <div className="col-span-1"></div>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '5fr 2fr 2fr 2fr 1fr', 
+                      gap: '8px', 
+                      alignItems: 'center', 
+                      padding: '8px', 
+                      backgroundColor: '#f9fafb', 
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}>
+                      <div>Description</div>
+                      <div>Hours</div>
+                      <div>Rate</div>
+                      <div>Amount</div>
+                      <div></div>
                     </div>
                     
                     {invoice.items.map((item, index) => (
-                      <div key={index} className="grid grid-cols-12 gap-2 items-center p-2 border rounded">
-                        <div className="col-span-5">
+                      <div key={index} style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '5fr 2fr 2fr 2fr 1fr', 
+                        gap: '8px', 
+                        alignItems: 'center', 
+                        padding: '8px', 
+                        border: '1px solid #e5e7eb', 
+                        borderRadius: '6px',
+                        marginTop: '8px'
+                      }}>
+                        <div>
                           <Input
                             placeholder="Description"
                             value={item.description}
                             onChange={(e) => updateItem(index, 'description', e.target.value)}
+                            style={{ width: '100%' }}
                           />
                         </div>
-                        <div className="col-span-2">
+                        <div>
                           <Input
                             type="number"
                             placeholder="Hours"
                             step="0.25"
                             value={item.quantity || ''}
                             onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
+                            style={{ width: '100%' }}
                           />
                         </div>
-                        <div className="col-span-2">
+                        <div>
                           <Input
                             type="number"
                             step="0.01"
                             placeholder="Rate"
                             value={item.rate || ''}
                             onChange={(e) => updateItem(index, 'rate', parseFloat(e.target.value) || 0)}
+                            style={{ width: '100%' }}
                           />
                         </div>
-                        <div className="col-span-2">
+                        <div>
                           <Input
                             value={`$${item.amount.toFixed(2)}`}
                             disabled
+                            style={{ width: '100%', backgroundColor: '#f9fafb' }}
                           />
                         </div>
-                        <div className="col-span-1">
+                        <div>
                           <Button
                             type="button"
                             variant="destructive"
                             size="sm"
                             onClick={() => removeItem(index)}
+                            style={{ padding: '4px 8px' }}
                           >
                             <Trash2 size={14} />
                           </Button>

@@ -1,19 +1,27 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import CompanyConfig from '@/components/CompanyConfig'
 import ClientManagement from '@/components/ClientManagement'
 import InvoiceGenerator from '@/components/InvoiceGenerator'
-import { Building2, Users, FileText } from 'lucide-react'
+import { 
+  LayoutDashboard, 
+  Building2, 
+  Users, 
+  FileText, 
+  Settings,
+  DollarSign,
+  Clock3,
+  CheckCircle
+} from 'lucide-react'
 
-type Page = 'home' | 'company' | 'clients' | 'invoices'
+type Page = 'dashboard' | 'settings' | 'clients' | 'invoices'
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('home')
+  const [currentPage, setCurrentPage] = useState<Page>('dashboard')
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'company':
+      case 'settings':
         return <CompanyConfig />
       case 'clients':
         return <ClientManagement />
@@ -21,106 +29,387 @@ function App() {
         return <InvoiceGenerator />
       default:
         return (
-          <div className="max-w-4xl mx-auto p-6">
-            <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold mb-4">Invoice Creator</h1>
-              <p className="text-lg text-muted-foreground">
-                Manage your company information, clients, and create professional invoices
-              </p>
+          <div style={{ padding: '32px' }}>
+            {/* Stats Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
+              {/* Total Revenue Card */}
+              <div style={{ 
+                backgroundColor: 'white', 
+                padding: '24px', 
+                borderRadius: '12px', 
+                border: '1px solid #e5e7eb', 
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Total Revenue</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>$45,670</p>
+                    <p style={{ fontSize: '12px', color: '#10b981' }}>📈 +12.5% from last month</p>
+                  </div>
+                  <div style={{ 
+                    width: '48px', 
+                    height: '48px', 
+                    backgroundColor: '#dcfce7', 
+                    borderRadius: '50%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    <DollarSign style={{ width: '24px', height: '24px', color: '#10b981' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Active Clients Card */}
+              <div style={{ 
+                backgroundColor: 'white', 
+                padding: '24px', 
+                borderRadius: '12px', 
+                border: '1px solid #e5e7eb', 
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Active Clients</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>12</p>
+                    <p style={{ fontSize: '12px', color: '#3b82f6' }}>👤 +2 new this month</p>
+                  </div>
+                  <div style={{ 
+                    width: '48px', 
+                    height: '48px', 
+                    backgroundColor: '#dbeafe', 
+                    borderRadius: '50%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    <Users style={{ width: '24px', height: '24px', color: '#3b82f6' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Pending Invoices Card */}
+              <div style={{ 
+                backgroundColor: 'white', 
+                padding: '24px', 
+                borderRadius: '12px', 
+                border: '1px solid #e5e7eb', 
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Pending Invoices</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>3</p>
+                    <p style={{ fontSize: '12px', color: '#f59e0b' }}>📄 Awaiting payment</p>
+                  </div>
+                  <div style={{ 
+                    width: '48px', 
+                    height: '48px', 
+                    backgroundColor: '#fed7aa', 
+                    borderRadius: '50%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    <Clock3 style={{ width: '24px', height: '24px', color: '#f59e0b' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Paid Invoices Card */}
+              <div style={{ 
+                backgroundColor: 'white', 
+                padding: '24px', 
+                borderRadius: '12px', 
+                border: '1px solid #e5e7eb', 
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <p style={{ color: '#6b7280', fontSize: '14px', marginBottom: '8px' }}>Paid Invoices</p>
+                    <p style={{ fontSize: '32px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>28</p>
+                    <p style={{ fontSize: '12px', color: '#10b981' }}>✅ This month</p>
+                  </div>
+                  <div style={{ 
+                    width: '48px', 
+                    height: '48px', 
+                    backgroundColor: '#dcfce7', 
+                    borderRadius: '50%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center' 
+                  }}>
+                    <CheckCircle style={{ width: '24px', height: '24px', color: '#10b981' }} />
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage('company')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Company Setup
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Configure your company information, address, and logo for invoices
-                  </p>
-                </CardContent>
-              </Card>
 
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage('clients')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Users className="h-5 w-5" />
-                    Client Management
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Add, edit, and manage your client database with contact information
-                  </p>
-                </CardContent>
-              </Card>
+            {/* Recent Invoices */}
+            <div style={{ 
+              backgroundColor: 'white', 
+              padding: '24px', 
+              borderRadius: '12px', 
+              border: '1px solid #e5e7eb', 
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#111827' }}>Recent Invoices</h2>
+                <button style={{ color: '#3b82f6', fontSize: '14px', fontWeight: '500' }}>View All</button>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {/* Invoice 1 */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  padding: '16px', 
+                  borderRadius: '8px',
+                  transition: 'background-color 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ 
+                      width: '48px', 
+                      height: '48px', 
+                      backgroundColor: '#3b82f6', 
+                      borderRadius: '8px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      <FileText style={{ width: '24px', height: '24px', color: 'white' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 'bold', color: '#111827' }}>INV-001</p>
+                      <p style={{ fontSize: '14px', color: '#6b7280' }}>Acme Corp</p>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>$2500</p>
+                    <span style={{ 
+                      display: 'inline-block',
+                      padding: '2px 12px', 
+                      borderRadius: '9999px', 
+                      fontSize: '12px', 
+                      fontWeight: '500', 
+                      backgroundColor: '#dcfce7', 
+                      color: '#166534' 
+                    }}>paid</span>
+                  </div>
+                </div>
 
-              <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setCurrentPage('invoices')}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Create Invoice
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Generate professional invoices with CSV import and automatic PDF/Markdown export
-                  </p>
-                </CardContent>
-              </Card>
+                {/* Invoice 2 */}
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  padding: '16px', 
+                  borderRadius: '8px',
+                  transition: 'background-color 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    <div style={{ 
+                      width: '48px', 
+                      height: '48px', 
+                      backgroundColor: '#3b82f6', 
+                      borderRadius: '8px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}>
+                      <FileText style={{ width: '24px', height: '24px', color: 'white' }} />
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 'bold', color: '#111827' }}>INV-002</p>
+                      <p style={{ fontSize: '14px', color: '#6b7280' }}>TechStart Inc</p>
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <p style={{ fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>$1800</p>
+                    <span style={{ 
+                      display: 'inline-block',
+                      padding: '2px 12px', 
+                      borderRadius: '9999px', 
+                      fontSize: '12px', 
+                      fontWeight: '500', 
+                      backgroundColor: '#fef3c7', 
+                      color: '#92400e' 
+                    }}>pending</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )
     }
   }
 
+  const sidebarItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'invoices', label: 'Invoices', icon: FileText },
+    { id: 'settings', label: 'Settings', icon: Settings },
+  ]
+
   return (
-    <div className="min-h-screen bg-background">
-      <nav className="border-b">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 
-              className="text-xl font-bold cursor-pointer" 
-              onClick={() => setCurrentPage('home')}
-            >
-              Invoice Creator
-            </h1>
-            <div className="flex gap-2">
-              <Button
-                variant={currentPage === 'company' ? 'default' : 'outline'}
-                onClick={() => setCurrentPage('company')}
-                className="flex items-center gap-2"
-              >
-                <Building2 size={16} />
-                Company
-              </Button>
-              <Button
-                variant={currentPage === 'clients' ? 'default' : 'outline'}
-                onClick={() => setCurrentPage('clients')}
-                className="flex items-center gap-2"
-              >
-                <Users size={16} />
-                Clients
-              </Button>
-              <Button
-                variant={currentPage === 'invoices' ? 'default' : 'outline'}
-                onClick={() => setCurrentPage('invoices')}
-                className="flex items-center gap-2"
-              >
-                <FileText size={16} />
-                Invoices
-              </Button>
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex' }}>
+      {/* Sidebar */}
+      <div style={{ 
+        width: '288px', 
+        backgroundColor: '#5b68eb', 
+        color: 'white', 
+        flexShrink: 0 
+      }}>
+        {/* Logo/Brand Section */}
+        <div style={{ 
+          padding: '32px', 
+          borderBottom: '1px solid rgba(255,255,255,0.2)' 
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ 
+              width: '48px', 
+              height: '48px', 
+              backgroundColor: 'rgba(255,255,255,0.2)', 
+              borderRadius: '12px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center' 
+            }}>
+              <FileText style={{ width: '24px', height: '24px', color: 'white' }} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: 'white' }}>InvoiceFlow</h2>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}>Consulting Invoices</p>
             </div>
           </div>
         </div>
-      </nav>
 
-      <main className="py-6">
-        {renderPage()}
-      </main>
+        {/* Navigation */}
+        <nav style={{ padding: '24px 24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {sidebarItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setCurrentPage(item.id as Page)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                padding: '12px 24px',
+                borderRadius: '12px',
+                border: 'none',
+                backgroundColor: currentPage === item.id ? 'rgba(255,255,255,0.2)' : 'transparent',
+                color: 'white',
+                fontSize: '16px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+                textAlign: 'left'
+              }}
+              onMouseEnter={(e) => {
+                if (currentPage !== item.id) {
+                  e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (currentPage !== item.id) {
+                  e.currentTarget.style.backgroundColor = 'transparent'
+                }
+              }}
+            >
+              <item.icon style={{ width: '20px', height: '20px', flexShrink: 0 }} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Bottom Profile/Settings */}
+        <div style={{ 
+          position: 'absolute', 
+          bottom: '32px', 
+          left: '24px', 
+          right: '24px' 
+        }}>
+          <div style={{ 
+            backgroundColor: 'rgba(255,255,255,0.1)', 
+            borderRadius: '12px', 
+            padding: '16px' 
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ 
+                width: '40px', 
+                height: '40px', 
+                backgroundColor: 'rgba(255,255,255,0.2)', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center' 
+              }}>
+                <Settings style={{ width: '20px', height: '20px', color: 'white' }} />
+              </div>
+              <div>
+                <p style={{ fontSize: '14px', fontWeight: '500', color: 'white' }}>Settings</p>
+                <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Preferences</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+        {/* Top Header */}
+        <header style={{ 
+          backgroundColor: 'white', 
+          borderBottom: '1px solid #e5e7eb', 
+          padding: '24px 32px' 
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', marginBottom: '4px' }}>
+                {sidebarItems.find(item => item.id === currentPage)?.label || 'Dashboard'}
+              </h1>
+              <p style={{ fontSize: '14px', color: '#6b7280' }}>
+                {currentPage === 'dashboard' && 'Overview of your business metrics'}
+                {currentPage === 'clients' && 'Manage your client relationships'}
+                {currentPage === 'invoices' && 'Create and manage invoices'}
+                {currentPage === 'settings' && 'Configure your business settings'}
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <button 
+                style={{
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  padding: '10px 24px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onClick={() => setCurrentPage('invoices')}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#3b82f6'}
+              >
+                + New Invoice
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Page Content */}
+        <main>
+          {renderPage()}
+        </main>
+      </div>
     </div>
   )
 }
