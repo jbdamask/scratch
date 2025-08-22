@@ -282,20 +282,40 @@ async def upload_worklog_csv(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"Error processing worklog CSV: {str(e)}")
 
 @app.get("/invoices/next-number/")
-def get_next_invoice_number(db: Session = Depends(get_db)):
-    """Get the next available invoice number."""
-    last_invoice = db.query(DBInvoice).order_by(DBInvoice.invoice_number.desc()).first()
+def get_next_invoice_number(client_id: int, db: Session = Depends(get_db)):
+    """Get the next available invoice number for a specific client."""
+    # Get client information
+    client = db.query(DBClient).filter(DBClient.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
     
-    if last_invoice:
+    # Generate client prefix (first 3 letters of name + client ID)
+    client_name_prefix = client.name.replace(" ", "")[:3].upper()
+    client_prefix = f"{client_name_prefix}{client_id}"
+    
+    # Find the highest invoice number for this client
+    client_invoices = db.query(DBInvoice).filter(
+        DBInvoice.invoice_number.like(f"{client_prefix}-%")
+    ).all()
+    
+    # Extract numeric parts and find the maximum
+    max_number = 0
+    for invoice in client_invoices:
         try:
-            next_number = str(int(last_invoice.invoice_number) + 1)
-        except ValueError:
-            # If the last invoice number is not numeric, start from 1
-            next_number = "1"
-    else:
-        next_number = "1"
+            # Extract number after the dash (e.g., "RAC1-001" -> "001")
+            number_part = invoice.invoice_number.split("-")[1]
+            number = int(number_part)
+            max_number = max(max_number, number)
+        except (ValueError, IndexError):
+            continue
     
-    return {"next_invoice_number": next_number}
+    # Generate next number with padding
+    next_number = max_number + 1
+    padded_number = f"{next_number:03d}"  # 3-digit padding
+    
+    next_invoice_number = f"{client_prefix}-{padded_number}"
+    
+    return {"next_invoice_number": next_invoice_number}
 
 def create_date_folder():
     today = datetime.now()
@@ -584,19 +604,30 @@ def create_invoice(invoice: InvoiceCreate, db: Session = Depends(get_db)):
     # Check if invoice number already exists
     existing_invoice = db.query(DBInvoice).filter(DBInvoice.invoice_number == invoice.invoice_number).first()
     if existing_invoice:
-        # Find the next available invoice number
-        last_invoice = db.query(DBInvoice).order_by(DBInvoice.invoice_number.desc()).first()
-        if last_invoice:
+        # Generate the next available invoice number for this client
+        client_name_prefix = client.name.replace(" ", "")[:3].upper()
+        client_prefix = f"{client_name_prefix}{client.id}"
+        
+        # Find existing invoices for this client to get next number
+        client_invoices = db.query(DBInvoice).filter(
+            DBInvoice.invoice_number.like(f"{client_prefix}-%")
+        ).all()
+        
+        max_number = 0
+        for existing in client_invoices:
             try:
-                next_number = str(int(last_invoice.invoice_number) + 1)
-            except ValueError:
-                next_number = "1"
-        else:
-            next_number = "1"
+                number_part = existing.invoice_number.split("-")[1]
+                number = int(number_part)
+                max_number = max(max_number, number)
+            except (ValueError, IndexError):
+                continue
+        
+        next_number = max_number + 1
+        suggested_number = f"{client_prefix}-{next_number:03d}"
         
         raise HTTPException(
             status_code=400, 
-            detail=f"Invoice number '{invoice.invoice_number}' already exists. Try using '{next_number}'"
+            detail=f"Invoice number '{invoice.invoice_number}' already exists. Try using '{suggested_number}'"
         )
     
     db_invoice = DBInvoice(

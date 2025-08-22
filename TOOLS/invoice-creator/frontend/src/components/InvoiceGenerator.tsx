@@ -113,9 +113,9 @@ export default function InvoiceGenerator() {
     }
   }
 
-  const fetchNextInvoiceNumber = async () => {
+  const fetchNextInvoiceNumber = async (clientId: number) => {
     try {
-      const response = await fetch('http://localhost:8000/invoices/next-number/')
+      const response = await fetch(`http://localhost:8000/invoices/next-number/?client_id=${clientId}`)
       if (response.ok) {
         const data = await response.json()
         setInvoice(prev => ({ ...prev, invoice_number: data.next_invoice_number }))
@@ -154,7 +154,16 @@ export default function InvoiceGenerator() {
 
   const handleNewInvoiceClick = () => {
     setShowCreateForm(true)
-    fetchNextInvoiceNumber()
+    // Invoice number will be generated when client is selected
+  }
+
+  const handleClientChange = (clientId: number) => {
+    setInvoice(prev => ({ ...prev, client_id: clientId }))
+    if (clientId > 0) {
+      fetchNextInvoiceNumber(clientId)
+    } else {
+      setInvoice(prev => ({ ...prev, invoice_number: '' }))
+    }
   }
 
   const handleBackToList = () => {
@@ -463,6 +472,10 @@ export default function InvoiceGenerator() {
       alert('Please select a client')
       return
     }
+    if (!invoice.invoice_number) {
+      alert('Invoice number not generated. Please ensure a client is selected.')
+      return
+    }
     if (showWorklogView) {
       alert('Please convert worklog entries to invoice items first')
       return
@@ -587,7 +600,7 @@ export default function InvoiceGenerator() {
                     color: theme.colors.text.secondary, 
                     marginBottom: '8px' 
                   }}>
-                    Invoice Number (Auto-generated)
+                    Invoice Number (Generated from Client)
                   </label>
                   <Input
                     value={invoice.invoice_number}
@@ -629,7 +642,10 @@ export default function InvoiceGenerator() {
                       padding: '10px 12px',
                       border: `1px solid ${theme.colors.border.main}`,
                       borderRadius: '8px',
-                      fontSize: '14px'
+                      fontSize: '14px',
+                      backgroundColor: theme.colors.background.card,
+                      color: theme.colors.text.primary,
+                      colorScheme: 'dark'
                     }}
                   />
                 </div>
@@ -650,7 +666,7 @@ export default function InvoiceGenerator() {
                   </label>
                   <select
                     value={invoice.client_id}
-                    onChange={(e) => setInvoice(prev => ({ ...prev, client_id: parseInt(e.target.value) }))}
+                    onChange={(e) => handleClientChange(parseInt(e.target.value))}
                     style={{ 
                       width: '100%',
                       padding: '10px 12px',
@@ -658,6 +674,7 @@ export default function InvoiceGenerator() {
                       borderRadius: '8px',
                       fontSize: '14px',
                       backgroundColor: theme.colors.background.card,
+                      color: theme.colors.text.primary,
                       cursor: 'pointer'
                     }}
                     required
@@ -678,7 +695,7 @@ export default function InvoiceGenerator() {
                   display: 'block', 
                   fontSize: '14px', 
                   fontWeight: '500', 
-                  color: '#374151', 
+                  color: theme.colors.text.secondary, 
                   marginBottom: '8px' 
                 }}>
                   Message (Optional)
@@ -690,9 +707,11 @@ export default function InvoiceGenerator() {
                   style={{ 
                     width: '100%',
                     padding: '10px 12px',
-                    border: '1px solid #d1d5db',
+                    border: `1px solid ${theme.colors.border.main}`,
                     borderRadius: '8px',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    backgroundColor: theme.colors.background.card,
+                    color: theme.colors.text.primary
                   }}
                 />
               </div>
@@ -714,7 +733,7 @@ export default function InvoiceGenerator() {
                 <h3 style={{ 
                   fontSize: '18px', 
                   fontWeight: '600', 
-                  color: '#111827',
+                  color: theme.colors.text.primary,
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px'
@@ -732,9 +751,9 @@ export default function InvoiceGenerator() {
                     backgroundColor: theme.colors.background.card,
                     padding: '8px 12px',
                     borderRadius: '8px',
-                    border: '1px solid #e5e7eb'
+                    border: `1px solid ${theme.colors.border.main}`
                   }}>
-                    <label style={{ fontSize: '14px', fontWeight: '500', color: '#374151' }}>
+                    <label style={{ fontSize: '14px', fontWeight: '500', color: theme.colors.text.primary }}>
                       Hourly Rate:
                     </label>
                     <input
@@ -746,7 +765,9 @@ export default function InvoiceGenerator() {
                         padding: '4px 8px',
                         border: `1px solid ${theme.colors.border.main}`,
                         borderRadius: '6px',
-                        fontSize: '14px'
+                        fontSize: '14px',
+                        backgroundColor: theme.colors.background.card,
+                        color: theme.colors.text.primary
                       }}
                       step="0.01"
                       min="0"
@@ -776,7 +797,7 @@ export default function InvoiceGenerator() {
                         gap: '8px',
                         padding: '10px 16px',
                         backgroundColor: theme.colors.background.card,
-                        color: '#4b5563',
+                        color: theme.colors.text.secondary,
                         border: `1px solid ${theme.colors.border.main}`,
                         borderRadius: '8px',
                         fontSize: '14px',
@@ -848,24 +869,25 @@ export default function InvoiceGenerator() {
                       </button>
                     </div>
                     
-                    {/* Worklog display code unchanged */}
+                    {/* Worklog Headers */}
                     <div style={{ 
                       display: 'grid', 
                       gridTemplateColumns: '2fr 2fr 6fr 2fr', 
                       gap: '12px', 
                       alignItems: 'center', 
-                      padding: '12px 16px', 
-                      backgroundColor: theme.colors.background.card, 
-                      borderRadius: '8px',
+                      padding: '16px 20px', 
+                      backgroundColor: theme.colors.gray[100], 
+                      border: `1px solid ${theme.colors.border.main}`,
+                      borderRadius: '8px 8px 0 0',
                       fontSize: '14px',
                       fontWeight: '600',
-                      color: theme.colors.text.secondary,
-                      marginBottom: '8px'
+                      color: theme.colors.text.primary,
+                      marginBottom: '0'
                     }}>
                       <div>Name</div>
                       <div>Date</div>
                       <div>Activities</div>
-                      <div style={{ textAlign: 'right' }}>Hours</div>
+                      <div style={{ textAlign: 'center' }}>Hours</div>
                     </div>
                     
                     {worklogEntries.map((entry, index) => (
@@ -874,23 +896,24 @@ export default function InvoiceGenerator() {
                         gridTemplateColumns: '2fr 2fr 6fr 2fr', 
                         gap: '12px', 
                         alignItems: 'center', 
-                        padding: '12px 16px', 
+                        padding: '16px 20px', 
                         backgroundColor: theme.colors.background.card,
-                        border: '1px solid #e5e7eb', 
-                        borderRadius: '8px',
-                        marginBottom: '4px'
+                        border: `1px solid ${theme.colors.border.main}`, 
+                        borderTop: index === 0 ? 'none' : `1px solid ${theme.colors.border.main}`,
+                        borderRadius: index === worklogEntries.length - 1 ? '0 0 8px 8px' : '0',
+                        marginBottom: '0'
                       }}>
                         <div>
-                          <span style={{ fontSize: '14px', color: '#111827' }}>{entry.name}</span>
+                          <span style={{ fontSize: '14px', color: theme.colors.text.primary }}>{entry.name}</span>
                         </div>
                         <div>
                           <span style={{ fontSize: '14px', color: theme.colors.text.secondary }}>{entry.date}</span>
                         </div>
                         <div>
-                          <span style={{ fontSize: '14px', color: '#111827' }}>{entry.activities}</span>
+                          <span style={{ fontSize: '14px', color: theme.colors.text.primary }}>{entry.activities}</span>
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <span style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                        <div style={{ textAlign: 'center' }}>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: theme.colors.text.primary }}>
                             {entry.hours}
                           </span>
                         </div>
@@ -899,20 +922,20 @@ export default function InvoiceGenerator() {
                     
                     <div style={{ 
                       marginTop: '16px', 
-                      padding: '16px', 
-                      backgroundColor: '#dbeafe', 
+                      padding: '20px', 
+                      backgroundColor: theme.colors.secondary.bg, 
                       borderRadius: '8px',
-                      border: '1px solid #93c5fd'
+                      border: `1px solid ${theme.colors.secondary.light}`
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '16px', fontWeight: '600', color: '#1e40af' }}>
+                        <span style={{ fontSize: '16px', fontWeight: '600', color: theme.colors.secondary.main }}>
                           Total Hours: {getTotalHours()}
                         </span>
-                        <span style={{ fontSize: '16px', fontWeight: '600', color: '#1e40af' }}>
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: theme.colors.secondary.main }}>
                           Total Amount: ${(getTotalHours() * hourlyRate).toFixed(2)}
                         </span>
                       </div>
-                      <div style={{ fontSize: '14px', color: '#3730a3', marginTop: '4px' }}>
+                      <div style={{ fontSize: '14px', color: theme.colors.secondary.dark, marginTop: '8px' }}>
                         Rate: ${hourlyRate}/hour
                       </div>
                     </div>
@@ -923,21 +946,22 @@ export default function InvoiceGenerator() {
                     {/* Column Headers */}
                     <div style={{ 
                       display: 'grid', 
-                      gridTemplateColumns: '5fr 2fr 2fr 2fr 1fr', 
+                      gridTemplateColumns: '5fr 1.5fr 1.5fr 1.5fr 0.5fr', 
                       gap: '12px', 
                       alignItems: 'center', 
-                      padding: '12px 16px', 
-                      backgroundColor: theme.colors.background.card, 
-                      borderRadius: '8px',
+                      padding: '16px 20px', 
+                      backgroundColor: theme.colors.gray[100], 
+                      border: `1px solid ${theme.colors.border.main}`,
+                      borderRadius: '8px 8px 0 0',
                       fontSize: '14px',
                       fontWeight: '600',
-                      color: theme.colors.text.secondary,
-                      marginBottom: '8px'
+                      color: theme.colors.text.primary,
+                      marginBottom: '0'
                     }}>
                       <div>Description</div>
-                      <div>Hours</div>
-                      <div>Rate</div>
-                      <div>Amount</div>
+                      <div style={{ textAlign: 'center' }}>Hours</div>
+                      <div style={{ textAlign: 'center' }}>Rate</div>
+                      <div style={{ textAlign: 'center' }}>Amount</div>
                       <div></div>
                     </div>
                     
@@ -946,16 +970,18 @@ export default function InvoiceGenerator() {
                         padding: '48px', 
                         textAlign: 'center',
                         backgroundColor: theme.colors.background.card,
-                        borderRadius: '8px',
-                        border: '1px dashed #d1d5db'
+                        borderRadius: '0 0 8px 8px',
+                        border: `1px solid ${theme.colors.border.main}`,
+                        borderTop: 'none',
+                        borderStyle: 'dashed'
                       }}>
                         <FileText style={{ 
                           width: '48px', 
                           height: '48px', 
-                          color: '#d1d5db', 
+                          color: theme.colors.gray[400], 
                           margin: '0 auto 16px' 
                         }} />
-                        <p style={{ color: theme.colors.text.secondary, fontSize: '14px' }}>
+                        <p style={{ color: theme.colors.text.secondary, fontSize: '14px', margin: 0 }}>
                           No items added yet. Add items manually or upload a CSV file.
                         </p>
                       </div>
@@ -963,14 +989,15 @@ export default function InvoiceGenerator() {
                       invoice.items.map((item, index) => (
                         <div key={index} style={{ 
                           display: 'grid', 
-                          gridTemplateColumns: '5fr 2fr 2fr 2fr 1fr', 
+                          gridTemplateColumns: '5fr 1.5fr 1.5fr 1.5fr 0.5fr', 
                           gap: '12px', 
                           alignItems: 'center', 
-                          padding: '12px 16px', 
+                          padding: '16px 20px', 
                           backgroundColor: theme.colors.background.card,
-                          border: '1px solid #e5e7eb', 
-                          borderRadius: '8px',
-                          marginBottom: '4px'
+                          border: `1px solid ${theme.colors.border.main}`, 
+                          borderTop: index === 0 ? 'none' : `1px solid ${theme.colors.border.main}`,
+                          borderRadius: index === invoice.items.length - 1 ? '0 0 8px 8px' : '0',
+                          marginBottom: '0'
                         }}>
                           <div>
                             <input
@@ -979,10 +1006,12 @@ export default function InvoiceGenerator() {
                               onChange={(e) => updateItem(index, 'description', e.target.value)}
                               style={{ 
                                 width: '100%',
-                                padding: '8px 12px',
+                                padding: '10px 12px',
                                 border: `1px solid ${theme.colors.border.main}`,
                                 borderRadius: '6px',
-                                fontSize: '14px'
+                                fontSize: '14px',
+                                backgroundColor: theme.colors.background.card,
+                                color: theme.colors.text.primary
                               }}
                             />
                           </div>
@@ -995,10 +1024,13 @@ export default function InvoiceGenerator() {
                               onChange={(e) => updateItem(index, 'quantity', parseFloat(e.target.value) || 0)}
                               style={{ 
                                 width: '100%',
-                                padding: '8px 12px',
+                                padding: '10px 12px',
                                 border: `1px solid ${theme.colors.border.main}`,
                                 borderRadius: '6px',
-                                fontSize: '14px'
+                                fontSize: '14px',
+                                textAlign: 'center',
+                                backgroundColor: theme.colors.background.card,
+                                color: theme.colors.text.primary
                               }}
                             />
                           </div>
@@ -1011,10 +1043,13 @@ export default function InvoiceGenerator() {
                               onChange={(e) => updateItem(index, 'rate', parseFloat(e.target.value) || 0)}
                               style={{ 
                                 width: '100%',
-                                padding: '8px 12px',
+                                padding: '10px 12px',
                                 border: `1px solid ${theme.colors.border.main}`,
                                 borderRadius: '6px',
-                                fontSize: '14px'
+                                fontSize: '14px',
+                                textAlign: 'center',
+                                backgroundColor: theme.colors.background.card,
+                                color: theme.colors.text.primary
                               }}
                             />
                           </div>
@@ -1024,13 +1059,14 @@ export default function InvoiceGenerator() {
                               disabled
                               style={{ 
                                 width: '100%',
-                                padding: '8px 12px',
-                                border: '1px solid #e5e7eb',
+                                padding: '10px 12px',
+                                border: `1px solid ${theme.colors.border.main}`,
                                 borderRadius: '6px',
                                 fontSize: '14px',
-                                backgroundColor: theme.colors.gray[50],
-                                color: '#111827',
-                                fontWeight: '500'
+                                backgroundColor: theme.colors.gray[100],
+                                color: theme.colors.text.primary,
+                                fontWeight: '600',
+                                textAlign: 'center'
                               }}
                             />
                           </div>
@@ -1039,9 +1075,9 @@ export default function InvoiceGenerator() {
                               type="button"
                               onClick={() => removeItem(index)}
                               style={{
-                                padding: '8px',
-                                backgroundColor: '#fee2e2',
-                                color: '#dc2626',
+                                padding: '10px',
+                                backgroundColor: theme.colors.error.bg,
+                                color: theme.colors.error.main,
                                 border: 'none',
                                 borderRadius: '6px',
                                 cursor: 'pointer',
@@ -1049,6 +1085,14 @@ export default function InvoiceGenerator() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.colors.error.main
+                                e.currentTarget.style.color = 'white'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = theme.colors.error.bg
+                                e.currentTarget.style.color = theme.colors.error.main
                               }}
                             >
                               <Trash2 size={16} />

@@ -516,9 +516,6 @@ export default function ClientDetail({ clientId, onBack }: ClientDetailProps) {
                           <div style={{ fontWeight: '600', color: theme.colors.text.primary, marginBottom: '4px' }}>
                             #{invoice.invoice_number}
                           </div>
-                          <div style={{ fontSize: '12px', color: theme.colors.text.secondary }}>
-                            Website Development - Phase 1
-                          </div>
                         </div>
                       </td>
                       <td style={{ padding: '16px' }}>
