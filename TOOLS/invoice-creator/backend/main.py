@@ -659,6 +659,30 @@ def read_invoice(invoice_id: int, db: Session = Depends(get_db)):
     
     return invoice
 
+@app.get("/invoices/{invoice_id}/pdf")
+def get_invoice_pdf(invoice_id: int, download: bool = False, db: Session = Depends(get_db)):
+    invoice = db.query(DBInvoice).filter(DBInvoice.id == invoice_id).first()
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Invoice not found")
+    
+    if not invoice.pdf_path or not os.path.exists(invoice.pdf_path):
+        raise HTTPException(status_code=404, detail="PDF file not found")
+    
+    # Use FileResponse but set headers correctly for inline viewing
+    headers = {}
+    if download:
+        # Force download
+        headers["Content-Disposition"] = f'attachment; filename="invoice_{invoice.invoice_number}.pdf"'
+    else:
+        # Display inline in browser
+        headers["Content-Disposition"] = f'inline; filename="invoice_{invoice.invoice_number}.pdf"'
+    
+    return FileResponse(
+        path=invoice.pdf_path,
+        media_type="application/pdf",
+        headers=headers
+    )
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
