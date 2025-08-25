@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Downloader</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .logo {
+            font-size: 2rem;
+        }
+        .url-section {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .url-input {
+            width: 100%;
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .url-input:focus {
+            outline: none;
+            border-color: #2196f3;
+            box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+        }
+        .download-options {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn {
+            background: #2196f3;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            margin: 5px;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background: #1976d2;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .btn-video {
+            background: #4caf50;
+        }
+        .btn-video:hover {
+            background: #45a049;
+        }
+        .btn-audio {
+            background: #ff9800;
+        }
+        .btn-audio:hover {
+            background: #f57c00;
+        }
+        .btn-secondary {
+            background: #6c757d;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+        .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #2196f3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+        .url-examples {
+            margin-top: 15px;
+            font-size: 13px;
+            color: #666;
+            text-align: left;
+        }
+        .url-examples strong {
+            color: #333;
+        }
+        .downloads-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        .download-item {
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-left: 4px solid #2196f3;
+        }
+        .download-directory {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0 0 0;
+        }
+        .file-item {
+            background: white;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 4px;
+            border: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .file-name {
+            font-weight: 500;
+            color: #333;
+        }
+        .file-size {
+            color: #666;
+            font-size: 14px;
+        }
+        .refresh-btn {
+            float: right;
+            margin-bottom: 20px;
+        }
+        .no-downloads {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+        .download-stats {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function YouTubeDownloader() {
+            const [youtubeUrl, setYoutubeUrl] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+            const [success, setSuccess] = useState('');
+            const [downloads, setDownloads] = useState([]);
+            const [refreshing, setRefreshing] = useState(false);
+
+            // Load downloads on component mount
+            useEffect(() => {
+                loadDownloads();
+            }, []);
+
+            const isValidYouTubeUrl = (url) => {
+                const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/ ]{11})/;
+                return youtubeRegex.test(url);
+            };
+
+            const formatFileSize = (bytes) => {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            };
+
+            const downloadContent = async (format) => {
+                if (!youtubeUrl.trim()) {
+                    setError('Please enter a YouTube URL');
+                    return;
+                }
+
+                if (!isValidYouTubeUrl(youtubeUrl.trim())) {
+                    setError('Please enter a valid YouTube URL');
+                    return;
+                }
+
+                setLoading(true);
+                setError('');
+                setSuccess('');
+
+                try {
+                    const response = await fetch('/api/download', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            youtube_url: youtubeUrl.trim(),
+                            format: format
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Download failed');
+                    }
+
+                    setSuccess(`${format === 'video' ? 'Video' : 'Audio'} downloaded successfully to ${data.directory}!`);
+                    setYoutubeUrl(''); // Clear URL on successful download
+                    loadDownloads(); // Refresh downloads list
+
+                } catch (err) {
+                    setError(err.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const loadDownloads = async () => {
+                setRefreshing(true);
+                try {
+                    const response = await fetch('/api/downloads');
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        setDownloads(data.downloads || []);
+                    } else {
+                        console.error('Failed to load downloads:', data.error);
+                    }
+                } catch (err) {
+                    console.error('Failed to load downloads:', err);
+                } finally {
+                    setRefreshing(false);
+                }
+            };
+
+            const clearResults = () => {
+                setError('');
+                setSuccess('');
+            };
+
+            const totalFiles = downloads.reduce((sum, dir) => sum + dir.file_count, 0);
+
+            return (
+                <div className="container">
+                    <h1>
+                        <span className="logo">📥</span>
+                        YouTube Downloader
+                    </h1>
+                    
+                    {error && (
+                        <div className="error">
+                            <strong>Error:</strong> {error}
+                        </div>
+                    )}
+
+                    {success && (
+                        <div className="success">
+                            <strong>Success:</strong> {success}
+                        </div>
+                    )}
+
+                    <div className="url-section">
+                        <h3>🎬 Enter YouTube URL</h3>
+                        <p>Paste the URL of the YouTube video you want to download:</p>
+                        
+                        <input
+                            type="url"
+                            className="url-input"
+                            value={youtubeUrl}
+                            onChange={(e) => setYoutubeUrl(e.target.value)}
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            disabled={loading}
+                        />
+                        
+                        <div className="download-options">
+                            <button
+                                className="btn btn-video"
+                                onClick={() => downloadContent('video')}
+                                disabled={loading || !youtubeUrl.trim()}
+                            >
+                                {loading ? 'Processing...' : '📹 Download Video'}
+                            </button>
+                            
+                            <button
+                                className="btn btn-audio"
+                                onClick={() => downloadContent('audio')}
+                                disabled={loading || !youtubeUrl.trim()}
+                            >
+                                {loading ? 'Processing...' : '🎵 Download Audio'}
+                            </button>
+                        </div>
+
+                        {(error || success) && (
+                            <button
+                                className="btn btn-secondary"
+                                onClick={clearResults}
+                                disabled={loading}
+                            >
+                                Clear Messages
+                            </button>
+                        )}
+
+                        <div className="url-examples">
+                            <strong>Supported formats:</strong><br/>
+                            • https://www.youtube.com/watch?v=VIDEO_ID<br/>
+                            • https://youtu.be/VIDEO_ID<br/>
+                            • https://www.youtube.com/embed/VIDEO_ID
+                        </div>
+                    </div>
+
+                    {loading && (
+                        <div className="loading">
+                            <div className="spinner"></div>
+                            <div>Downloading your content...</div>
+                            <p style={{fontSize: '14px', color: '#999'}}>
+                                This may take a few minutes depending on the video size
+                            </p>
+                        </div>
+                    )}
+
+                    <div className="downloads-section">
+                        <h2>📁 Downloaded Files</h2>
+                        
+                        <button 
+                            className="btn btn-secondary refresh-btn"
+                            onClick={loadDownloads}
+                            disabled={refreshing}
+                        >
+                            {refreshing ? 'Refreshing...' : '🔄 Refresh'}
+                        </button>
+
+                        {downloads.length > 0 && (
+                            <div className="download-stats">
+                                <strong>{downloads.length}</strong> download directories • <strong>{totalFiles}</strong> total files
+                            </div>
+                        )}
+
+                        {downloads.length === 0 ? (
+                            <div className="no-downloads">
+                                No downloads yet. Download your first video or audio file above!
+                            </div>
+                        ) : (
+                            <div>
+                                {downloads.map((downloadDir, index) => (
+                                    <div key={index} className="download-item">
+                                        <div className="download-directory">
+                                            📂 {downloadDir.directory}
+                                        </div>
+                                        <div style={{color: '#666', fontSize: '14px', marginBottom: '10px'}}>
+                                            {downloadDir.file_count} file{downloadDir.file_count !== 1 ? 's' : ''}
+                                        </div>
+                                        <ul className="file-list">
+                                            {downloadDir.files.map((file, fileIndex) => (
+                                                <li key={fileIndex} className="file-item">
+                                                    <span className="file-name">
+                                                        {file.filename.endsWith('.mp3') ? '🎵' : '📹'} {file.filename}
+                                                    </span>
+                                                    <span className="file-size">
+                                                        {formatFileSize(file.size)}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<YouTubeDownloader />, document.getElementById('root'));
+    </script>
+</body>
+</html>
