@@ -1,7 +1,13 @@
 # Invoice Creator
 
 My vibe-coded invoice generator used by my consulting business. 
-It depends on CSV uploads in the format of my WorkLog tables in Notion (details below)
+It depends on CSV uploads in the format of my WorkLog tables in Notion (details below).
+
+## IMPORTANT NOTES
+
+- Data from this application are not backed up.
+- Be sure to save generated invoices to your filesystem!
+- The database for this app is a local sqlite3. Manual migration will be required if I get a new computer. 
 
 ## Features
 
@@ -62,14 +68,17 @@ invoice-creator/
 
 1. **Backend Setup:**
    ```bash
-   # Virtual environment is already created
-   # Dependencies are already installed
+   # If no virtual environment 
+   cd backend
+   python3 -m venv .venv && source .venv/bin/activate
+   pip install -r requirements.txt
+   #
    ```
 
 2. **Frontend Setup:**
    ```bash
    cd frontend
-   # Dependencies are already installed
+   npm install
    ```
 
 ### Running the Application
