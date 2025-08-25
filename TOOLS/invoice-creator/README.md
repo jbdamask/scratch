@@ -1,6 +1,7 @@
 # Invoice Creator
 
-A full-stack web application for creating professional invoices with worklog CSV import functionality, built with FastAPI (backend) and React + Vite + Shadcn (frontend).
+My vibe-coded invoice generator used by my consulting business. 
+It depends on CSV uploads in the format of my WorkLog tables in Notion (details below)
 
 ## Features
 
