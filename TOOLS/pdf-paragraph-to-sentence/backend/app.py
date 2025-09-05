@@ -6,9 +6,9 @@ import logging
 import json
 import tempfile
 import time
+import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from openai import OpenAI
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -26,14 +26,14 @@ CORS(app, resources={
     }
 })
 
-client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+# Ollama configuration
+OLLAMA_BASE_URL = "http://localhost:11434"
+OLLAMA_MODEL = "llama3.2:3b"
 
 # Global state for tracking processing
 processing_state = {
     'is_processing': False,
-    'should_stop': False,
-    'batch_id': None,
-    'file_id': None
+    'should_stop': False
 }
 
 def extract_paragraphs_from_pdf(pdf_file):
@@ -87,182 +87,41 @@ def extract_paragraphs_from_pdf(pdf_file):
     
     return paragraphs
 
-def create_batch_requests(paragraphs):
-    """Create batch requests for all paragraphs"""
-    batch_requests = []
-    
-    for i, paragraph in enumerate(paragraphs):
-        request = {
-            "custom_id": f"paragraph_{i+1}",
-            "method": "POST",
-            "url": "/v1/chat/completions",
-            "body": {
-                "model": "gpt-4o-mini",
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": f"Read this entire paragraph and reduce the content to a single sentence that captures the paragraph's theme:\n\n{paragraph}"
-                    }
-                ],
-                "max_tokens": 100,
-                "temperature": 0.7
-            }
-        }
-        batch_requests.append(request)
-    
-    return batch_requests
-
-def process_paragraphs_batch(paragraphs):
-    """Process all paragraphs using OpenAI Batch API"""
-    global processing_state
-    
+def call_ollama_api(prompt):
+    """Make a request to the Ollama API"""
     try:
-        logger.info(f"Creating batch requests for {len(paragraphs)} paragraphs")
-        
-        # Check if we should stop before starting
-        if processing_state['should_stop']:
-            logger.info("Processing stopped before batch creation")
-            return []
-        
-        # Create batch requests
-        batch_requests = create_batch_requests(paragraphs)
-        
-        # Create temporary JSONL file
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.jsonl', delete=False) as f:
-            for request in batch_requests:
-                f.write(json.dumps(request) + '\n')
-            temp_file_path = f.name
-        
-        logger.info(f"Created JSONL file: {temp_file_path}")
-        
-        # Check if we should stop
-        if processing_state['should_stop']:
-            logger.info("Processing stopped before file upload")
-            os.unlink(temp_file_path)
-            return []
-        
-        # Upload file to OpenAI
-        with open(temp_file_path, 'rb') as f:
-            file_response = client.files.create(
-                file=f,
-                purpose="batch"
-            )
-        
-        file_id = file_response.id
-        processing_state['file_id'] = file_id
-        logger.info(f"Uploaded file with ID: {file_id}")
-        
-        # Check if we should stop
-        if processing_state['should_stop']:
-            logger.info("Processing stopped before batch creation")
-            os.unlink(temp_file_path)
-            client.files.delete(file_id)
-            processing_state['file_id'] = None
-            return []
-        
-        # Create batch job
-        batch_job = client.batches.create(
-            input_file_id=file_id,
-            endpoint="/v1/chat/completions",
-            completion_window="24h"
+        response = requests.post(
+            f"{OLLAMA_BASE_URL}/api/generate",
+            json={
+                "model": OLLAMA_MODEL,
+                "prompt": prompt,
+                "stream": False
+            },
+            timeout=30
         )
         
-        batch_id = batch_job.id
-        processing_state['batch_id'] = batch_id
-        logger.info(f"Created batch job with ID: {batch_id}")
-        
-        # Poll for completion (with timeout)
-        max_wait_time = 300  # 5 minutes max wait
-        start_time = time.time()
-        
-        while time.time() - start_time < max_wait_time:
-            # Check if we should stop
-            if processing_state['should_stop']:
-                logger.info("Processing stopped, cancelling batch")
-                try:
-                    client.batches.cancel(batch_id)
-                except Exception as e:
-                    logger.error(f"Error cancelling batch: {e}")
-                
-                # Cleanup
-                os.unlink(temp_file_path)
-                try:
-                    client.files.delete(file_id)
-                except Exception as e:
-                    logger.error(f"Error deleting file: {e}")
-                
-                processing_state['batch_id'] = None
-                processing_state['file_id'] = None
-                return []
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("response", "").strip()
+        else:
+            logger.error(f"Ollama API error: {response.status_code} - {response.text}")
+            return f"Error: Ollama API returned {response.status_code}"
             
-            batch_status = client.batches.retrieve(batch_id)
-            logger.info(f"Batch status: {batch_status.status}")
-            
-            if batch_status.status == "completed":
-                # Download results
-                result_file_id = batch_status.output_file_id
-                result_content = client.files.content(result_file_id)
-                
-                # Parse results
-                results = []
-                for line in result_content.text.strip().split('\n'):
-                    if line.strip():
-                        result = json.loads(line)
-                        custom_id = result['custom_id']
-                        paragraph_num = int(custom_id.split('_')[1])
-                        
-                        if result['response']['status_code'] == 200:
-                            summary = result['response']['body']['choices'][0]['message']['content'].strip()
-                        else:
-                            summary = f"Error processing paragraph {paragraph_num}"
-                        
-                        results.append({
-                            'paragraph_number': paragraph_num,
-                            'original': paragraphs[paragraph_num - 1],
-                            'summary': summary
-                        })
-                
-                # Sort by paragraph number
-                results.sort(key=lambda x: x['paragraph_number'])
-                
-                # Cleanup
-                os.unlink(temp_file_path)
-                client.files.delete(file_id)
-                processing_state['batch_id'] = None
-                processing_state['file_id'] = None
-                
-                logger.info(f"Successfully processed {len(results)} paragraphs via batch")
-                return results
-            
-            elif batch_status.status in ["failed", "expired", "cancelled"]:
-                logger.error(f"Batch job failed with status: {batch_status.status}")
-                break
-            
-            # Wait before checking again
-            time.sleep(2)
-        
-        # If we get here, batch didn't complete in time - fall back to individual processing
-        logger.warning("Batch processing timed out, falling back to individual requests")
-        os.unlink(temp_file_path)
-        client.files.delete(file_id)
-        processing_state['batch_id'] = None
-        processing_state['file_id'] = None
-        
-        return process_paragraphs_individual(paragraphs)
-        
+    except requests.exceptions.Timeout:
+        logger.error("Ollama API request timed out")
+        return "Error: Request timed out"
+    except requests.exceptions.ConnectionError:
+        logger.error("Could not connect to Ollama API")
+        return "Error: Could not connect to Ollama (is ollama serve running?)"
     except Exception as e:
-        logger.error(f"Batch processing failed: {str(e)}")
-        # Clean up state
-        processing_state['batch_id'] = None
-        processing_state['file_id'] = None
-        # Fall back to individual processing
-        return process_paragraphs_individual(paragraphs)
+        logger.error(f"Ollama API error: {str(e)}")
+        return f"Error: {str(e)}"
 
-def process_paragraphs_individual(paragraphs):
-    """Fallback: Process paragraphs individually"""
+def process_paragraphs_ollama(paragraphs):
+    """Process all paragraphs using Ollama API"""
     global processing_state
     
-    logger.info("Using individual processing as fallback")
+    logger.info(f"Processing {len(paragraphs)} paragraphs with Ollama")
     results = []
     
     for i, paragraph in enumerate(paragraphs, 1):
@@ -270,21 +129,14 @@ def process_paragraphs_individual(paragraphs):
         if processing_state['should_stop']:
             logger.info(f"Processing stopped after {len(results)} paragraphs")
             break
-            
+        
+        logger.info(f"Processing paragraph {i}/{len(paragraphs)}")
+        prompt = f"Your task is to read this entire paragraph and reduce the content to a single sentence that captures the major theme. You will only return the summary sentence. You will never preface the sentence. This is the paragraph to process:\n\n{paragraph}"
+        
         try:
-            response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"Read this entire paragraph and reduce the content to a single sentence that captures the paragraph's theme:\n\n{paragraph}"
-                    }
-                ],
-                max_tokens=100,
-                temperature=0.7
-            )
-            summary = response.choices[0].message.content.strip()
+            summary = call_ollama_api(prompt)
         except Exception as e:
+            logger.error(f"Error processing paragraph {i}: {str(e)}")
             summary = f"Error summarizing paragraph: {str(e)}"
         
         results.append({
@@ -292,8 +144,13 @@ def process_paragraphs_individual(paragraphs):
             'original': paragraph,
             'summary': summary
         })
+        
+        # Small delay to prevent overwhelming Ollama
+        time.sleep(0.1)
     
+    logger.info(f"Successfully processed {len(results)} paragraphs with Ollama")
     return results
+
 
 @app.route('/upload', methods=['POST'])
 def upload_file():
@@ -327,8 +184,6 @@ def upload_file():
         # Set processing state
         processing_state['is_processing'] = True
         processing_state['should_stop'] = False
-        processing_state['batch_id'] = None
-        processing_state['file_id'] = None
         
         # Extract paragraphs from PDF
         paragraphs = extract_paragraphs_from_pdf(file)
@@ -340,14 +195,12 @@ def upload_file():
             processing_state['is_processing'] = False
             return jsonify({'success': False, 'message': 'Processing stopped'})
         
-        # Process paragraphs using batch API (with fallback to individual)
-        results = process_paragraphs_batch(paragraphs)
+        # Process paragraphs using Ollama API
+        results = process_paragraphs_ollama(paragraphs)
         
         # Reset processing state
         processing_state['is_processing'] = False
         processing_state['should_stop'] = False
-        processing_state['batch_id'] = None
-        processing_state['file_id'] = None
         
         if processing_state.get('was_stopped', False):
             processing_state['was_stopped'] = False
@@ -365,8 +218,6 @@ def upload_file():
         # Reset processing state on error
         processing_state['is_processing'] = False
         processing_state['should_stop'] = False
-        processing_state['batch_id'] = None
-        processing_state['file_id'] = None
         return jsonify({'error': f'Error processing PDF: {str(e)}'}), 500
 
 def find_available_port(start_port=5000):
@@ -402,8 +253,8 @@ def get_status():
     
     return jsonify({
         'is_processing': processing_state['is_processing'],
-        'has_batch_id': processing_state['batch_id'] is not None,
-        'has_file_id': processing_state['file_id'] is not None
+        'model': OLLAMA_MODEL,
+        'ollama_url': OLLAMA_BASE_URL
     })
 
 @app.route('/health', methods=['GET'])
