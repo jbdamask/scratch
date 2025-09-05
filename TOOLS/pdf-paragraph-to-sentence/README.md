@@ -24,23 +24,25 @@ A web application that uploads PDFs, extracts paragraphs, and uses local Ollama 
    brew install ollama
    ```
 
-2. Start the Ollama server:
+2. Download the llama3.2:3b model (first time only):
    ```bash
-   ollama serve
+   ollama pull llama3.2:3b
    ```
 
-3. Download the llama3.2:3b model (first time only):
+   This will download the model weights (~2GB).
+
+3. Test the installation:
    ```bash
    ollama run llama3.2:3b "Summarize this: Ollama provides a local API for models."
    ```
 
-   This will download the model weights (~2GB) and test the installation. You should see a summary response.
-
-4. Keep the Ollama server running in the background for the application to work.
+   You should see a summary response if everything is working.
 
 **Alternative Installation:**
 - Download from [ollama.com](https://ollama.com) and follow the installation instructions
 - Make sure the model is downloaded: `ollama pull llama3.2:3b`
+
+**Note**: The backend will automatically start multiple Ollama instances, so you don't need to run `ollama serve` manually.
 
 ### Backend (Flask)
 
@@ -91,8 +93,8 @@ A web application that uploads PDFs, extracts paragraphs, and uses local Ollama 
 
 ## Usage
 
-1. **First**: Make sure Ollama is running (`ollama serve`)
-2. Start both backend and frontend servers
+1. Start the backend server (it will automatically start multiple Ollama instances)
+2. Start the frontend server
 3. Open the frontend in your browser (typically http://localhost:5173)
 4. Upload a PDF file using the file picker
 5. Click "Process PDF" to start processing
@@ -101,7 +103,10 @@ A web application that uploads PDFs, extracts paragraphs, and uses local Ollama 
 8. Copy results as markdown or save as .md file
 9. Use "Reset" button to clear results and start over
 
-**Note**: The first request may take a moment as Ollama loads the model into memory.
+**Notes**: 
+- The backend automatically starts 4 Ollama instances for parallel processing
+- The first request may take a moment as Ollama loads the model into memory on each instance
+- Processing should be significantly faster due to true parallelization
 
 ## Processing Details
 
@@ -111,10 +116,11 @@ A web application that uploads PDFs, extracts paragraphs, and uses local Ollama 
 - Groups sentences into meaningful paragraphs when needed
 
 ### Local AI Processing
-- **Sequential Processing**: Processes paragraphs one at a time using local Ollama API
-- **Memory Efficient**: Uses streaming to avoid loading large responses into memory
-- **Stop Control**: Can interrupt processing between paragraphs with immediate feedback
+- **Parallel Processing**: Automatically spawns 4 Ollama instances for true parallelization
+- **Load Balancing**: Distributes paragraphs across instances using round-robin
+- **Stop Control**: Can interrupt processing and cleanly shut down all instances
 - **Privacy**: All processing happens locally - no external API calls
+- **Auto-Management**: Handles Ollama instance startup, monitoring, and cleanup
 
 ### Stop Functionality
 - Stops processing between paragraphs
@@ -130,25 +136,33 @@ A web application that uploads PDFs, extracts paragraphs, and uses local Ollama 
 
 ## Architecture
 
-- **Backend**: Python 3.12 + Flask with Ollama integration
+- **Backend**: Python 3.12 + Flask with multi-instance Ollama integration
 - **Frontend**: React + Vite with American Heartland theme  
-- **AI Model**: Ollama llama3.2:3b (local inference)
-- **Processing**: Sequential paragraph processing with stop controls
-- **State Management**: Global processing state tracking
+- **AI Model**: Ollama llama3.2:3b (local inference, 4 parallel instances)
+- **Processing**: True parallel processing across multiple Ollama instances
+- **Load Balancing**: Round-robin distribution across instances (ports 11434-11437)
+- **State Management**: Global processing state tracking with instance management
 - **Privacy**: 100% local processing - no external API calls
 
 ## Troubleshooting
 
-**"Could not connect to Ollama" error:**
+**Backend fails to start:**
 - Make sure Ollama is installed: `brew install ollama`
-- Start the Ollama server: `ollama serve`
-- Test the connection: `curl http://localhost:11434/api/tags`
+- Ensure the model is downloaded: `ollama pull llama3.2:3b`
+- Check that ports 11434-11437 are available
+- Try running: `ollama --version` to verify installation
 
-**"Model not found" error:**
-- Download the model: `ollama pull llama3.2:3b`
-- Verify it's available: `ollama list`
+**"Failed to start Ollama instances" error:**
+- Check if any Ollama processes are already running: `ps aux | grep ollama`
+- Kill existing processes if needed: `pkill ollama`
+- Restart the backend
 
-**Slow processing:**
-- First request loads model into memory (takes ~10-30 seconds)
-- Subsequent requests are much faster
-- Consider using a smaller model for faster processing: `llama3.2:1b`
+**Slow initial processing:**
+- First request loads model into memory on all 4 instances (may take 30-60 seconds)
+- Subsequent processing should be much faster due to parallelization
+- Consider using a smaller model for faster startup: `llama3.2:1b`
+
+**Performance issues:**
+- Check system resources (CPU/Memory usage)
+- Reduce OLLAMA_INSTANCES in the backend code if system is overloaded
+- Monitor logs to ensure all instances are healthy

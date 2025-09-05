@@ -143,6 +143,143 @@ button:disabled {
   border-color: #4682B4 !important;
 }
 
+.progress-section {
+  background: linear-gradient(145deg, #f5e6d3 0%, #e8d5b7 100%);
+  padding: 2rem;
+  border-radius: 12px;
+  margin: 2rem 0;
+  border: 2px solid #CD853F;
+  box-shadow: inset 0 2px 4px rgba(139, 69, 19, 0.1);
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.progress-header h3 {
+  color: #8B4513;
+  font-family: 'Merriweather', serif;
+  font-size: 1.4rem;
+  margin: 0;
+  text-shadow: 1px 1px 2px rgba(139, 69, 19, 0.2);
+}
+
+.status-text {
+  color: #D2691E;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.progress-details {
+  margin-bottom: 1rem;
+}
+
+.progress-bar-container {
+  background: rgba(139, 69, 19, 0.2);
+  border-radius: 10px;
+  height: 20px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #CD853F;
+}
+
+.progress-bar {
+  background: linear-gradient(90deg, #D2691E, #DAA520);
+  height: 100%;
+  border-radius: 9px;
+  transition: width 0.3s ease;
+  box-shadow: 0 2px 4px rgba(139, 69, 19, 0.3);
+}
+
+.progress-text {
+  color: #8B4513;
+  font-weight: 500;
+  text-align: center;
+  font-size: 1rem;
+}
+
+.progress-message {
+  color: #8B4513;
+  font-style: italic;
+  text-align: center;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 248, 240, 0.8);
+  border-radius: 6px;
+  border: 1px solid #DEB887;
+}
+
+.music-player-section {
+  background: linear-gradient(145deg, #f5e6d3 0%, #e8d5b7 100%);
+  padding: 2rem;
+  border-radius: 12px;
+  margin: 2rem 0;
+  border: 2px solid #CD853F;
+  box-shadow: inset 0 2px 4px rgba(139, 69, 19, 0.1);
+  text-align: center;
+}
+
+.music-header h3 {
+  color: #8B4513;
+  font-family: 'Merriweather', serif;
+  font-size: 1.6rem;
+  margin-bottom: 0.5rem;
+  text-shadow: 1px 1px 2px rgba(139, 69, 19, 0.2);
+}
+
+.now-playing {
+  color: #D2691E;
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+
+.youtube-player {
+  margin: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.youtube-player iframe {
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(139, 69, 19, 0.3);
+  width: 480px;
+  height: 270px;
+}
+
+@media (max-width: 768px) {
+  .youtube-player iframe {
+    width: 100%;
+    height: 250px;
+  }
+}
+
+@media (max-width: 520px) {
+  .youtube-player iframe {
+    width: 100%;
+    height: 200px;
+  }
+}
+
+.waiting-message {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 248, 240, 0.8);
+  border-radius: 8px;
+  border: 1px solid #DEB887;
+}
+
+.waiting-message p {
+  color: #8B4513;
+  margin: 0.5rem 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
 .error {
   background: linear-gradient(145deg, #F4A460, #CD853F);
   color: #8B0000;

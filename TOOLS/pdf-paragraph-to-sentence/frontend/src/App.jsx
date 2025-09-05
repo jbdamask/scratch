@@ -8,6 +8,28 @@ function App() {
   const [error, setError] = useState('')
   const [stopping, setStopping] = useState(false)
   const [baseUrl, setBaseUrl] = useState(null)
+  const [progress, setProgress] = useState({
+    current_status: 'idle',
+    total_paragraphs: 0,
+    completed_paragraphs: 0,
+    progress_percent: 0
+  })
+  const [currentVideo, setCurrentVideo] = useState(null)
+  const [eventSource, setEventSource] = useState(null)
+
+  // Waiting songs playlist
+  const waitingSongs = [
+    { title: "Tom Petty And The Heartbreakers – \"The Waiting\"", id: "uMyCa35_mOg" },
+    { title: "Richard Marx – \"Right Here Waiting\"", id: "S_E2EHVxNAE" },
+    { title: "Cian Ducrot – \"I'll Be Waiting\"", id: "VqXYVrsMGnk" },
+    { title: "David Guetta & OneRepublic – \"I Don't Wanna Wait\"", id: "dSDbwfXX5_I" },
+    { title: "Maroon 5 – \"Wait\"", id: "4uTNVumfm84" },
+    { title: "Lauren Daigle – \"Waiting\"", id: "r7IPCVDimRM" },
+    { title: "Bailey Zimmerman – \"Waiting\"", id: "CGyfu6Hfy7U" },
+    { title: "James Vincent McMorrow – \"Waiting\"", id: "zmRXq1NB28o" },
+    { title: "Zhavia – \"Waiting\"", id: "waQrh4NTi6U" },
+    { title: "Russell Dickerson – \"Waiting For You\"", id: "-8nYYNV7w9M" }
+  ]
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0])
@@ -45,17 +67,94 @@ function App() {
     } finally {
       setStopping(false)
       setLoading(false)
+      // Close SSE connection when stopping
+      if (eventSource) {
+        eventSource.close()
+        setEventSource(null)
+      }
     }
   }
 
+  const getRandomWaitingSong = () => {
+    const randomIndex = Math.floor(Math.random() * waitingSongs.length)
+    return waitingSongs[randomIndex]
+  }
+
   const resetState = () => {
+    // Close SSE connection
+    if (eventSource) {
+      eventSource.close()
+      setEventSource(null)
+    }
+    
     setFile(null)
     setResults(null)
     setError('')
     setLoading(false)
     setStopping(false)
     setBaseUrl(null)
+    setCurrentVideo(null)
+    setProgress({
+      current_status: 'idle',
+      total_paragraphs: 0,
+      completed_paragraphs: 0,
+      progress_percent: 0
+    })
   }
+
+  const connectSSE = (baseUrl) => {
+    if (!baseUrl) return
+    
+    // Close existing connection
+    if (eventSource) {
+      eventSource.close()
+    }
+    
+    console.log('🔗 Connecting to SSE stream...')
+    const es = new EventSource(`${baseUrl}/events`)
+    setEventSource(es)
+    
+    es.addEventListener('progress', (event) => {
+      const data = JSON.parse(event.data)
+      console.log('📊 Progress update via SSE:', data)
+      setProgress(prev => ({
+        ...prev,
+        completed_paragraphs: data.completed_paragraphs,
+        total_paragraphs: data.total_paragraphs,
+        progress_percent: data.progress_percent
+      }))
+    })
+    
+    es.addEventListener('completed', (event) => {
+      const data = JSON.parse(event.data)
+      console.log('✅ Processing completed via SSE:', data)
+      setResults(data.results)
+      setCurrentVideo(null) // Stop music
+      setLoading(false) // Hide loading
+      es.close() // Close SSE connection
+      setEventSource(null)
+    })
+    
+    es.addEventListener('status', (event) => {
+      const status = JSON.parse(event.data)
+      console.log('📊 Status update via SSE:', status)
+      setProgress({
+        current_status: status.current_status,
+        total_paragraphs: status.total_paragraphs,
+        completed_paragraphs: status.completed_paragraphs,
+        progress_percent: status.progress_percent
+      })
+    })
+    
+    es.onerror = (event) => {
+      console.error('❌ SSE connection error:', event)
+      es.close()
+      setEventSource(null)
+    }
+    
+    return es
+  }
+
 
   const findBackendUrl = async () => {
     const ports = [5000, 5001, 5002, 5003, 5004, 5005, 5006, 5007, 5008, 5009]
@@ -99,6 +198,19 @@ function App() {
     console.log('📁 Starting file upload process...')
     setLoading(true)
     setError('')
+    
+    // Initialize progress state and start waiting music
+    setProgress({
+      current_status: 'starting',
+      total_paragraphs: 0,
+      completed_paragraphs: 0,
+      progress_percent: 0
+    })
+    
+    // Pick a random waiting song
+    const randomSong = getRandomWaitingSong()
+    setCurrentVideo(randomSong)
+    console.log(`🎵 Now playing: ${randomSong.title}`)
 
     const formData = new FormData()
     formData.append('file', file)
@@ -109,6 +221,10 @@ function App() {
       const foundBaseUrl = await findBackendUrl()
       setBaseUrl(foundBaseUrl)
       console.log(`🚀 Uploading to: ${foundBaseUrl}/upload`)
+      
+      // Connect to SSE for real-time updates
+      console.log('🔗 Connecting to SSE stream...')
+      connectSSE(foundBaseUrl)
       
       const response = await fetch(`${foundBaseUrl}/upload`, {
         method: 'POST',
@@ -130,19 +246,29 @@ function App() {
       const data = await response.json()
       console.log('📋 Response data:', data)
 
-      if (data.success) {
+      if (data.success && data.async) {
+        console.log('🚀 Async processing started')
+        // Keep loading state true for the music player
+        // Processing started in background, polling will handle the rest
+        return // Don't set loading to false for async processing
+      } else if (data.success && data.results) {
+        // Synchronous response with results (fallback)
         console.log(`✅ Success! Received ${data.results.length} results`)
         setResults(data.results)
+        setProgress(prev => ({ ...prev, current_status: 'completed' }))
       } else {
         console.error('❌ Server returned error:', data.error || data.message)
         setError(data.error || data.message || 'An error occurred')
+        setProgress(prev => ({ ...prev, current_status: 'idle' }))
       }
     } catch (err) {
       console.error('💥 Request failed:', err)
       setError(`Failed to connect to server: ${err.message}`)
-    } finally {
-      setLoading(false)
+      setProgress(prev => ({ ...prev, current_status: 'idle' }))
     }
+    
+    // Only set loading to false if we're not doing async processing
+    setLoading(false)
   }
 
   const generateMarkdown = () => {
@@ -173,6 +299,20 @@ function App() {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
   }
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'idle': return 'Ready'
+      case 'starting': return 'Starting...'
+      case 'extracting': return 'Extracting text from PDF'
+      case 'processing': return 'Processing with AI'
+      case 'stopping': return 'Stopping...'
+      case 'stopped': return 'Stopped'
+      case 'completed': return 'Completed'
+      default: return status
+    }
+  }
+
 
   return (
     <div className="app">
@@ -207,6 +347,34 @@ function App() {
           )}
         </div>
       </form>
+
+      {loading && (
+        <div className="music-player-section">
+          <div className="music-header">
+            <h3>🎵 While You Wait...</h3>
+            <p className="now-playing">{currentVideo ? currentVideo.title : 'Loading music...'}</p>
+          </div>
+          
+          {currentVideo && (
+            <div className="youtube-player">
+              <iframe
+                width="560"
+                height="315"
+                src={`https://www.youtube.com/embed/${currentVideo.id}?autoplay=1&rel=0`}
+                title={currentVideo.title}
+                frameBorder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              ></iframe>
+            </div>
+          )}
+          
+          <div className="waiting-message">
+            <p>🤖 Your PDF is being processed by 4 parallel Ollama instances...</p>
+            <p>🎶 {currentVideo ? 'Enjoy some waiting music while the AI does its magic!' : 'Selecting a random waiting song...'}</p>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="error-section">
