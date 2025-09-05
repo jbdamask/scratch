@@ -295,6 +295,14 @@ def process_paragraphs_ollama(paragraphs):
     processing_state['completed_paragraphs'] = 0
     processing_state['current_status'] = 'processing'
     
+    # Broadcast processing start
+    broadcast_event('status', {
+        'current_status': 'processing',
+        'total_paragraphs': len(paragraphs),
+        'completed_paragraphs': 0,
+        'progress_percent': 0
+    })
+    
     # Create paragraph data with numbers for parallel processing
     paragraph_data = [(i + 1, paragraph) for i, paragraph in enumerate(paragraphs)]
     
@@ -359,6 +367,15 @@ def background_process_pdf(file_data):
     
     try:
         logger.info("Starting background PDF processing...")
+        
+        # Update status to extracting
+        processing_state['current_status'] = 'extracting'
+        broadcast_event('status', {
+            'current_status': 'extracting',
+            'total_paragraphs': 0,
+            'completed_paragraphs': 0,
+            'progress_percent': 0
+        })
         
         # Extract paragraphs from PDF
         paragraphs = extract_paragraphs_from_pdf(file_data)

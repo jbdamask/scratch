@@ -140,9 +140,9 @@ function App() {
       console.log('📊 Status update via SSE:', status)
       setProgress({
         current_status: status.current_status,
-        total_paragraphs: status.total_paragraphs,
-        completed_paragraphs: status.completed_paragraphs,
-        progress_percent: status.progress_percent
+        total_paragraphs: status.total_paragraphs || 0,
+        completed_paragraphs: status.completed_paragraphs || 0,
+        progress_percent: status.progress_percent || 0
       })
     })
     
@@ -347,6 +347,30 @@ function App() {
           )}
         </div>
       </form>
+
+      {loading && (
+        <div className="progress-section">
+          <div className="progress-header">
+            <h3>🚀 Processing Your PDF</h3>
+            <div className="status-text">{getStatusText(progress.current_status)}</div>
+          </div>
+          
+          <div className="progress-details">
+            <div className="progress-bar-container">
+              <div 
+                className="progress-bar" 
+                style={{ width: `${progress.progress_percent}%` }}
+              ></div>
+            </div>
+            <div className="progress-text">
+              {progress.total_paragraphs > 0 
+                ? `${progress.completed_paragraphs}/${progress.total_paragraphs} paragraphs (${Math.round(progress.progress_percent)}%)`
+                : 'Initializing...'
+              }
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading && (
         <div className="music-player-section">
