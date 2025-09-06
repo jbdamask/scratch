@@ -16,6 +16,8 @@ function App() {
   })
   const [currentVideo, setCurrentVideo] = useState(null)
   const [eventSource, setEventSource] = useState(null)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [activeTab, setActiveTab] = useState('detailed') // 'detailed' or 'sentences'
 
   // Waiting songs playlist
   const waitingSongs = [
@@ -67,11 +69,19 @@ function App() {
     } finally {
       setStopping(false)
       setLoading(false)
+      setCurrentVideo(null) // Stop music/video
       // Close SSE connection when stopping
       if (eventSource) {
         eventSource.close()
         setEventSource(null)
       }
+      // Reset progress state
+      setProgress({
+        current_status: 'idle',
+        total_paragraphs: 0,
+        completed_paragraphs: 0,
+        progress_percent: 0
+      })
     }
   }
 
@@ -316,130 +326,192 @@ function App() {
 
   return (
     <div className="app">
-      <h1>PDF Paragraph Summarizer</h1>
-      
-      <form onSubmit={handleSubmit} className="upload-form">
-        <div className="file-input-container">
-          <input
-            type="file"
-            accept=".pdf"
-            onChange={handleFileChange}
-            id="pdf-input"
-          />
-          <label htmlFor="pdf-input">
-            {file ? file.name : 'Choose PDF file...'}
-          </label>
-        </div>
-        
-        <div className="button-group">
-          <button type="submit" disabled={loading || !file || stopping}>
-            {loading ? 'Processing...' : 'Process PDF'}
+      <div className="app-container">
+        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+          <button 
+            className="sidebar-toggle"
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? '→' : '←'}
           </button>
+          
+          {!sidebarCollapsed && (
+            <>
+              <header className="app-header">
+                <img 
+                  src="/pdf-to-sentence.png" 
+                  alt="PDF to Sentence" 
+                  className="header-image"
+                />
+                <h1>PDF: Paragraphs to sentences</h1>
+              </header>
+          
+          <form onSubmit={handleSubmit} className="upload-form">
+            <div className="file-input-container">
+              <input
+                type="file"
+                accept=".pdf"
+                onChange={handleFileChange}
+                id="pdf-input"
+              />
+              <label htmlFor="pdf-input">
+                Choose PDF
+              </label>
+              {file && <p className="file-name">{file.name}</p>}
+            </div>
+            
+            <div className="button-group">
+              <button type="submit" disabled={loading || !file || stopping} className="btn-primary">
+                {loading ? 'Processing...' : 'Process'}
+              </button>
+              {loading && (
+                <button 
+                  type="button" 
+                  onClick={handleStop} 
+                  disabled={stopping}
+                  className="btn-secondary"
+                >
+                  Stop
+                </button>
+              )}
+            </div>
+          </form>
+
           {loading && (
-            <button 
-              type="button" 
-              onClick={handleStop} 
-              disabled={stopping}
-              className="stop-button"
-            >
-              {stopping ? 'Stopping...' : 'Stop'}
-            </button>
-          )}
-        </div>
-      </form>
-
-      {loading && (
-        <div className="progress-section">
-          <div className="progress-header">
-            <h3>🚀 Processing Your PDF</h3>
-            <div className="status-text">{getStatusText(progress.current_status)}</div>
-          </div>
-          
-          <div className="progress-details">
-            <div className="progress-bar-container">
-              <div 
-                className="progress-bar" 
-                style={{ width: `${progress.progress_percent}%` }}
-              ></div>
-            </div>
-            <div className="progress-text">
-              {progress.total_paragraphs > 0 
-                ? `${progress.completed_paragraphs}/${progress.total_paragraphs} paragraphs (${Math.round(progress.progress_percent)}%)`
-                : 'Initializing...'
-              }
-            </div>
-          </div>
-        </div>
-      )}
-
-      {loading && (
-        <div className="music-player-section">
-          <div className="music-header">
-            <h3>🎵 While You Wait...</h3>
-            <p className="now-playing">{currentVideo ? currentVideo.title : 'Loading music...'}</p>
-          </div>
-          
-          {currentVideo && (
-            <div className="youtube-player">
-              <iframe
-                width="560"
-                height="315"
-                src={`https://www.youtube.com/embed/${currentVideo.id}?autoplay=1&rel=0`}
-                title={currentVideo.title}
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
-            </div>
-          )}
-          
-          <div className="waiting-message">
-            <p>🤖 Your PDF is being processed by 4 parallel Ollama instances...</p>
-            <p>🎶 {currentVideo ? 'Enjoy some waiting music while the AI does its magic!' : 'Selecting a random waiting song...'}</p>
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <div className="error-section">
-          <div className="error">{error}</div>
-          {(error.includes('stopped') || error.includes('Failed')) && (
-            <button onClick={resetState} className="reset-button">
-              Reset
-            </button>
-          )}
-        </div>
-      )}
-
-      {results && (
-        <div className="results">
-          <div className="results-header">
-            <h2>Results ({results.length} paragraphs)</h2>
-            <div className="action-buttons">
-              <button onClick={copyToClipboard}>Copy Markdown</button>
-              <button onClick={downloadMarkdown}>Save as MD</button>
-            </div>
-          </div>
-          
-          <div className="results-content">
-            {results.map((result, index) => (
-              <div key={index} className="result-item">
-                <h3>Paragraph {index + 1}</h3>
-                <div className="summary">
-                  <strong>Summary:</strong> {result.summary}
+            <div className="progress-section">
+              <div className="progress-header">
+                <h3>Progress</h3>
+                <div className="status-text">{getStatusText(progress.current_status)}</div>
+              </div>
+              
+              <div className="progress-details">
+                <div className="progress-bar-container">
+                  <div 
+                    className="progress-bar" 
+                    style={{ width: `${progress.progress_percent}%` }}
+                  ></div>
                 </div>
-                <div className="original">
-                  <strong>Original:</strong>
-                  <details>
-                    <summary>Show original text</summary>
-                    <p>{result.original}</p>
-                  </details>
+                <div className="progress-text">
+                  {progress.total_paragraphs > 0 
+                    ? `${progress.completed_paragraphs}/${progress.total_paragraphs}`
+                    : 'Initializing...'
+                  }
                 </div>
               </div>
-            ))}
+            </div>
+          )}
+            </>
+          )}
+        </div>
+
+        <div className="main-content">
+          <div className="main-header">
+            <h2>Results</h2>
+            {results && (
+              <div className="action-buttons">
+                <button onClick={copyToClipboard} className="btn-primary">Copy</button>
+                <button onClick={downloadMarkdown} className="btn-primary">Save</button>
+              </div>
+            )}
+          </div>
+
+          <div className="display-area">
+            {loading && currentVideo && (
+              <div className="video-section">
+                <iframe
+                  width="100%"
+                  height="400"
+                  src={`https://www.youtube.com/embed/${currentVideo.id}?autoplay=1&rel=0`}
+                  title={currentVideo.title}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+                
+                <div className="music-info">
+                  <div className="album-art-small">🎵</div>
+                  <div className="track-details">
+                    <p className="track-title">
+                      {currentVideo.title.split(' – ')[1]?.replace(/"/g, '') || currentVideo.title}
+                    </p>
+                    <p className="track-artist">
+                      {currentVideo.title.split(' – ')[0]}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {error && (
+              <div className="error-display">
+                <div className="error">{error}</div>
+                {(error.includes('stopped') || error.includes('Failed')) && (
+                  <button onClick={resetState} className="btn-tertiary">
+                    Reset
+                  </button>
+                )}
+              </div>
+            )}
+
+            {results && (
+              <div className="results-container">
+                <div className="results-tabs">
+                  <button 
+                    className={`tab ${activeTab === 'detailed' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('detailed')}
+                  >
+                    Detailed View
+                  </button>
+                  <button 
+                    className={`tab ${activeTab === 'sentences' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('sentences')}
+                  >
+                    Sentences Only
+                  </button>
+                </div>
+
+                <div className="results-display">
+                  {activeTab === 'detailed' ? (
+                    results.map((result, index) => (
+                      <div key={index} className="result-item">
+                        <h3>Paragraph {index + 1}</h3>
+                        <div className="summary">
+                          <strong>Summary:</strong> {result.summary}
+                        </div>
+                        <div className="original">
+                          <strong>Original:</strong>
+                          <details>
+                            <summary>Show original text</summary>
+                            <p>{result.original}</p>
+                          </details>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="sentences-list">
+                      {results.map((result, index) => (
+                        <div key={index} className="sentence-item">
+                          <span className="sentence-number">{index + 1}.</span>
+                          <span className="sentence-text">{result.summary}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!loading && !results && !error && (
+              <div className="empty-state">
+                <div className="empty-icon">📄</div>
+                <h3>Display</h3>
+                <p>Upload a PDF to see results here</p>
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
