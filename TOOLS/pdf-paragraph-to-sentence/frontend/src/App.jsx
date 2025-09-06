@@ -17,7 +17,7 @@ function App() {
   const [currentVideo, setCurrentVideo] = useState(null)
   const [eventSource, setEventSource] = useState(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [activeTab, setActiveTab] = useState('detailed') // 'detailed' or 'sentences'
+  const [expandedItems, setExpandedItems] = useState(new Set())
 
   // Waiting songs playlist
   const waitingSongs = [
@@ -110,6 +110,7 @@ function App() {
       completed_paragraphs: 0,
       progress_percent: 0
     })
+    setExpandedItems(new Set())
   }
 
   const connectSSE = (baseUrl) => {
@@ -323,6 +324,16 @@ function App() {
     }
   }
 
+  const toggleExpanded = (index) => {
+    const newExpanded = new Set(expandedItems)
+    if (newExpanded.has(index)) {
+      newExpanded.delete(index)
+    } else {
+      newExpanded.add(index)
+    }
+    setExpandedItems(newExpanded)
+  }
+
 
   return (
     <div className="app">
@@ -456,48 +467,29 @@ function App() {
 
             {results && (
               <div className="results-container">
-                <div className="results-tabs">
-                  <button 
-                    className={`tab ${activeTab === 'detailed' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('detailed')}
-                  >
-                    Detailed View
-                  </button>
-                  <button 
-                    className={`tab ${activeTab === 'sentences' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('sentences')}
-                  >
-                    Sentences Only
-                  </button>
-                </div>
-
                 <div className="results-display">
-                  {activeTab === 'detailed' ? (
-                    results.map((result, index) => (
-                      <div key={index} className="result-item">
-                        <h3>Paragraph {index + 1}</h3>
-                        <div className="summary">
-                          <strong>Summary:</strong> {result.summary}
-                        </div>
-                        <div className="original">
-                          <strong>Original:</strong>
-                          <details>
-                            <summary>Show original text</summary>
-                            <p>{result.original}</p>
-                          </details>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="sentences-list">
-                      {results.map((result, index) => (
-                        <div key={index} className="sentence-item">
+                  <div className="sentences-list">
+                    {results.map((result, index) => (
+                      <div key={index} className="sentence-item">
+                        <div 
+                          className="sentence-clickable"
+                          onClick={() => toggleExpanded(index)}
+                        >
                           <span className="sentence-number">{index + 1}.</span>
                           <span className="sentence-text">{result.summary}</span>
+                          <span className="expand-indicator">
+                            {expandedItems.has(index) ? '▼' : '▶'}
+                          </span>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        {expandedItems.has(index) && (
+                          <div className="original-text">
+                            <strong>Original:</strong>
+                            <p>{result.original}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

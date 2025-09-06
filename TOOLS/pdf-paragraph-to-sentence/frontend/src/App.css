@@ -426,19 +426,30 @@ button:disabled {
 }
 
 .sentence-item {
-  display: flex;
-  gap: 0.75rem;
-  padding: 1rem;
   background: rgba(255, 248, 240, 0.8);
   border-radius: 8px;
   border-left: 4px solid #D2691E;
   box-shadow: 0 2px 8px rgba(139, 69, 19, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
 }
 
 .sentence-item:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(139, 69, 19, 0.15);
+}
+
+.sentence-clickable {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  align-items: center;
+}
+
+.sentence-clickable:hover {
+  background: rgba(210, 105, 30, 0.1);
 }
 
 .sentence-number {
@@ -454,6 +465,50 @@ button:disabled {
   font-size: 1rem;
   line-height: 1.5;
   flex: 1;
+}
+
+.expand-indicator {
+  color: #D2691E;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.original-text {
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-top: 1px solid rgba(205, 133, 63, 0.2);
+  animation: slideDown 0.3s ease;
+}
+
+.original-text strong {
+  color: #8B4513;
+  font-size: 0.9rem;
+  display: block;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.original-text p {
+  margin: 0;
+  color: #654321;
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
 }
 
 .error-display {
