@@ -170,6 +170,11 @@ def extract_paragraphs_from_pdf(pdf_file):
     logger.info(f"Raw text length: {len(text)} characters")
     logger.info(f"First 500 characters: {repr(text[:500])}")
     
+    # Clean up text first
+    # Remove excessive whitespace but preserve paragraph structure
+    text = re.sub(r'\n\s*\n\s*\n+', '\n\n', text)  # Normalize multiple line breaks to double
+    text = re.sub(r'[ \t]+', ' ', text)  # Normalize spaces and tabs
+    
     # Try multiple splitting strategies
     # Strategy 1: Split on double newlines or more
     paragraphs = re.split(r'\n\s*\n+', text.strip())
@@ -177,29 +182,63 @@ def extract_paragraphs_from_pdf(pdf_file):
     
     # If we only get 1 paragraph, try splitting on single newlines with sentence endings
     if len(paragraphs) <= 1:
-        # Strategy 2: Split on lines that end with sentence-ending punctuation
+        # Strategy 2: Split on lines that end with sentence-ending punctuation followed by newline and capital
         paragraphs = re.split(r'(?<=[.!?])\s*\n+(?=[A-Z])', text.strip())
-        logger.info(f"Strategy 2 (sentence endings): Found {len(paragraphs)} paragraphs")
+        logger.info(f"Strategy 2 (sentence endings + newlines): Found {len(paragraphs)} paragraphs")
     
-    # If still only 1 paragraph, split on any significant whitespace
+    # If still only 1 paragraph, create chunks based on length rather than sentence splitting
     if len(paragraphs) <= 1:
-        # Strategy 3: Split on multiple sentences (periods followed by space and capital)
-        paragraphs = re.split(r'(?<=[.!?])\s+(?=[A-Z][a-z])', text.strip())
-        logger.info(f"Strategy 3 (sentence splits): Found {len(paragraphs)} paragraphs")
-        
-        # Group sentences into paragraphs (every 3-5 sentences)
-        if len(paragraphs) > 5:
-            grouped_paragraphs = []
-            for i in range(0, len(paragraphs), 4):  # Group every 4 sentences
-                paragraph_group = ' '.join(paragraphs[i:i+4])
-                grouped_paragraphs.append(paragraph_group)
-            paragraphs = grouped_paragraphs
-            logger.info(f"Strategy 3 grouped: Created {len(paragraphs)} paragraph groups")
+        # Strategy 3: Split into chunks of reasonable length (300-800 words)
+        words = text.split()
+        if len(words) > 100:  # Only chunk if we have substantial text
+            chunk_size = 400  # Target words per chunk
+            chunked_paragraphs = []
+            
+            for i in range(0, len(words), chunk_size):
+                chunk_words = words[i:i + chunk_size]
+                
+                # Try to end chunk at sentence boundary if possible
+                if i + chunk_size < len(words):  # Not the last chunk
+                    # Look backwards for a sentence ending within the last 50 words
+                    for j in range(min(50, len(chunk_words)), 0, -1):
+                        word = chunk_words[-j]
+                        if word.endswith(('.', '!', '?')):
+                            chunk_words = chunk_words[:-j+1]
+                            break
+                
+                chunk_text = ' '.join(chunk_words)
+                if len(chunk_text.strip()) > 100:  # Only keep substantial chunks
+                    chunked_paragraphs.append(chunk_text.strip())
+                    
+            paragraphs = chunked_paragraphs
+            logger.info(f"Strategy 3 (word chunking): Created {len(paragraphs)} chunks")
     
     # Filter out empty paragraphs and very short ones
     original_count = len(paragraphs)
     paragraphs = [p.strip() for p in paragraphs if p.strip() and len(p.strip()) > 50]
     logger.info(f"After filtering: {len(paragraphs)} paragraphs (removed {original_count - len(paragraphs)} short ones)")
+    
+    # Additional quality check - ensure paragraphs start with complete words/sentences
+    cleaned_paragraphs = []
+    for p in paragraphs:
+        # Check if paragraph starts mid-sentence (lowercase letter after period)
+        if len(p) > 0 and p[0].islower():
+            # Try to find a better starting point
+            sentences = re.split(r'(?<=[.!?])\s+', p)
+            if len(sentences) > 1:
+                # Find first sentence that starts with capital letter
+                for i, sentence in enumerate(sentences):
+                    if sentence and sentence[0].isupper():
+                        better_paragraph = ' '.join(sentences[i:])
+                        if len(better_paragraph) > 50:
+                            p = better_paragraph
+                        break
+        
+        if len(p.strip()) > 50:
+            cleaned_paragraphs.append(p.strip())
+    
+    paragraphs = cleaned_paragraphs
+    logger.info(f"After quality check: {len(paragraphs)} clean paragraphs")
     
     # Log first few paragraphs for debugging
     for i, p in enumerate(paragraphs[:3]):
