@@ -1,6 +1,18 @@
 # PDF Paragraph Summarizer
 
-A web application that uploads PDFs, extracts paragraphs, and uses local Ollama AI (llama3.2:3b) to summarize each paragraph into a single sentence. Features intelligent processing with user-controllable stop functionality and runs completely locally for privacy.
+A web application that creates a one-sentence summary for every paragraph in a PDF. 
+
+## What It Does
+
+Upload a PDF and the app splits it into individual paragraphs, sends each one to a local langage model to create one-sentence summary, then pieces the senteces back together on the screen. 
+
+This is a different approach to typical PDF summarizers - instead of the LLM creating some generic, useless summary of a multi-page document, summarizing each paragraph lets me see more detail without reading the entire doc. I can quickly scan sentences for ones that are interesting, click on it, and read the original text. 
+
+## How It Works
+
+Under the hood, the application runs entirely locally using Ollama's llama3.2:3b language model - so it costs nothing. The system automatically spawns four Ollama instances to process multiple paragraphs simultaneously, making it faster then callling big LLM APIs. 
+
+The user sees processing progress and can watch a randomly chosen music video about waiting.
 
 ## Features
 
@@ -62,14 +74,7 @@ A web application that uploads PDFs, extracts paragraphs, and uses local Ollama 
    pip install -r requirements.txt
    ```
 
-4. **Optional**: Create a `.env` file for configuration (not required for basic setup):
-   ```bash
-   # Optional: customize Ollama settings
-   OLLAMA_BASE_URL=http://localhost:11434
-   OLLAMA_MODEL=llama3.2:3b
-   ```
-
-5. Run the Flask server:
+4. Run the Flask server:
    ```bash
    python app.py
    ```
@@ -114,18 +119,6 @@ A web application that uploads PDFs, extracts paragraphs, and uses local Ollama 
 - Multiple text splitting strategies for different PDF formats
 - Filters out short fragments and headers
 - Groups sentences into meaningful paragraphs when needed
-
-### Local AI Processing
-- **Parallel Processing**: Automatically spawns 4 Ollama instances for true parallelization
-- **Load Balancing**: Distributes paragraphs across instances using round-robin
-- **Stop Control**: Can interrupt processing and cleanly shut down all instances
-- **Privacy**: All processing happens locally - no external API calls
-- **Auto-Management**: Handles Ollama instance startup, monitoring, and cleanup
-
-### Stop Functionality
-- Stops processing between paragraphs
-- Provides immediate user feedback
-- Maintains partial results if stopped mid-process
 
 ## API Endpoints
 
