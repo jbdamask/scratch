@@ -1,6 +1,10 @@
 # PDF Paragraph Summarizer
 
-A web application that creates a one-sentence summary for every paragraph in a PDF. 
+A web application that creates a one-sentence summary for every paragraph in a PDF.
+
+## Demo
+
+![App Demo](frontend/public/paragraph-to-sentence-demo.gif)
 
 ## What It Does
 
