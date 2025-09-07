@@ -30,7 +30,12 @@ function App() {
     { title: "Bailey Zimmerman – \"Waiting\"", id: "CGyfu6Hfy7U" },
     { title: "James Vincent McMorrow – \"Waiting\"", id: "zmRXq1NB28o" },
     { title: "Zhavia – \"Waiting\"", id: "waQrh4NTi6U" },
-    { title: "Russell Dickerson – \"Waiting For You\"", id: "-8nYYNV7w9M" }
+    { title: "Russell Dickerson – \"Waiting For You\"", id: "-8nYYNV7w9M" },
+    { title: "Electric Callboy – \"STILL WAITING\"", id: "wPZnearOJbM" },
+    { title: "All That Remains – \"The Waiting One\"", id: "FcNFUzEVHyY" },
+    { title: "Slipknot – \"Wait and Bleed\"", id: "B1zCN0YhW1s" },
+    { title: "Metallica – \"The Wait\"", id: "u8rfB1GNS24" },
+    { title: "Disturbed – \"What Are You Waiting For\"", id: "Yvwo8f3SXKA" }
   ]
 
   const handleFileChange = (e) => {
