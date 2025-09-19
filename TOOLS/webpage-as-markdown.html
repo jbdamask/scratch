@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webpage to Markdown Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f5f5f5;
+        }
+
+        .header {
+            background: #fff;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 24px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-group label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="url"] {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 300px;
+        }
+
+        input[type="text"]:focus, input[type="url"]:focus {
+            outline: none;
+            border-color: #007AFF;
+            box-shadow: 0 0 0 2px rgba(0,122,255,0.2);
+        }
+
+        button {
+            padding: 8px 16px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background: #0056CC;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+        }
+
+        .pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border: 1px solid #ddd;
+            margin: 10px 5px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .pane-header {
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-bottom: 1px solid #ddd;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pane-content {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .markdown-content {
+            padding: 20px;
+            line-height: 1.6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            background: #fafafa;
+        }
+
+        .markdown-content h1 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+            font-size: 2em;
+        }
+
+        .markdown-content h2 {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+            margin-top: 24px;
+            font-size: 1.5em;
+        }
+
+        .markdown-content h3 {
+            margin-bottom: 12px;
+            margin-top: 20px;
+            font-size: 1.25em;
+        }
+
+        .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+            margin-bottom: 10px;
+            margin-top: 16px;
+        }
+
+        .markdown-content p {
+            margin-bottom: 16px;
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid #ddd;
+            padding-left: 16px;
+            margin-left: 0;
+            margin-bottom: 16px;
+            color: #666;
+        }
+
+        .markdown-content code {
+            background: #f1f3f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        .markdown-content pre {
+            background: #f1f3f4;
+            padding: 16px;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 16px;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .markdown-content ul, .markdown-content ol {
+            margin-bottom: 16px;
+            padding-left: 20px;
+        }
+
+        .markdown-content li {
+            margin-bottom: 4px;
+        }
+
+        .markdown-content a {
+            color: #007AFF;
+            text-decoration: none;
+        }
+
+        .markdown-content a:hover {
+            text-decoration: underline;
+        }
+
+        .markdown-content table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 16px;
+        }
+
+        .markdown-content th, .markdown-content td {
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            text-align: left;
+        }
+
+        .markdown-content th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .markdown-content img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 16px;
+        }
+
+        .markdown-content hr {
+            border: none;
+            border-top: 1px solid #ddd;
+            margin: 24px 0;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+            font-style: italic;
+        }
+
+        .copy-button {
+            padding: 4px 8px;
+            font-size: 12px;
+            background: #6c757d;
+        }
+
+        .copy-button:hover {
+            background: #545b62;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            input[type="text"], input[type="url"] {
+                min-width: auto;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Webpage to Markdown Converter</h1>
+        <div class="controls">
+            <div class="input-group">
+                <label for="url">Website URL</label>
+                <input type="url" id="url" placeholder="https://example.com" />
+            </div>
+            <button id="loadBtn">Load</button>
+            <button id="saveBtn" disabled>Save as Markdown</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="pane">
+            <div class="pane-header">
+                <span>Website Preview</span>
+            </div>
+            <div class="pane-content">
+                <div class="empty-state" id="webEmpty">Enter a URL and click Load to preview the website</div>
+                <iframe id="webFrame" style="display: none;"></iframe>
+            </div>
+        </div>
+
+        <div class="pane">
+            <div class="pane-header">
+                <span>Markdown Preview</span>
+                <button class="copy-button" id="copyBtn" style="display: none;">Copy</button>
+            </div>
+            <div class="pane-content">
+                <div class="empty-state" id="markdownEmpty">Markdown content will appear here after loading a webpage</div>
+                <div class="markdown-content" id="markdownContent" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/turndown@7.1.2/dist/turndown.js"></script>
+    <script src="https://unpkg.com/marked@9.1.6/marked.min.js"></script>
+    <script>
+        class WebpageToMarkdownConverter {
+            constructor() {
+                this.turndownService = new TurndownService({
+                    headingStyle: 'atx',
+                    codeBlockStyle: 'fenced'
+                });
+                
+                // Remove unwanted elements
+                this.turndownService.remove(['script', 'style', 'noscript', 'iframe', 'embed', 'object']);
+                
+                this.elements = {
+                    url: document.getElementById('url'),
+                    loadBtn: document.getElementById('loadBtn'),
+                    saveBtn: document.getElementById('saveBtn'),
+                    copyBtn: document.getElementById('copyBtn'),
+                    webFrame: document.getElementById('webFrame'),
+                    webEmpty: document.getElementById('webEmpty'),
+                    markdownContent: document.getElementById('markdownContent'),
+                    markdownEmpty: document.getElementById('markdownEmpty')
+                };
+
+                this.currentMarkdown = '';
+                this.currentUrl = '';
+                
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+            }
+
+            bindEvents() {
+                this.elements.loadBtn.addEventListener('click', () => this.loadWebpage());
+                this.elements.saveBtn.addEventListener('click', () => this.saveMarkdown());
+                this.elements.copyBtn.addEventListener('click', () => this.copyMarkdown());
+                
+                this.elements.url.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.loadWebpage();
+                    }
+                });
+            }
+
+            async loadWebpage() {
+                const url = this.elements.url.value.trim();
+                if (!url) {
+                    alert('Please enter a URL');
+                    return;
+                }
+
+                this.currentUrl = url;
+                this.elements.loadBtn.disabled = true;
+                this.elements.loadBtn.textContent = 'Loading...';
+
+                try {
+                    // Load iframe
+                    this.elements.webFrame.src = url;
+                    this.elements.webFrame.style.display = 'block';
+                    this.elements.webEmpty.style.display = 'none';
+
+                    // Fetch and convert to markdown
+                    await this.fetchAndConvertToMarkdown(url);
+                    
+                } catch (error) {
+                    console.error('Error loading webpage:', error);
+                    alert('Error loading webpage. Please check the URL and try again.');
+                } finally {
+                    this.elements.loadBtn.disabled = false;
+                    this.elements.loadBtn.textContent = 'Load';
+                }
+            }
+
+            async fetchAndConvertToMarkdown(url) {
+                const proxies = [
+                    { url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, key: 'contents' },
+                    { url: `https://corsproxy.io/?${encodeURIComponent(url)}`, key: null },
+                    { url: `https://cors-anywhere.herokuapp.com/${url}`, key: null }
+                ];
+
+                for (const proxy of proxies) {
+                    try {
+                        console.log(`Trying proxy: ${proxy.url.split('?')[0]}`);
+                        const response = await fetch(proxy.url);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                        }
+
+                        let htmlContent;
+                        if (proxy.key) {
+                            const data = await response.json();
+                            htmlContent = data[proxy.key];
+                        } else {
+                            htmlContent = await response.text();
+                        }
+
+                        if (htmlContent && htmlContent.length > 100) {
+                            // Clean the HTML before conversion
+                            const cleanedHtml = this.cleanHtml(htmlContent);
+                            const markdown = this.turndownService.turndown(cleanedHtml);
+                            
+                            if (markdown.trim().length > 50) {
+                                this.displayMarkdown(markdown);
+                                this.elements.saveBtn.disabled = false;
+                                return;
+                            }
+                        }
+                    } catch (error) {
+                        console.warn(`Proxy failed:`, error.message);
+                        continue;
+                    }
+                }
+
+                // All proxies failed - show enhanced fallback
+                this.showFallbackOptions(url);
+            }
+
+            showFallbackOptions(url) {
+                const fallbackMarkdown = `# ${url}
+
+## Content Extraction Failed
+
+Due to CORS restrictions, the content could not be automatically extracted. Here are your options:
+
+### Option 1: Manual Copy-Paste
+1. Copy the content from the website preview on the left
+2. Paste it into a text editor
+3. Save as a .md file
+
+### Option 2: Browser Extension
+Consider using a browser extension like:
+- MarkDownload (Chrome/Firefox)
+- Web Clipper extensions
+
+### Option 3: Developer Tools
+1. Right-click on the website → "View Page Source"
+2. Copy the HTML content
+3. Use an online HTML-to-Markdown converter
+
+---
+*Website Preview: See the left pane for the actual content*`;
+
+                this.displayMarkdown(fallbackMarkdown);
+                this.elements.saveBtn.disabled = false;
+            }
+
+            cleanHtml(html) {
+                // Create a temporary DOM to clean the HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                
+                // Remove unwanted elements
+                const unwantedSelectors = [
+                    'script', 'style', 'noscript', 'iframe', 'embed', 'object',
+                    '[style*="display: none"]', '[style*="display:none"]',
+                    '.advertisement', '.ads', '.cookie-banner', '.popup',
+                    'nav', 'footer', 'header[role="banner"]'
+                ];
+                
+                unwantedSelectors.forEach(selector => {
+                    const elements = doc.querySelectorAll(selector);
+                    elements.forEach(el => el.remove());
+                });
+                
+                // Focus on main content areas
+                const mainContent = doc.querySelector('main, article, .content, .post, [role="main"]') || doc.body;
+                
+                return mainContent ? mainContent.innerHTML : doc.body.innerHTML;
+            }
+
+            displayMarkdown(markdown) {
+                // Clean up the markdown further
+                const cleanedMarkdown = this.cleanMarkdown(markdown);
+                this.currentMarkdown = cleanedMarkdown;
+                
+                // Render markdown to HTML
+                const renderedHtml = marked.parse(cleanedMarkdown);
+                this.elements.markdownContent.innerHTML = renderedHtml;
+                
+                this.elements.markdownContent.style.display = 'block';
+                this.elements.markdownEmpty.style.display = 'none';
+                this.elements.copyBtn.style.display = 'inline-block';
+            }
+            
+            cleanMarkdown(markdown) {
+                return markdown
+                    // Remove empty lines with just whitespace
+                    .replace(/^\s*$/gm, '')
+                    // Remove excessive newlines
+                    .replace(/\n{3,}/g, '\n\n')
+                    // Remove lines that look like CSS or JS remnants
+                    .replace(/^.*\{.*\}.*$/gm, '')
+                    .replace(/^.*\(function.*$/gm, '')
+                    .replace(/^.*\.css.*$/gm, '')
+                    .replace(/^.*\.js.*$/gm, '')
+                    // Clean up remaining content
+                    .trim();
+            }
+
+            async copyMarkdown() {
+                try {
+                    await navigator.clipboard.writeText(this.currentMarkdown);
+                    this.elements.copyBtn.textContent = 'Copied!';
+                    setTimeout(() => {
+                        this.elements.copyBtn.textContent = 'Copy';
+                    }, 2000);
+                } catch (error) {
+                    console.error('Error copying to clipboard:', error);
+                    alert('Error copying to clipboard');
+                }
+            }
+
+            saveMarkdown() {
+                if (!this.currentMarkdown) {
+                    alert('No markdown content to save');
+                    return;
+                }
+
+                const url = new URL(this.currentUrl);
+                const filename = `${url.hostname.replace(/[^a-z0-9]/gi, '_')}_${Date.now()}.md`;
+                
+                const blob = new Blob([this.currentMarkdown], { type: 'text/markdown' });
+                const downloadUrl = window.URL.createObjectURL(blob);
+                
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
+
+                alert(`File saved as: ${filename}`);
+            }
+        }
+
+        // Initialize the app when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            new WebpageToMarkdownConverter();
+        });
+    </script>
+</body>
+</html>
