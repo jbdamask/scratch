@@ -835,19 +835,27 @@
 
                 <div class="config-section">
                     <h3>Labels</h3>
-                    <div class="label-input-row">
-                        <input type="text" id="labelInput" placeholder="Enter label name...">
-                        <button onclick="addLabel()">Add</button>
+                    <div class="tab-container">
+                        <div class="tab-header">
+                            <button class="tab-button active" onclick="switchTab('add-label')">Add Label</button>
+                            <button class="tab-button" onclick="switchTab('select-label')">Select Label</button>
+                        </div>
+                        
+                        <div id="add-label-tab" class="tab-content active">
+                            <div class="label-input-row">
+                                <input type="text" id="labelInput" placeholder="Enter label name...">
+                                <button onclick="addLabel()">Add</button>
+                            </div>
+                            <div class="labels-list" id="labelsList" style="margin-top: 10px;"></div>
+                        </div>
+                        
+                        <div id="select-label-tab" class="tab-content">
+                            <select id="labelSelect">
+                                <option value="">Select a label...</option>
+                            </select>
+                            <div class="helper-text">Click on rows in the workspace to apply the selected label</div>
+                        </div>
                     </div>
-                    <div class="labels-list" id="labelsList" style="margin-top: 10px;"></div>
-                </div>
-
-                <div class="config-section">
-                    <h3>Active Label</h3>
-                    <select id="labelSelect">
-                        <option value="">Select a label...</option>
-                    </select>
-                    <div class="helper-text">Click on rows in the workspace to apply the selected label</div>
                 </div>
             </div>
         </div>
