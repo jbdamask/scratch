@@ -17,23 +17,24 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            margin: 0;
+            overflow: hidden;
         }
 
         .header {
             background: #fff;
-            padding: 20px;
+            padding: 15px 20px;
             border-bottom: 1px solid #ddd;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-shrink: 0;
         }
 
         .header h1 {
             color: #333;
-            margin-bottom: 10px;
+            margin: 0;
+            font-size: 24px;
         }
 
-        .paste-area {
-            margin-bottom: 15px;
-        }
 
         .paste-area textarea {
             width: 100%;
@@ -62,38 +63,167 @@
         .main-content {
             flex: 1;
             display: flex;
-            gap: 20px;
-            padding: 20px;
             min-height: 0;
+            overflow: hidden;
+            border-top: 1px solid #ddd;
         }
 
-        .table-panel {
-            flex: 2;
+        .panel {
             background: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             display: flex;
             flex-direction: column;
-            min-height: 400px;
+            overflow: hidden;
         }
 
-        .table-controls {
-            margin-bottom: 15px;
+        .config-panel {
+            width: 350px;
+            min-width: 250px;
+            max-width: 600px;
+            border-right: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+            resize: horizontal;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: calc(100vh - 60px);
+        }
+
+        .config-panel.collapsed {
+            width: 40px;
+            min-width: 40px;
+            resize: none;
+        }
+
+        .workspace-panel {
+            flex: 1;
+            min-width: 400px;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .collapse-btn {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 6px 10px;
+            color: #495057;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .collapse-btn:hover {
+            background: #e9ecef;
+            border-color: #adb5bd;
+            color: #212529;
+        }
+
+        .config-panel.collapsed .collapse-btn {
+            writing-mode: vertical-lr;
+            text-orientation: mixed;
+            padding: 10px 6px;
+            margin: 10px auto;
+            display: block;
+        }
+
+        .panel-content {
+            padding: 20px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            height: calc(100% - 60px);
+        }
+
+        .config-panel.collapsed .panel-content {
+            display: none;
+        }
+
+        .config-panel.collapsed .panel-title {
+            display: none;
+        }
+
+        .workspace-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        .workspace-toolbar {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
             display: flex;
             gap: 10px;
+            align-items: center;
+            flex-shrink: 0;
+            flex-wrap: wrap;
         }
 
-        .table-controls button {
-            padding: 6px 12px;
+        .workspace-toolbar button {
+            padding: 8px 16px;
             border: 1px solid #ddd;
-            background: #f8f9fa;
+            background: #fff;
             border-radius: 4px;
             cursor: pointer;
+            font-weight: 500;
         }
 
-        .table-controls button:hover {
-            background: #e9ecef;
+        .workspace-toolbar button:hover {
+            background: #f8f9fa;
+        }
+
+        .workspace-toolbar .btn-danger {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+
+        .workspace-toolbar .btn-danger:hover {
+            background: #c82333;
+            border-color: #bd2130;
+        }
+
+        .workspace-toolbar .btn-success {
+            background: #28a745;
+            color: white;
+            border-color: #28a745;
+        }
+
+        .workspace-toolbar .btn-success:hover {
+            background: #218838;
+            border-color: #1e7e34;
+        }
+
+        .table-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .table-info {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            color: #6c757d;
+            font-size: 14px;
         }
 
         .table-container {
@@ -158,27 +288,7 @@
             word-wrap: break-word;
         }
 
-        .label-panel {
-            flex: 1;
-            background: #fff;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            flex-direction: column;
-            min-height: 400px;
-            max-height: calc(100vh - 300px);
-            overflow-y: auto;
-        }
 
-        .label-input-section {
-            margin-bottom: 20px;
-        }
-
-        .label-input-section h3 {
-            margin-bottom: 10px;
-            color: #333;
-        }
 
         .label-input-row {
             display: flex;
@@ -233,16 +343,7 @@
             color: #dc3545;
         }
 
-        .apply-section {
-            margin-bottom: 20px;
-        }
-
-        .apply-section h4 {
-            margin-bottom: 10px;
-            color: #333;
-        }
-
-        .apply-section select {
+        .config-section select {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
@@ -250,53 +351,177 @@
             margin-bottom: 10px;
         }
 
-        .apply-section button {
-            width: 100%;
-            padding: 10px;
-            background: #17a2b8;
-            color: white;
-            border: none;
-            border-radius: 4px;
+        .helper-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        /* Editable column headers */
+        .editable-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .header-text {
+            flex: 1;
+        }
+
+        .edit-icon {
             cursor: pointer;
-        }
-
-        .apply-section button:hover {
-            background: #138496;
-        }
-
-        .export-section button {
-            width: 100%;
-            padding: 12px;
-            background: #dc3545;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .export-section button:hover {
-            background: #c82333;
-        }
-
-        .selected-count {
             color: #6c757d;
             font-size: 12px;
-            margin-bottom: 10px;
+            padding: 2px;
+            border-radius: 2px;
+            opacity: 0.7;
+            transition: all 0.2s ease;
         }
 
-        .file-upload-section {
+        .edit-icon:hover {
+            background: #f8f9fa;
+            color: #495057;
+            opacity: 1;
+        }
+
+        .header-input {
+            background: #fff;
+            border: 1px solid #007bff;
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-size: 13px;
+            font-weight: 600;
+            width: 120px;
+        }
+
+        /* Tab styles */
+        .tab-container {
             margin-bottom: 15px;
-            padding: 15px;
-            border: 2px dashed #ddd;
-            border-radius: 4px;
+        }
+
+        .tab-header {
+            display: flex;
+            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 15px;
+        }
+
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 10px 16px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: #6c757d;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .tab-button:hover {
+            color: #495057;
             background: #f8f9fa;
         }
 
-        .file-upload-section h3 {
-            margin-bottom: 10px;
-            color: #333;
+        .tab-button.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background: #f8f9fa;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-section {
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            background: #fafafa;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .file-input-container {
+            margin-bottom: 15px;
+        }
+
+        .file-input-row {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
             font-size: 14px;
+        }
+
+        .file-input-wrapper:hover .file-input-button {
+            background: #218838;
+        }
+
+        .file-name-display {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #666;
+            text-align: center;
+            font-family: monospace;
+        }
+
+        .paste-section {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .paste-section textarea {
+            width: 100%;
+            height: 100px;
+            padding: 12px;
+            border: 2px dashed #ddd;
+            border-radius: 6px;
+            font-family: monospace;
+            resize: vertical;
+            background: #fafafa;
+        }
+
+        .paste-section button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            align-self: flex-start;
+        }
+
+        .paste-section button:hover {
+            background: #0056b3;
         }
 
         .file-input-row {
@@ -335,17 +560,23 @@
             white-space: pre-wrap;
         }
 
-        .column-settings {
-            margin-bottom: 15px;
+        .config-section {
+            margin-bottom: 20px;
             padding: 15px;
             background: #f8f9fa;
-            border-radius: 4px;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
         }
 
-        .column-settings h3 {
-            margin-bottom: 10px;
+        .config-section h3 {
+            margin: 0 0 12px 0;
             color: #333;
             font-size: 14px;
+            font-weight: 600;
+        }
+
+        .config-section:last-child {
+            margin-bottom: 0;
         }
 
         .column-input-row {
@@ -357,6 +588,7 @@
         .column-input-row label {
             font-weight: 500;
             color: #555;
+            white-space: nowrap;
         }
 
         .column-input-row input {
@@ -556,72 +788,109 @@
 <body>
     <div class="header">
         <h1>JSONL Eval Maker</h1>
-        
-        <div class="column-settings">
-            <h3>Column Settings</h3>
-            <div class="column-input-row">
-                <label for="inputColumnName">Input Column Name:</label>
-                <input type="text" id="inputColumnName" value="input" placeholder="Enter column name...">
-            </div>
-        </div>
-
-        <div class="file-upload-section">
-            <h3>Upload File (Text or Delimited)</h3>
-            <div class="file-input-row">
-                <input type="file" id="fileInput" accept=".txt,.csv,.tsv" onchange="handleFileSelect()">
-                <button onclick="loadFromFile()">Load from File</button>
-            </div>
-            <div id="filePreview" class="file-preview" style="display: none;"></div>
-        </div>
-
-        <div class="paste-area">
-            <textarea id="pasteData" placeholder="Paste your data here, one record per line..."></textarea>
-            <button onclick="parseData()">Load Data</button>
-        </div>
     </div>
 
     <div class="main-content">
-        <div class="table-panel">
-            <div class="table-controls">
-                <button onclick="labelAllUnlabeled()">Label All Unlabeled Rows</button>
-                <button onclick="clearAllLabels()" style="background: #dc3545; color: white;">Clear All Labels</button>
-                <span class="selected-count" id="selectedCount">0 rows selected</span>
+        <!-- Configuration Panel -->
+        <div class="panel config-panel" id="configPanel">
+            <div class="panel-header">
+                <h2 class="panel-title">Configuration</h2>
+                <button class="collapse-btn" onclick="togglePanel('configPanel')" title="Collapse panel">Hide Panel</button>
             </div>
-            <div class="table-container">
-                <table id="dataTable">
-                    <thead>
-                        <tr>
-                            <th id="inputColumnHeader">Input</th>
-                            <th>Correct Label</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tableBody">
-                    </tbody>
-                </table>
+            <div class="panel-content">
+                <div class="config-section">
+                    <h3>Load Your Data</h3>
+                    <div class="tab-container">
+                        <div class="tab-header">
+                            <button class="tab-button active" onclick="switchTab('upload')">Upload File</button>
+                            <button class="tab-button" onclick="switchTab('paste')">Paste Data</button>
+                        </div>
+                        
+                        <div id="upload-tab" class="tab-content active">
+                            <div class="upload-section">
+                                <div class="file-input-container">
+                                    <div class="file-input-row">
+                                        <div class="file-input-wrapper">
+                                            <input type="file" id="fileInput" accept=".txt,.csv,.tsv" onchange="handleFileSelectAndLoad()">
+                                            <span class="file-input-button">Choose File</span>
+                                        </div>
+                                        <div id="fileName" class="file-name-display" style="display: none;"></div>
+                                    </div>
+                                    <div class="helper-text">Supports text files (.txt) and delimited files (.csv, .tsv)</div>
+                                </div>
+                                <div id="filePreview" class="file-preview" style="display: none;"></div>
+                            </div>
+                        </div>
+                        
+                        <div id="paste-tab" class="tab-content">
+                            <div class="paste-section">
+                                <textarea id="pasteData" placeholder="Paste your data here, one record per line..."></textarea>
+                                <button onclick="parseData()">Load Data</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>Labels</h3>
+                    <div class="label-input-row">
+                        <input type="text" id="labelInput" placeholder="Enter label name...">
+                        <button onclick="addLabel()">Add</button>
+                    </div>
+                    <div class="labels-list" id="labelsList" style="margin-top: 10px;"></div>
+                </div>
+
+                <div class="config-section">
+                    <h3>Active Label</h3>
+                    <select id="labelSelect">
+                        <option value="">Select a label...</option>
+                    </select>
+                    <div class="helper-text">Click on rows in the workspace to apply the selected label</div>
+                </div>
             </div>
         </div>
 
-        <div class="label-panel">
-            <div class="label-input-section">
-                <h3>Labels</h3>
-                <div class="label-input-row">
-                    <input type="text" id="labelInput" placeholder="Enter label name...">
-                    <button onclick="addLabel()">Add</button>
+        <!-- Workspace Panel -->
+        <div class="panel workspace-panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Labeling Workspace</h2>
+            </div>
+            <div class="workspace-content">
+                <div class="workspace-toolbar">
+                    <button onclick="labelAllUnlabeled()">Label All Unlabeled</button>
+                    <button onclick="clearAllLabels()" class="btn-danger">Clear All Labels</button>
+                    <button onclick="exportJsonl()" class="btn-success">Export as JSONL</button>
+                    <div style="margin-left: auto;">
+                        <span id="selectedCount" style="color: #6c757d; font-size: 14px;">0 rows selected</span>
+                    </div>
                 </div>
-                <div class="labels-list" id="labelsList"></div>
-            </div>
-
-            <div class="apply-section">
-                <h4>Active Label</h4>
-                <div class="selected-count" id="selectedCountBottom">0 rows selected</div>
-                <select id="labelSelect">
-                    <option value="">Select a label...</option>
-                </select>
-                <p style="font-size: 12px; color: #666; margin-top: 8px;">Click on rows to apply the chosen label</p>
-            </div>
-
-            <div class="export-section">
-                <button onclick="exportJsonl()">Export as JSONL</button>
+                <div class="table-section">
+                    <div class="table-info">
+                        <span id="selectedCountBottom">0 rows selected</span>
+                    </div>
+                    <div class="table-container">
+                        <table id="dataTable">
+                            <thead>
+                                <tr>
+                                    <th>
+                                        <div class="editable-header">
+                                            <span class="header-text" id="inputColumnHeader">Input</span>
+                                            <span class="edit-icon" onclick="editColumnName('input')" title="Edit column name">✏️</span>
+                                        </div>
+                                    </th>
+                                    <th>
+                                        <div class="editable-header">
+                                            <span class="header-text" id="labelColumnHeader">Correct Label</span>
+                                            <span class="edit-icon" onclick="editColumnName('label')" title="Edit column name">✏️</span>
+                                        </div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -631,6 +900,7 @@
         let labels = [];
         let currentFile = null;
         let inputColumnName = 'input';
+        let labelColumnName = 'correct_label';
         let parsedFileData = null;
         let fileColumns = [];
         let hasHeaderRow = false;
@@ -652,25 +922,72 @@
                 correct_label: ''
             }));
 
-            updateInputColumnName();
+            // Update the table header to show current column name
+            document.getElementById('inputColumnHeader').textContent = inputColumnName;
             renderTable();
         }
 
-        function updateInputColumnName() {
-            inputColumnName = document.getElementById('inputColumnName').value.trim() || 'input';
-            document.getElementById('inputColumnHeader').textContent = inputColumnName;
+        function editColumnName(columnType) {
+            const headerId = columnType === 'input' ? 'inputColumnHeader' : 'labelColumnHeader';
+            const headerElement = document.getElementById(headerId);
+            const currentName = headerElement.textContent;
+            
+            // Create input field
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentName;
+            input.className = 'header-input';
+            
+            // Replace header text with input
+            headerElement.replaceWith(input);
+            input.focus();
+            input.select();
+            
+            // Handle save on Enter or blur
+            function saveEdit() {
+                const newName = input.value.trim() || currentName;
+                
+                // Create new header element
+                const newHeader = document.createElement('span');
+                newHeader.className = 'header-text';
+                newHeader.id = headerId;
+                newHeader.textContent = newName;
+                
+                // Update global variable
+                if (columnType === 'input') {
+                    inputColumnName = newName;
+                } else {
+                    labelColumnName = newName;
+                }
+                
+                // Replace input with updated header
+                input.replaceWith(newHeader);
+            }
+            
+            input.addEventListener('blur', saveEdit);
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    saveEdit();
+                }
+            });
         }
 
-        function handleFileSelect() {
+        function handleFileSelectAndLoad() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             const previewDiv = document.getElementById('filePreview');
+            const fileNameDiv = document.getElementById('fileName');
             
             if (!file) {
                 previewDiv.style.display = 'none';
+                fileNameDiv.style.display = 'none';
                 currentFile = null;
                 return;
             }
+
+            // Show file name
+            fileNameDiv.textContent = file.name;
+            fileNameDiv.style.display = 'block';
 
             // Validate file type
             const fileName = file.name.toLowerCase();
@@ -681,13 +998,14 @@
                 alert('Invalid file format! Please upload a .txt, .csv, or .tsv file.\n\nAccepted formats:\n- Text files (.txt): One input per line\n- Delimited files (.csv, .tsv): Choose which column to label');
                 fileInput.value = '';
                 previewDiv.style.display = 'none';
+                fileNameDiv.style.display = 'none';
                 currentFile = null;
                 return;
             }
 
             currentFile = file;
             
-            // Show preview
+            // Process file immediately
             const reader = new FileReader();
             reader.onload = function(e) {
                 const content = e.target.result;
@@ -697,48 +1015,13 @@
                     alert('File appears to be empty!');
                     fileInput.value = '';
                     previewDiv.style.display = 'none';
+                    fileNameDiv.style.display = 'none';
                     currentFile = null;
                     return;
                 }
                 
-                // Parse file content and show preview
-                const previewLines = lines.slice(0, 3);
-                let previewText = 'Preview (first 3 lines):\n';
-                
-                if (fileName.endsWith('.csv') || fileName.endsWith('.tsv')) {
-                    const delimiter = fileName.endsWith('.csv') ? ',' : '\t';
-                    const parsedLines = previewLines.map(line => parseDelimitedLine(line, delimiter));
-                    
-                    // Check if this looks like a multi-column file
-                    const maxColumns = Math.max(...parsedLines.map(row => row.length));
-                    
-                    if (maxColumns > 1) {
-                        // Multi-column file - show column structure
-                        previewText += 'Columns detected: ' + maxColumns + '\n\n';
-                        parsedLines.forEach((columns, i) => {
-                            previewText += `Row ${i + 1}: ${columns.map((col, j) => `[${j + 1}] ${col || '(empty)'}`).join(' | ')}\n`;
-                        });
-                        if (lines.length > 3) {
-                            previewText += `\n... and ${lines.length - 3} more rows`;
-                        }
-                    } else {
-                        // Single column - show as before
-                        previewText += parsedLines.map((columns, i) => {
-                            return `${i + 1}. ${columns[0] || '(empty)'}`;
-                        }).join('\n');
-                        if (lines.length > 3) {
-                            previewText += `\n... and ${lines.length - 3} more rows`;
-                        }
-                    }
-                } else {
-                    previewText += previewLines.map((line, i) => `${i + 1}. ${line}`).join('\n');
-                    if (lines.length > 3) {
-                        previewText += `\n... and ${lines.length - 3} more rows`;
-                    }
-                }
-                
-                previewDiv.textContent = previewText;
-                previewDiv.style.display = 'block';
+                // Process the file automatically
+                loadFromFileContent(content, fileName);
             };
             reader.readAsText(file);
         }
@@ -769,65 +1052,54 @@
             return parseDelimitedLine(line, ',');
         }
 
-        function loadFromFile() {
-            if (!currentFile) {
-                alert('Please select a file first!');
+        function loadFromFileContent(content, fileName) {
+            const lines = content.split('\n').filter(line => line.trim());
+            
+            if (lines.length === 0) {
+                alert('File appears to be empty!');
                 return;
             }
             
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const content = e.target.result;
-                const lines = content.split('\n').filter(line => line.trim());
+            if (fileName.endsWith('.csv') || fileName.endsWith('.tsv')) {
+                const delimiter = fileName.endsWith('.csv') ? ',' : '\t';
+                const parsedLines = lines.map(line => parseDelimitedLine(line, delimiter));
                 
-                if (lines.length === 0) {
-                    alert('File appears to be empty!');
-                    return;
-                }
+                // Check if this is a multi-column file
+                const maxColumns = Math.max(...parsedLines.map(row => row.length));
                 
-                const fileName = currentFile.name.toLowerCase();
-                
-                if (fileName.endsWith('.csv') || fileName.endsWith('.tsv')) {
-                    const delimiter = fileName.endsWith('.csv') ? ',' : '\t';
-                    const parsedLines = lines.map(line => parseDelimitedLine(line, delimiter));
+                if (maxColumns > 1) {
+                    // Multi-column file - show column selection modal
+                    parsedFileData = parsedLines;
+                    fileColumns = [];
                     
-                    // Check if this is a multi-column file
-                    const maxColumns = Math.max(...parsedLines.map(row => row.length));
-                    
-                    if (maxColumns > 1) {
-                        // Multi-column file - show column selection modal
-                        parsedFileData = parsedLines;
-                        fileColumns = [];
-                        
-                        // Generate column names
-                        for (let i = 0; i < maxColumns; i++) {
-                            fileColumns.push(`Column ${i + 1}`);
-                        }
-                        
-                        showColumnSelectionModal(parsedLines, fileColumns);
-                        return;
-                    } else {
-                        // Single column - process normally
-                        const processedLines = parsedLines.map(row => row[0] || '').filter(line => line.trim());
-                        
-                        if (processedLines.length === 0) {
-                            alert('No valid data found in file!');
-                            return;
-                        }
-                        
-                        processLines(processedLines);
+                    // Generate column names
+                    for (let i = 0; i < maxColumns; i++) {
+                        fileColumns.push(`Column ${i + 1}`);
                     }
+                    
+                    showColumnSelectionModal(parsedLines, fileColumns);
+                    return;
                 } else {
-                    // Text file - use lines as-is
-                    processLines(lines);
+                    // Single column - process normally
+                    const processedLines = parsedLines.map(row => row[0] || '').filter(line => line.trim());
+                    
+                    if (processedLines.length === 0) {
+                        alert('No valid data found in file!');
+                        return;
+                    }
+                    
+                    processLines(processedLines);
                 }
-                
-                // Clear file input and preview
-                document.getElementById('fileInput').value = '';
-                document.getElementById('filePreview').style.display = 'none';
-                currentFile = null;
-            };
-            reader.readAsText(currentFile);
+            } else {
+                // Text file - use lines as-is
+                processLines(lines);
+            }
+            
+            // Clear file input and preview
+            document.getElementById('fileInput').value = '';
+            document.getElementById('filePreview').style.display = 'none';
+            document.getElementById('fileName').style.display = 'none';
+            currentFile = null;
         }
 
         function renderTable() {
@@ -1037,7 +1309,7 @@
             const jsonlContent = exportData.map(row => {
                 const exportObject = {};
                 exportObject[inputColumnName] = row.input;
-                exportObject.correct_label = row.correct_label || '';
+                exportObject[labelColumnName] = row.correct_label || '';
                 return JSON.stringify(exportObject);
             }).join('\n');
 
@@ -1059,12 +1331,37 @@
             }
         });
 
-        // Update column name when changed
-        document.getElementById('inputColumnName').addEventListener('input', function() {
-            if (data.length > 0) {
-                updateInputColumnName();
+
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            const isCollapsed = panel.classList.contains('collapsed');
+            
+            if (isCollapsed) {
+                panel.classList.remove('collapsed');
+                panel.querySelector('.collapse-btn').innerHTML = 'Hide Panel';
+                panel.querySelector('.collapse-btn').title = 'Collapse panel';
+            } else {
+                panel.classList.add('collapsed');
+                panel.querySelector('.collapse-btn').innerHTML = 'Show Panel';
+                panel.querySelector('.collapse-btn').title = 'Expand panel';
             }
-        });
+        }
+
+        function switchTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => button.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
 
         function showColumnSelectionModal(parsedData, columns) {
             // Check if first row might be headers (all non-empty and look like text)
@@ -1210,7 +1507,8 @@
             if (hasHeaderRow) {
                 const headerName = getColumnName(selectedColumnIndex);
                 if (headerName !== `Column ${selectedColumnIndex + 1}`) {
-                    document.getElementById('inputColumnName').value = headerName;
+                    inputColumnName = headerName;
+                    document.getElementById('inputColumnHeader').textContent = headerName;
                 }
             }
             
@@ -1223,6 +1521,7 @@
             // Clear file input and preview
             document.getElementById('fileInput').value = '';
             document.getElementById('filePreview').style.display = 'none';
+            document.getElementById('fileName').style.display = 'none';
             currentFile = null;
         }
     </script>
