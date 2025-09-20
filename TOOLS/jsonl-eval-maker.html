@@ -216,6 +216,7 @@
             padding: 20px;
             min-height: 0;
             overflow: hidden;
+            height: 100%;
         }
 
         .table-info {
@@ -228,11 +229,12 @@
 
         .table-container {
             flex: 1;
-            overflow-y: auto;
+            overflow-y: scroll;
             overflow-x: auto;
             border: 1px solid #ddd;
             border-radius: 4px;
-            max-height: calc(100vh - 400px);
+            min-height: 400px;
+            max-height: calc(100vh - 250px);
         }
 
         table {
