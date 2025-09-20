@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSONL Eval Maker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #fff;
+            padding: 20px;
+            border-bottom: 1px solid #ddd;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .paste-area {
+            margin-bottom: 15px;
+        }
+
+        .paste-area textarea {
+            width: 100%;
+            height: 80px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-family: monospace;
+            resize: vertical;
+        }
+
+        .paste-area button {
+            margin-top: 10px;
+            padding: 8px 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .paste-area button:hover {
+            background: #0056b3;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            padding: 20px;
+            min-height: 0;
+        }
+
+        .table-panel {
+            flex: 2;
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+        }
+
+        .table-controls {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .table-controls button {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: #f8f9fa;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .table-controls button:hover {
+            background: #e9ecef;
+        }
+
+        .table-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            max-height: calc(100vh - 400px);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .data-row {
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .data-row.selected {
+            background: #e3f2fd;
+        }
+
+        .data-row.labeled {
+            background: #e8f5e8;
+        }
+
+        .data-row:hover {
+            background: #f0f8ff;
+        }
+
+        .data-row.selected:hover {
+            background: #bbdefb;
+        }
+
+        .data-row.labeled:hover {
+            background: #c8e6c9;
+        }
+
+        .input-cell {
+            max-width: 300px;
+            word-wrap: break-word;
+        }
+
+        .label-panel {
+            flex: 1;
+            background: #fff;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            min-height: 400px;
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+        }
+
+        .label-input-section {
+            margin-bottom: 20px;
+        }
+
+        .label-input-section h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .label-input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .label-input-row input {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .label-input-row button {
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .label-input-row button:hover {
+            background: #218838;
+        }
+
+        .labels-list {
+            margin-bottom: 20px;
+        }
+
+        .label-tag {
+            display: inline-flex;
+            align-items: center;
+            background: #e9ecef;
+            padding: 4px 8px;
+            margin: 2px;
+            border-radius: 16px;
+            font-size: 12px;
+        }
+
+        .label-tag .remove-label {
+            margin-left: 6px;
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .label-tag .remove-label:hover {
+            color: #dc3545;
+        }
+
+        .apply-section {
+            margin-bottom: 20px;
+        }
+
+        .apply-section h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .apply-section select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .apply-section button {
+            width: 100%;
+            padding: 10px;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .apply-section button:hover {
+            background: #138496;
+        }
+
+        .export-section button {
+            width: 100%;
+            padding: 12px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .export-section button:hover {
+            background: #c82333;
+        }
+
+        .selected-count {
+            color: #6c757d;
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+
+        .file-upload-section {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 2px dashed #ddd;
+            border-radius: 4px;
+            background: #f8f9fa;
+        }
+
+        .file-upload-section h3 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .file-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .file-input-row input[type="file"] {
+            flex: 1;
+        }
+
+        .file-input-row button {
+            padding: 8px 16px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .file-input-row button:hover {
+            background: #218838;
+        }
+
+        .file-preview {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 100px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        .column-settings {
+            margin-bottom: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .column-settings h3 {
+            margin-bottom: 10px;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .column-input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .column-input-row label {
+            font-weight: 500;
+            color: #555;
+        }
+
+        .column-input-row input {
+            flex: 1;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        .column-preview {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .column-selection {
+            margin-bottom: 20px;
+        }
+
+        .column-selection label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .column-selection select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .header-option {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+        }
+
+        .header-option label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .header-option input[type="checkbox"] {
+            margin-right: 8px;
+        }
+
+        /* Export confirmation modal */
+        .export-modal {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .export-modal h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .export-modal p {
+            margin-bottom: 20px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .export-stats {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .export-options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .export-options button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .export-options .btn-labeled {
+            background: #28a745;
+            color: white;
+        }
+
+        .export-options .btn-labeled:hover {
+            background: #218838;
+        }
+
+        .export-options .btn-all {
+            background: #007bff;
+            color: white;
+        }
+
+        .export-options .btn-all:hover {
+            background: #0056b3;
+        }
+
+        .export-options .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .export-options .btn-cancel:hover {
+            background: #545b62;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-buttons button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .modal-buttons .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+
+        .modal-buttons .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .modal-buttons .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .modal-buttons .btn-secondary:hover {
+            background: #545b62;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>JSONL Eval Maker</h1>
+        
+        <div class="column-settings">
+            <h3>Column Settings</h3>
+            <div class="column-input-row">
+                <label for="inputColumnName">Input Column Name:</label>
+                <input type="text" id="inputColumnName" value="input" placeholder="Enter column name...">
+            </div>
+        </div>
+
+        <div class="file-upload-section">
+            <h3>Upload File (Text or Delimited)</h3>
+            <div class="file-input-row">
+                <input type="file" id="fileInput" accept=".txt,.csv,.tsv" onchange="handleFileSelect()">
+                <button onclick="loadFromFile()">Load from File</button>
+            </div>
+            <div id="filePreview" class="file-preview" style="display: none;"></div>
+        </div>
+
+        <div class="paste-area">
+            <textarea id="pasteData" placeholder="Paste your data here, one record per line..."></textarea>
+            <button onclick="parseData()">Load Data</button>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="table-panel">
+            <div class="table-controls">
+                <button onclick="labelAll()">Label All Rows</button>
+                <span class="selected-count" id="selectedCount">0 rows selected</span>
+            </div>
+            <div class="table-container">
+                <table id="dataTable">
+                    <thead>
+                        <tr>
+                            <th id="inputColumnHeader">Input</th>
+                            <th>Correct Label</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="label-panel">
+            <div class="label-input-section">
+                <h3>Labels</h3>
+                <div class="label-input-row">
+                    <input type="text" id="labelInput" placeholder="Enter label name...">
+                    <button onclick="addLabel()">Add</button>
+                </div>
+                <div class="labels-list" id="labelsList"></div>
+            </div>
+
+            <div class="apply-section">
+                <h4>Active Label</h4>
+                <div class="selected-count" id="selectedCountBottom">0 rows selected</div>
+                <select id="labelSelect">
+                    <option value="">Select a label...</option>
+                </select>
+                <p style="font-size: 12px; color: #666; margin-top: 8px;">Click on rows to apply the chosen label</p>
+            </div>
+
+            <div class="export-section">
+                <button onclick="exportJsonl()">Export as JSONL</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let data = [];
+        let labels = [];
+        let currentFile = null;
+        let inputColumnName = 'input';
+        let parsedFileData = null;
+        let fileColumns = [];
+        let hasHeaderRow = false;
+        let selectedRows = new Set();
+
+        function parseData() {
+            const pasteData = document.getElementById('pasteData').value.trim();
+            if (!pasteData) return;
+
+            const lines = pasteData.split('\n').filter(line => line.trim());
+            processLines(lines);
+            document.getElementById('pasteData').value = '';
+        }
+
+        function processLines(lines) {
+            data = lines.map((line, index) => ({
+                id: index,
+                input: line.trim(),
+                correct_label: ''
+            }));
+
+            updateInputColumnName();
+            renderTable();
+        }
+
+        function updateInputColumnName() {
+            inputColumnName = document.getElementById('inputColumnName').value.trim() || 'input';
+            document.getElementById('inputColumnHeader').textContent = inputColumnName;
+        }
+
+        function handleFileSelect() {
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+            const previewDiv = document.getElementById('filePreview');
+            
+            if (!file) {
+                previewDiv.style.display = 'none';
+                currentFile = null;
+                return;
+            }
+
+            // Validate file type
+            const fileName = file.name.toLowerCase();
+            const validExtensions = ['.txt', '.csv', '.tsv'];
+            const isValidFile = validExtensions.some(ext => fileName.endsWith(ext));
+            
+            if (!isValidFile) {
+                alert('Invalid file format! Please upload a .txt, .csv, or .tsv file.\n\nAccepted formats:\n- Text files (.txt): One input per line\n- Delimited files (.csv, .tsv): Choose which column to label');
+                fileInput.value = '';
+                previewDiv.style.display = 'none';
+                currentFile = null;
+                return;
+            }
+
+            currentFile = file;
+            
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const lines = content.split('\n').filter(line => line.trim());
+                
+                if (lines.length === 0) {
+                    alert('File appears to be empty!');
+                    fileInput.value = '';
+                    previewDiv.style.display = 'none';
+                    currentFile = null;
+                    return;
+                }
+                
+                // Parse file content and show preview
+                const previewLines = lines.slice(0, 3);
+                let previewText = 'Preview (first 3 lines):\n';
+                
+                if (fileName.endsWith('.csv') || fileName.endsWith('.tsv')) {
+                    const delimiter = fileName.endsWith('.csv') ? ',' : '\t';
+                    const parsedLines = previewLines.map(line => parseDelimitedLine(line, delimiter));
+                    
+                    // Check if this looks like a multi-column file
+                    const maxColumns = Math.max(...parsedLines.map(row => row.length));
+                    
+                    if (maxColumns > 1) {
+                        // Multi-column file - show column structure
+                        previewText += 'Columns detected: ' + maxColumns + '\n\n';
+                        parsedLines.forEach((columns, i) => {
+                            previewText += `Row ${i + 1}: ${columns.map((col, j) => `[${j + 1}] ${col || '(empty)'}`).join(' | ')}\n`;
+                        });
+                        if (lines.length > 3) {
+                            previewText += `\n... and ${lines.length - 3} more rows`;
+                        }
+                    } else {
+                        // Single column - show as before
+                        previewText += parsedLines.map((columns, i) => {
+                            return `${i + 1}. ${columns[0] || '(empty)'}`;
+                        }).join('\n');
+                        if (lines.length > 3) {
+                            previewText += `\n... and ${lines.length - 3} more rows`;
+                        }
+                    }
+                } else {
+                    previewText += previewLines.map((line, i) => `${i + 1}. ${line}`).join('\n');
+                    if (lines.length > 3) {
+                        previewText += `\n... and ${lines.length - 3} more rows`;
+                    }
+                }
+                
+                previewDiv.textContent = previewText;
+                previewDiv.style.display = 'block';
+            };
+            reader.readAsText(file);
+        }
+
+        function parseDelimitedLine(line, delimiter = ',') {
+            const result = [];
+            let current = '';
+            let inQuotes = false;
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === delimiter && !inQuotes) {
+                    result.push(current.trim());
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+            
+            result.push(current.trim());
+            return result;
+        }
+
+        function parseCSVLine(line) {
+            return parseDelimitedLine(line, ',');
+        }
+
+        function loadFromFile() {
+            if (!currentFile) {
+                alert('Please select a file first!');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const lines = content.split('\n').filter(line => line.trim());
+                
+                if (lines.length === 0) {
+                    alert('File appears to be empty!');
+                    return;
+                }
+                
+                const fileName = currentFile.name.toLowerCase();
+                
+                if (fileName.endsWith('.csv') || fileName.endsWith('.tsv')) {
+                    const delimiter = fileName.endsWith('.csv') ? ',' : '\t';
+                    const parsedLines = lines.map(line => parseDelimitedLine(line, delimiter));
+                    
+                    // Check if this is a multi-column file
+                    const maxColumns = Math.max(...parsedLines.map(row => row.length));
+                    
+                    if (maxColumns > 1) {
+                        // Multi-column file - show column selection modal
+                        parsedFileData = parsedLines;
+                        fileColumns = [];
+                        
+                        // Generate column names
+                        for (let i = 0; i < maxColumns; i++) {
+                            fileColumns.push(`Column ${i + 1}`);
+                        }
+                        
+                        showColumnSelectionModal(parsedLines, fileColumns);
+                        return;
+                    } else {
+                        // Single column - process normally
+                        const processedLines = parsedLines.map(row => row[0] || '').filter(line => line.trim());
+                        
+                        if (processedLines.length === 0) {
+                            alert('No valid data found in file!');
+                            return;
+                        }
+                        
+                        processLines(processedLines);
+                    }
+                } else {
+                    // Text file - use lines as-is
+                    processLines(lines);
+                }
+                
+                // Clear file input and preview
+                document.getElementById('fileInput').value = '';
+                document.getElementById('filePreview').style.display = 'none';
+                currentFile = null;
+            };
+            reader.readAsText(currentFile);
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            data.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'data-row';
+                tr.dataset.index = index;
+                
+                // Add visual state classes
+                if (selectedRows.has(index)) {
+                    tr.classList.add('selected');
+                } else if (row.correct_label) {
+                    tr.classList.add('labeled');
+                }
+                
+                tr.innerHTML = `
+                    <td class="input-cell">${escapeHtml(row.input)}</td>
+                    <td>${escapeHtml(row.correct_label)}</td>
+                `;
+                
+                tr.addEventListener('click', () => handleRowClick(index));
+                tbody.appendChild(tr);
+            });
+
+            updateSelectedCount();
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function labelAll() {
+            const selectedLabel = document.getElementById('labelSelect').value;
+            
+            if (!selectedLabel) {
+                alert('Please select a label first!');
+                return;
+            }
+            
+            data.forEach((row, index) => {
+                data[index].correct_label = selectedLabel;
+                selectedRows.add(index);
+            });
+            
+            renderTable();
+        }
+
+
+
+        function handleRowClick(index) {
+            const selectedLabel = document.getElementById('labelSelect').value;
+            
+            if (!selectedLabel) {
+                alert('Please select a label first!');
+                return;
+            }
+            
+            // Toggle selection state
+            if (selectedRows.has(index)) {
+                selectedRows.delete(index);
+            } else {
+                // Apply label and add to selection
+                data[index].correct_label = selectedLabel;
+                selectedRows.add(index);
+            }
+            
+            renderTable();
+        }
+
+        function updateSelectedCount() {
+            const count = selectedRows.size;
+            document.getElementById('selectedCount').textContent = `${count} rows selected`;
+            document.getElementById('selectedCountBottom').textContent = `${count} rows selected`;
+        }
+
+        function addLabel() {
+            const labelInput = document.getElementById('labelInput');
+            const labelText = labelInput.value.trim();
+            
+            if (!labelText) return;
+            if (labels.includes(labelText)) {
+                alert('Label already exists!');
+                return;
+            }
+
+            labels.push(labelText);
+            labelInput.value = '';
+            renderLabels();
+            updateLabelSelect();
+        }
+
+        function renderLabels() {
+            const labelsList = document.getElementById('labelsList');
+            labelsList.innerHTML = '';
+
+            labels.forEach(label => {
+                const labelTag = document.createElement('span');
+                labelTag.className = 'label-tag';
+                labelTag.innerHTML = `
+                    ${escapeHtml(label)}
+                    <button class="remove-label" onclick="removeLabel('${escapeHtml(label)}')">&times;</button>
+                `;
+                labelsList.appendChild(labelTag);
+            });
+        }
+
+        function removeLabel(labelToRemove) {
+            const index = labels.indexOf(labelToRemove);
+            if (index > -1) {
+                labels.splice(index, 1);
+                renderLabels();
+                updateLabelSelect();
+            }
+        }
+
+        function updateLabelSelect() {
+            const labelSelect = document.getElementById('labelSelect');
+            labelSelect.innerHTML = '<option value="">Select a label...</option>';
+            
+            labels.forEach(label => {
+                const option = document.createElement('option');
+                option.value = label;
+                option.textContent = label;
+                labelSelect.appendChild(option);
+            });
+        }
+
+
+        function exportJsonl() {
+            if (data.length === 0) {
+                alert('No data to export!');
+                return;
+            }
+
+            // Check if all rows are labeled
+            const labeledRows = data.filter(row => row.correct_label && row.correct_label.trim());
+            const unlabeledRows = data.length - labeledRows.length;
+
+            if (unlabeledRows > 0) {
+                showExportConfirmation(labeledRows.length, unlabeledRows);
+            } else {
+                // All rows are labeled, export directly
+                performExport(data);
+            }
+        }
+
+        function showExportConfirmation(labeledCount, unlabeledCount) {
+            const modalHtml = `
+                <div class="modal-overlay" id="exportModal">
+                    <div class="export-modal">
+                        <h3>Export Confirmation</h3>
+                        <p>Not all rows have been labeled. Choose how you want to export:</p>
+                        
+                        <div class="export-stats">
+                            Total rows: ${data.length}<br>
+                            Labeled rows: ${labeledCount}<br>
+                            Unlabeled rows: ${unlabeledCount}
+                        </div>
+                        
+                        <div class="export-options">
+                            <button class="btn-labeled" onclick="exportLabeledOnly()">Export Only Labeled Rows (${labeledCount} rows)</button>
+                            <button class="btn-all" onclick="exportAllRows()">Export All Rows (unlabeled will have blank labels)</button>
+                            <button class="btn-cancel" onclick="closeExportModal()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+        }
+
+        function exportLabeledOnly() {
+            const labeledRows = data.filter(row => row.correct_label && row.correct_label.trim());
+            closeExportModal();
+            performExport(labeledRows);
+        }
+
+        function exportAllRows() {
+            closeExportModal();
+            performExport(data);
+        }
+
+        function closeExportModal() {
+            const modal = document.getElementById('exportModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function performExport(exportData) {
+            const jsonlContent = exportData.map(row => {
+                const exportObject = {};
+                exportObject[inputColumnName] = row.input;
+                exportObject.correct_label = row.correct_label || '';
+                return JSON.stringify(exportObject);
+            }).join('\n');
+
+            const blob = new Blob([jsonlContent], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'eval_data.jsonl';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Allow Enter key to add labels
+        document.getElementById('labelInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addLabel();
+            }
+        });
+
+        // Update column name when changed
+        document.getElementById('inputColumnName').addEventListener('input', function() {
+            if (data.length > 0) {
+                updateInputColumnName();
+            }
+        });
+
+        function showColumnSelectionModal(parsedData, columns) {
+            // Check if first row might be headers (all non-empty and look like text)
+            const firstRow = parsedData[0] || [];
+            const mightHaveHeaders = firstRow.length > 1 && firstRow.every(cell => 
+                cell && cell.trim() && isNaN(cell.trim())
+            );
+            
+            // Create modal HTML
+            const modalHtml = `
+                <div class="modal-overlay" id="columnModal">
+                    <div class="modal">
+                        <h2>Select Column to Label</h2>
+                        <p>This file contains multiple columns. Please select which column you want to create labels for:</p>
+                        
+                        ${mightHaveHeaders ? `
+                        <div class="header-option">
+                            <label>
+                                <input type="checkbox" id="hasHeaders" onchange="toggleHeaderMode()">
+                                First row contains column headers
+                            </label>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="column-preview" id="columnPreviewContent"></div>
+                        
+                        <div class="column-selection">
+                            <label for="columnSelect">Choose column:</label>
+                            <select id="columnSelect">
+                                ${columns.map((col, i) => `<option value="${i}">${col}</option>`).join('')}
+                            </select>
+                        </div>
+                        
+                        <div class="modal-buttons">
+                            <button class="btn-secondary" onclick="closeColumnModal()">Cancel</button>
+                            <button class="btn-primary" onclick="confirmColumnSelection()">OK</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            
+            // Initialize state
+            hasHeaderRow = false;
+            
+            // Update preview for first column
+            updateColumnPreview(0);
+            
+            // Add change listener to select
+            document.getElementById('columnSelect').addEventListener('change', function() {
+                updateColumnPreview(parseInt(this.value));
+            });
+        }
+
+        function updateColumnPreview(columnIndex) {
+            const previewDiv = document.getElementById('columnPreviewContent');
+            const startRow = hasHeaderRow ? 1 : 0;
+            const maxPreviewRows = hasHeaderRow ? 6 : 5; // Show one extra if we skip header
+            const sampleRows = parsedFileData.slice(startRow, startRow + maxPreviewRows);
+            
+            const columnName = getColumnName(columnIndex);
+            let previewText = `Preview of ${columnName}:`;
+            
+            if (hasHeaderRow) {
+                previewText += ` (excluding header row)`;
+            }
+            previewText += `\n\n`;
+            
+            sampleRows.forEach((row, i) => {
+                const value = row[columnIndex] || '(empty)';
+                previewText += `${i + 1}. ${value}\n`;
+            });
+            
+            const remainingRows = parsedFileData.length - startRow - sampleRows.length;
+            if (remainingRows > 0) {
+                previewText += `\n... and ${remainingRows} more rows`;
+            }
+            
+            previewDiv.textContent = previewText;
+        }
+
+        function getColumnName(columnIndex) {
+            if (hasHeaderRow && parsedFileData.length > 0) {
+                const headerValue = parsedFileData[0][columnIndex];
+                return headerValue && headerValue.trim() ? headerValue.trim() : `Column ${columnIndex + 1}`;
+            }
+            return `Column ${columnIndex + 1}`;
+        }
+
+        function toggleHeaderMode() {
+            hasHeaderRow = document.getElementById('hasHeaders').checked;
+            
+            // Update column names in dropdown
+            const columnSelect = document.getElementById('columnSelect');
+            const selectedIndex = columnSelect.selectedIndex;
+            
+            // Rebuild options with new names
+            columnSelect.innerHTML = '';
+            for (let i = 0; i < fileColumns.length; i++) {
+                const option = document.createElement('option');
+                option.value = i;
+                option.textContent = getColumnName(i);
+                columnSelect.appendChild(option);
+            }
+            
+            // Restore selection
+            columnSelect.selectedIndex = selectedIndex;
+            
+            // Update preview
+            updateColumnPreview(parseInt(columnSelect.value));
+        }
+
+        function closeColumnModal() {
+            const modal = document.getElementById('columnModal');
+            if (modal) {
+                modal.remove();
+            }
+            
+            // Clear file input
+            document.getElementById('fileInput').value = '';
+            document.getElementById('filePreview').style.display = 'none';
+            currentFile = null;
+            parsedFileData = null;
+            fileColumns = [];
+            hasHeaderRow = false;
+        }
+
+        function confirmColumnSelection() {
+            const selectedColumnIndex = parseInt(document.getElementById('columnSelect').value);
+            
+            // Extract data from selected column, skipping header if enabled
+            const startRow = hasHeaderRow ? 1 : 0;
+            const processedLines = parsedFileData.slice(startRow).map(row => row[selectedColumnIndex] || '').filter(line => line.trim());
+            
+            if (processedLines.length === 0) {
+                alert('No valid data found in selected column!');
+                return;
+            }
+            
+            // Update input column name if we have a header
+            if (hasHeaderRow) {
+                const headerName = getColumnName(selectedColumnIndex);
+                if (headerName !== `Column ${selectedColumnIndex + 1}`) {
+                    document.getElementById('inputColumnName').value = headerName;
+                }
+            }
+            
+            // Close modal
+            closeColumnModal();
+            
+            // Process the data
+            processLines(processedLines);
+            
+            // Clear file input and preview
+            document.getElementById('fileInput').value = '';
+            document.getElementById('filePreview').style.display = 'none';
+            currentFile = null;
+        }
+    </script>
+</body>
+</html>
