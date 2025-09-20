@@ -583,7 +583,8 @@
     <div class="main-content">
         <div class="table-panel">
             <div class="table-controls">
-                <button onclick="labelAll()">Label All Rows</button>
+                <button onclick="labelAllUnlabeled()">Label All Unlabeled Rows</button>
+                <button onclick="clearAllLabels()" style="background: #dc3545; color: white;">Clear All Labels</button>
                 <span class="selected-count" id="selectedCount">0 rows selected</span>
             </div>
             <div class="table-container">
@@ -863,19 +864,30 @@
             return div.innerHTML;
         }
 
-        function labelAll() {
+        function labelAllUnlabeled() {
             const selectedLabel = document.getElementById('labelSelect').value;
             
             if (!selectedLabel) {
-                alert('Please select a label first!');
                 return;
             }
             
             data.forEach((row, index) => {
-                data[index].correct_label = selectedLabel;
-                selectedRows.add(index);
+                // Only label rows that don't already have a label
+                if (!row.correct_label || !row.correct_label.trim()) {
+                    data[index].correct_label = selectedLabel;
+                    selectedRows.add(index);
+                }
             });
             
+            renderTable();
+        }
+
+        function clearAllLabels() {
+            data.forEach((row, index) => {
+                data[index].correct_label = '';
+            });
+            
+            selectedRows.clear();
             renderTable();
         }
 
