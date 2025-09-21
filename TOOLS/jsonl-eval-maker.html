@@ -168,10 +168,68 @@
             padding: 15px 20px;
             border-bottom: 1px solid #ddd;
             display: flex;
-            gap: 10px;
+            gap: 15px;
             align-items: center;
             flex-shrink: 0;
             flex-wrap: wrap;
+        }
+
+        .export-options {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-left: auto;
+        }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 14px;
+            color: #495057;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            margin: 0;
+        }
+
+        .tooltip {
+            position: relative;
+            cursor: help;
+        }
+
+        .custom-tooltip {
+            position: fixed;
+            background: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 10000;
+            max-width: 300px;
+            white-space: normal;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            line-height: 1.3;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            visibility: hidden;
+        }
+
+        .custom-tooltip.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .custom-tooltip::before {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #333;
         }
 
         .workspace-toolbar button {
@@ -869,8 +927,13 @@
                 <div class="workspace-toolbar">
                     <button onclick="labelAllUnlabeled()">Label All Unlabeled</button>
                     <button onclick="clearAllLabels()" class="btn-danger">Clear All Labels</button>
-                    <button onclick="exportJsonl()" class="btn-success">Export as JSONL</button>
-                    <div style="margin-left: auto;">
+                    
+                    <div class="export-options">
+                        <div class="checkbox-container">
+                            <input type="checkbox" id="itemSchema" checked>
+                            <label for="itemSchema" class="tooltip" id="itemSchemaLabel" onmouseenter="showTooltip(this, 'OpenAI custom schemas require records to be wrapped with {&quot;item&quot;: &lt;RECORD&gt; }. Checking this box will format your JSONL records appropriately')" onmouseleave="hideTooltip()">Item Schema?</label>
+                        </div>
+                        <button onclick="exportJsonl()" class="btn-success">Export as JSONL</button>
                         <span id="selectedCount" style="color: #6c757d; font-size: 14px;">0 rows selected</span>
                     </div>
                 </div>
@@ -1316,11 +1379,18 @@
         }
 
         function performExport(exportData) {
+            const useItemSchema = document.getElementById('itemSchema').checked;
+            
             const jsonlContent = exportData.map(row => {
                 const exportObject = {};
                 exportObject[inputColumnName] = row.input;
                 exportObject[labelColumnName] = row.correct_label || '';
-                return JSON.stringify(exportObject);
+                
+                if (useItemSchema) {
+                    return JSON.stringify({ item: exportObject });
+                } else {
+                    return JSON.stringify(exportObject);
+                }
             }).join('\n');
 
             const blob = new Blob([jsonlContent], { type: 'application/json' });
@@ -1371,6 +1441,49 @@
             
             // Add active class to clicked button
             event.target.classList.add('active');
+        }
+
+        let currentTooltip = null;
+
+        function showTooltip(element, text) {
+            // Remove any existing tooltip
+            hideTooltip();
+            
+            // Create tooltip element
+            const tooltip = document.createElement('div');
+            tooltip.className = 'custom-tooltip';
+            tooltip.textContent = text;
+            
+            // Add to body to escape container clipping
+            document.body.appendChild(tooltip);
+            
+            // Calculate position
+            const rect = element.getBoundingClientRect();
+            const tooltipRect = tooltip.getBoundingClientRect();
+            
+            // Position above the element, centered
+            const left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+            const top = rect.top - tooltipRect.height - 10; // 10px gap
+            
+            tooltip.style.left = Math.max(10, left) + 'px'; // Ensure it doesn't go off-screen
+            tooltip.style.top = Math.max(10, top) + 'px';
+            
+            // Show tooltip
+            setTimeout(() => tooltip.classList.add('visible'), 10);
+            
+            currentTooltip = tooltip;
+        }
+
+        function hideTooltip() {
+            if (currentTooltip) {
+                currentTooltip.classList.remove('visible');
+                setTimeout(() => {
+                    if (currentTooltip && currentTooltip.parentNode) {
+                        currentTooltip.parentNode.removeChild(currentTooltip);
+                    }
+                    currentTooltip = null;
+                }, 200); // Wait for fade out
+            }
         }
 
         function showColumnSelectionModal(parsedData, columns) {

@@ -37,9 +37,10 @@ Creating evaluation datasets is a common but tedious task in machine learning. T
 
 - **Multi-format input**: Text files, CSV files with header detection
 - **Column selection**: For multi-column CSV files, choose which column to label
-- **Custom column names**: Rename the input column for your use case
+- **Custom column names**: Rename input and label columns with inline editing
 - **Visual feedback**: Color-coded rows show labeling progress
-- **Bulk operations**: "Label All Rows" for consistent labeling
+- **Bulk operations**: "Label All Unlabeled" for efficient workflow
+- **OpenAI compatibility**: Optional Item Schema format for OpenAI fine-tuning
 - **Smart export**: Options for partial or complete datasets
 - **No data loss**: All work is preserved until export
 
@@ -47,10 +48,18 @@ Creating evaluation datasets is a common but tedious task in machine learning. T
 
 Built as a single HTML file with vanilla JavaScript - no dependencies or build process required. The app runs entirely client-side, so your data never leaves your browser.
 
-**Export format:**
+**Export formats:**
+
+Standard format:
 ```json
 {"input": "your text data", "correct_label": "your_label"}
 {"input": "more text data", "correct_label": "another_label"}
+```
+
+OpenAI Item Schema format (for fine-tuning):
+```json
+{"item": {"input": "your text data", "correct_label": "your_label"}}
+{"item": {"input": "more text data", "correct_label": "another_label"}}
 ```
 
 ## Use Cases
