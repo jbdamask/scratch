@@ -28,6 +28,8 @@ def download_and_convert(url, output_dir):
         markdown_content = h.handle(response.text)
 
         root_domain = extract_root_domain(url)
+        # Replace dots with underscores in the domain name
+        root_domain = root_domain.replace('.', '_')
         random_digits = f"{random.randint(10, 99):02d}"
         filename = f"{root_domain}_{random_digits}.md"
         filepath = os.path.join(output_dir, filename)
