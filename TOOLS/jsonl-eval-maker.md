@@ -8,7 +8,9 @@ JSONL Eval Maker helps you transform raw text data into labeled evaluation datas
 
 - **Import data** from text files, CSV files, or by pasting directly
 - **Create custom labels** for your classification tasks
+- **Add custom columns** to capture additional metadata or annotations
 - **Label data efficiently** with a streamlined click-to-label interface
+- **Edit any cell content** with right-click editing
 - **Export clean JSONL files** ready for use with ML frameworks
 
 ## Why It's Useful
@@ -31,17 +33,33 @@ Creating evaluation datasets is a common but tedious task in machine learning. T
 3. **Create labels** using the input box and "Add" button
 4. **Select an active label** from the dropdown
 5. **Click rows** to instantly apply the label
-6. **Export** your labeled dataset as JSONL
+6. **Customize your dataset**:
+   - Add extra columns using the "+" button
+   - Right-click any cell to edit its content
+   - Drag column borders to resize for better visibility
+   - Delete unwanted rows using the × button
+7. **Export** your labeled dataset as JSONL
 
 ## Features
 
+### Data Management
 - **Multi-format input**: Text files, CSV files with header detection
 - **Column selection**: For multi-column CSV files, choose which column to label
-- **Custom column names**: Rename input and label columns with inline editing
+- **Custom columns**: Add unlimited additional columns for extra metadata or annotations
+- **Row management**: Delete individual rows with confirmation
+- **Resizable columns**: Drag column borders to adjust widths for optimal viewing
+
+### Editing & Labeling
+- **Custom column names**: Rename any column header with inline editing
+- **Cell-level editing**: Right-click any cell to edit its content directly
+- **Keyboard shortcuts**: Enter to save, Escape to cancel when editing
 - **Visual feedback**: Color-coded rows show labeling progress
 - **Bulk operations**: "Label All Unlabeled" for efficient workflow
+
+### Export & Compatibility
 - **OpenAI compatibility**: Optional Item Schema format for OpenAI fine-tuning
 - **Smart export**: Options for partial or complete datasets
+- **Custom column export**: All additional columns included in JSONL output
 - **No data loss**: All work is preserved until export
 
 ## Technical Details
@@ -52,14 +70,20 @@ Built as a single HTML file with vanilla JavaScript - no dependencies or build p
 
 Standard format:
 ```json
-{"input": "your text data", "correct_label": "your_label"}
-{"input": "more text data", "correct_label": "another_label"}
+{"input": "your text data", "ideal": "your_label"}
+{"input": "more text data", "ideal": "another_label"}
+```
+
+With additional columns:
+```json
+{"input": "your text data", "ideal": "your_label", "comment": "reasoning", "confidence": "high"}
+{"input": "more text data", "ideal": "another_label", "comment": "uncertain", "confidence": "medium"}
 ```
 
 OpenAI Item Schema format (for fine-tuning):
 ```json
-{"item": {"input": "your text data", "correct_label": "your_label"}}
-{"item": {"input": "more text data", "correct_label": "another_label"}}
+{"item": {"input": "your text data", "ideal": "your_label", "comment": "reasoning"}}
+{"item": {"input": "more text data", "ideal": "another_label", "comment": "uncertain"}}
 ```
 
 ## Use Cases

@@ -841,6 +841,169 @@
         .modal-buttons .btn-secondary:hover {
             background: #545b62;
         }
+
+        .add-column-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .add-column-btn:hover {
+            background: #218838;
+        }
+
+        .add-column-cell {
+            text-align: center;
+            border: none !important;
+            background: transparent !important;
+        }
+
+        .delete-column-header {
+            width: 80px;
+            text-align: center;
+        }
+
+        .delete-row-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 2px 4px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 10px;
+            position: absolute;
+            right: 4px;
+            top: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .delete-row-btn:hover {
+            background: #c82333;
+        }
+
+        .data-row:hover .delete-row-btn {
+            opacity: 1;
+        }
+
+        .input-cell {
+            max-width: 300px;
+            word-wrap: break-word;
+            position: relative;
+        }
+
+        .delete-column-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 1px 4px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 9px;
+            margin-left: 4px;
+        }
+
+        .delete-column-btn:hover {
+            background: #c82333;
+        }
+
+        .cell-editor {
+            width: 100%;
+            border: 2px solid #007bff;
+            border-radius: 3px;
+            padding: 4px 6px;
+            font-size: 14px;
+            font-family: inherit;
+            background: #fff;
+            outline: none;
+            resize: none;
+            min-height: 20px;
+        }
+
+        .cell-editor:focus {
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .editable-cell {
+            cursor: text;
+            position: relative;
+        }
+
+        .editable-cell:hover {
+            background-color: #f8f9fa !important;
+        }
+
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            min-width: 80px;
+        }
+
+        .context-menu-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+        }
+
+        .context-menu-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .context-menu-item:first-child {
+            border-radius: 4px 4px 0 0;
+        }
+
+        .context-menu-item:last-child {
+            border-radius: 0 0 4px 4px;
+        }
+
+        /* Column resizing */
+        th {
+            position: relative;
+            user-select: none;
+        }
+
+        .resize-handle {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 5px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+            z-index: 1;
+        }
+
+        .resize-handle:hover {
+            background: rgba(0, 123, 255, 0.3);
+        }
+
+        .resizing {
+            cursor: col-resize !important;
+        }
+
+        .resize-line {
+            position: fixed;
+            top: 0;
+            width: 2px;
+            background: #007bff;
+            z-index: 9999;
+            pointer-events: none;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
@@ -955,6 +1118,9 @@
                                             <span class="edit-icon" onclick="editColumnName('label')" title="Edit column name">✏️</span>
                                         </div>
                                     </th>
+                                    <th class="add-column-cell">
+                                        <button class="add-column-btn" onclick="addNewColumn()" title="Add new column">+</button>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody id="tableBody">
@@ -976,6 +1142,7 @@
         let fileColumns = [];
         let hasHeaderRow = false;
         let selectedRows = new Set();
+        let additionalColumns = []; // {name: string, key: string}
 
         function parseData() {
             const pasteData = document.getElementById('pasteData').value.trim();
@@ -987,54 +1154,82 @@
         }
 
         function processLines(lines) {
-            data = lines.map((line, index) => ({
-                id: index,
-                input: line.trim(),
-                correct_label: ''
-            }));
+            data = lines.map((line, index) => {
+                const row = {
+                    id: index,
+                    input: line.trim(),
+                    correct_label: ''
+                };
+
+                // Initialize additional columns
+                additionalColumns.forEach(col => {
+                    row[col.key] = '';
+                });
+
+                return row;
+            });
 
             // Update the table header to show current column name
             document.getElementById('inputColumnHeader').textContent = inputColumnName;
+            renderTableHeaders();
             renderTable();
         }
 
         function editColumnName(columnType) {
-            const headerId = columnType === 'input' ? 'inputColumnHeader' : 'labelColumnHeader';
+            let headerId, currentName;
+
+            if (columnType === 'input') {
+                headerId = 'inputColumnHeader';
+            } else if (columnType === 'label') {
+                headerId = 'labelColumnHeader';
+            } else {
+                // Additional column
+                headerId = columnType + 'Header';
+            }
+
             const headerElement = document.getElementById(headerId);
-            const currentName = headerElement.textContent;
-            
+            if (!headerElement) return;
+
+            currentName = headerElement.textContent;
+
             // Create input field
             const input = document.createElement('input');
             input.type = 'text';
             input.value = currentName;
             input.className = 'header-input';
-            
+
             // Replace header text with input
             headerElement.replaceWith(input);
             input.focus();
             input.select();
-            
+
             // Handle save on Enter or blur
             function saveEdit() {
                 const newName = input.value.trim() || currentName;
-                
+
                 // Create new header element
                 const newHeader = document.createElement('span');
                 newHeader.className = 'header-text';
                 newHeader.id = headerId;
                 newHeader.textContent = newName;
-                
+
                 // Update global variable
                 if (columnType === 'input') {
                     inputColumnName = newName;
-                } else {
+                } else if (columnType === 'label') {
                     labelColumnName = newName;
+                } else {
+                    // Update additional column name
+                    const colIndex = additionalColumns.findIndex(col => col.key === columnType);
+                    if (colIndex !== -1) {
+                        additionalColumns[colIndex].name = newName;
+                    }
                 }
-                
+
                 // Replace input with updated header
                 input.replaceWith(newHeader);
             }
-            
+
             input.addEventListener('blur', saveEdit);
             input.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
@@ -1173,6 +1368,43 @@
             currentFile = null;
         }
 
+        function renderTableHeaders() {
+            const thead = document.querySelector('#dataTable thead tr');
+
+            // Remove existing additional column headers (keep first 2 and last 1)
+            const existingHeaders = thead.querySelectorAll('th');
+            for (let i = existingHeaders.length - 2; i >= 2; i--) {
+                existingHeaders[i].remove();
+            }
+
+            // Add resize handles to existing headers if not present
+            const inputHeader = thead.querySelector('th:first-child');
+            const labelHeader = thead.querySelector('th:nth-child(2)');
+
+            if (!inputHeader.querySelector('.resize-handle')) {
+                addResizeHandle(inputHeader);
+            }
+            if (!labelHeader.querySelector('.resize-handle')) {
+                addResizeHandle(labelHeader);
+            }
+
+            // Add additional column headers before the "Add Column" header
+            const addColumnHeader = thead.querySelector('.add-column-cell');
+
+            additionalColumns.forEach((col, index) => {
+                const th = document.createElement('th');
+                th.innerHTML = `
+                    <div class="editable-header">
+                        <span class="header-text" id="${col.key}Header">${escapeHtml(col.name)}</span>
+                        <span class="edit-icon" onclick="editColumnName('${col.key}')" title="Edit column name">✏️</span>
+                        <button class="delete-column-btn" onclick="deleteColumn('${col.key}')" title="Delete column">×</button>
+                    </div>
+                `;
+                thead.insertBefore(th, addColumnHeader);
+                addResizeHandle(th);
+            });
+        }
+
         function renderTable() {
             const tbody = document.getElementById('tableBody');
             tbody.innerHTML = '';
@@ -1181,20 +1413,45 @@
                 const tr = document.createElement('tr');
                 tr.className = 'data-row';
                 tr.dataset.index = index;
-                
+
                 // Add visual state classes
                 if (selectedRows.has(index)) {
                     tr.classList.add('selected');
                 } else if (row.correct_label) {
                     tr.classList.add('labeled');
                 }
-                
-                tr.innerHTML = `
-                    <td class="input-cell">${escapeHtml(row.input)}</td>
-                    <td>${escapeHtml(row.correct_label)}</td>
+
+                let cellsHtml = `
+                    <td class="input-cell editable-cell" data-field="input" data-row="${index}">
+                        ${escapeHtml(row.input)}
+                        <button class="delete-row-btn" onclick="deleteRow(${index})" title="Delete row">×</button>
+                    </td>
+                    <td class="editable-cell" data-field="correct_label" data-row="${index}">${escapeHtml(row.correct_label)}</td>
                 `;
-                
-                tr.addEventListener('click', () => handleRowClick(index));
+
+                // Add additional columns
+                additionalColumns.forEach(col => {
+                    cellsHtml += `<td class="editable-cell" data-field="${col.key}" data-row="${index}">${escapeHtml(row[col.key] || '')}</td>`;
+                });
+
+                tr.innerHTML = cellsHtml;
+
+                tr.addEventListener('click', (e) => {
+                    // Don't trigger row click if clicking delete button or during editing
+                    if (!e.target.classList.contains('delete-row-btn') && !e.target.classList.contains('cell-editor')) {
+                        handleRowClick(index);
+                    }
+                });
+
+                // Add right-click event listeners to editable cells
+                tr.querySelectorAll('.editable-cell').forEach(cell => {
+                    cell.addEventListener('contextmenu', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showContextMenu(e, cell);
+                    });
+                });
+
                 tbody.appendChild(tr);
             });
 
@@ -1378,12 +1635,17 @@
 
         function performExport(exportData) {
             const useItemSchema = document.getElementById('itemSchema').checked;
-            
+
             const jsonlContent = exportData.map(row => {
                 const exportObject = {};
                 exportObject[inputColumnName] = row.input;
                 exportObject[labelColumnName] = row.correct_label || '';
-                
+
+                // Add additional columns
+                additionalColumns.forEach(col => {
+                    exportObject[col.name] = row[col.key] || '';
+                });
+
                 if (useItemSchema) {
                     return JSON.stringify({ item: exportObject });
                 } else {
@@ -1638,13 +1900,290 @@
             
             // Process the data
             processLines(processedLines);
-            
+
             // Clear file input and preview
             document.getElementById('fileInput').value = '';
             document.getElementById('filePreview').style.display = 'none';
             document.getElementById('fileName').style.display = 'none';
             currentFile = null;
         }
+
+        function addNewColumn() {
+            const columnName = prompt('Enter the name for the new column:');
+            if (!columnName || !columnName.trim()) {
+                return;
+            }
+
+            // Generate a unique key for this column
+            const columnKey = 'col_' + Date.now();
+
+            // Add to additional columns
+            additionalColumns.push({
+                name: columnName.trim(),
+                key: columnKey
+            });
+
+            // Add empty values to existing data
+            data.forEach(row => {
+                row[columnKey] = '';
+            });
+
+            // Re-render table
+            renderTableHeaders();
+            renderTable();
+        }
+
+        function deleteColumn(columnKey) {
+            if (!confirm('Are you sure you want to delete this column? This action cannot be undone.')) {
+                return;
+            }
+
+            // Remove from additional columns
+            const columnIndex = additionalColumns.findIndex(col => col.key === columnKey);
+            if (columnIndex !== -1) {
+                additionalColumns.splice(columnIndex, 1);
+            }
+
+            // Remove column data from all rows
+            data.forEach(row => {
+                delete row[columnKey];
+            });
+
+            // Re-render table
+            renderTableHeaders();
+            renderTable();
+        }
+
+        function deleteRow(rowIndex) {
+            if (!confirm('Are you sure you want to delete this row? This action cannot be undone.')) {
+                return;
+            }
+
+            // Remove from data array
+            data.splice(rowIndex, 1);
+
+            // Update IDs for remaining rows
+            data.forEach((row, index) => {
+                row.id = index;
+            });
+
+            // Update selected rows set to account for removed row
+            const updatedSelectedRows = new Set();
+            selectedRows.forEach(selectedIndex => {
+                if (selectedIndex < rowIndex) {
+                    updatedSelectedRows.add(selectedIndex);
+                } else if (selectedIndex > rowIndex) {
+                    updatedSelectedRows.add(selectedIndex - 1);
+                }
+                // If selectedIndex === rowIndex, don't add it (it's deleted)
+            });
+            selectedRows = updatedSelectedRows;
+
+            // Re-render table
+            renderTable();
+        }
+
+        function showContextMenu(e, cell) {
+            // Remove any existing context menu
+            hideContextMenu();
+
+            // Create context menu
+            const contextMenu = document.createElement('div');
+            contextMenu.className = 'context-menu';
+            contextMenu.id = 'cellContextMenu';
+
+            const editButton = document.createElement('button');
+            editButton.className = 'context-menu-item';
+            editButton.textContent = 'Edit';
+            editButton.onclick = () => {
+                hideContextMenu();
+                editCell(cell);
+            };
+
+            contextMenu.appendChild(editButton);
+            document.body.appendChild(contextMenu);
+
+            // Position the context menu
+            contextMenu.style.left = e.pageX + 'px';
+            contextMenu.style.top = e.pageY + 'px';
+
+            // Hide context menu when clicking elsewhere
+            document.addEventListener('click', hideContextMenu, { once: true });
+        }
+
+        function hideContextMenu() {
+            const contextMenu = document.getElementById('cellContextMenu');
+            if (contextMenu) {
+                contextMenu.remove();
+            }
+        }
+
+        function editCell(cell) {
+            // Don't start editing if already editing
+            if (cell.querySelector('.cell-editor')) {
+                return;
+            }
+
+            const rowIndex = parseInt(cell.dataset.row);
+            const field = cell.dataset.field;
+            const currentValue = data[rowIndex][field] || '';
+            const originalValue = currentValue; // Store for potential revert
+
+            // Store original content for later restoration
+            const originalContent = cell.innerHTML;
+
+            // Create textarea for editing
+            const textarea = document.createElement('textarea');
+            textarea.className = 'cell-editor';
+            textarea.value = currentValue;
+            textarea.rows = Math.max(1, Math.ceil(currentValue.length / 50));
+
+            // Replace cell content with textarea
+            cell.innerHTML = '';
+            cell.appendChild(textarea);
+
+            // Focus and select all text
+            textarea.focus();
+            textarea.select();
+
+            // Handle save on Enter or cancel on Escape
+            function saveEdit() {
+                const newValue = textarea.value;
+
+                // Update data
+                data[rowIndex][field] = newValue;
+
+                // Restore cell content with new value
+                if (field === 'input' && cell.classList.contains('input-cell')) {
+                    // Special handling for input cell with delete button
+                    cell.innerHTML = `
+                        ${escapeHtml(newValue)}
+                        <button class="delete-row-btn" onclick="deleteRow(${rowIndex})" title="Delete row">&times;</button>
+                    `;
+                } else {
+                    cell.textContent = newValue;
+                }
+
+                // Re-add right-click listener
+                cell.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showContextMenu(e, cell);
+                });
+            }
+
+            function cancelEdit() {
+                // Restore original content without changing data
+                cell.innerHTML = originalContent;
+
+                // Re-add right-click listener
+                cell.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    showContextMenu(e, cell);
+                });
+            }
+
+            // Only respond to Enter and Escape keys
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveEdit();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    cancelEdit();
+                }
+            });
+
+            // Remove blur event listener since we only want Enter/Escape to trigger actions
+        }
+
+        // Column resizing functionality
+        let isResizing = false;
+        let currentResizeColumn = null;
+        let startX = 0;
+        let startWidth = 0;
+        let resizeLine = null;
+
+        function addResizeHandle(th) {
+            // Don't add resize handle to the last column (Add Column button)
+            if (th.classList.contains('add-column-cell')) {
+                return;
+            }
+
+            const resizeHandle = document.createElement('div');
+            resizeHandle.className = 'resize-handle';
+            th.appendChild(resizeHandle);
+
+            resizeHandle.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                isResizing = true;
+                currentResizeColumn = th;
+                startX = e.pageX;
+                startWidth = th.offsetWidth;
+
+                // Create resize line
+                resizeLine = document.createElement('div');
+                resizeLine.className = 'resize-line';
+                resizeLine.style.left = e.pageX + 'px';
+                resizeLine.style.height = '100vh';
+                document.body.appendChild(resizeLine);
+
+                // Add resizing class to body
+                document.body.classList.add('resizing');
+
+                // Prevent text selection during resize
+                document.body.style.userSelect = 'none';
+            });
+        }
+
+        // Global mouse events for resizing
+        document.addEventListener('mousemove', function(e) {
+            if (!isResizing || !currentResizeColumn) return;
+
+            // Update resize line position
+            if (resizeLine) {
+                resizeLine.style.left = e.pageX + 'px';
+            }
+
+            // Calculate new width
+            const diff = e.pageX - startX;
+            const newWidth = Math.max(50, startWidth + diff); // Minimum width of 50px
+            currentResizeColumn.style.width = newWidth + 'px';
+        });
+
+        document.addEventListener('mouseup', function(e) {
+            if (!isResizing) return;
+
+            // Clean up
+            isResizing = false;
+            currentResizeColumn = null;
+            startX = 0;
+            startWidth = 0;
+
+            // Remove resize line
+            if (resizeLine) {
+                document.body.removeChild(resizeLine);
+                resizeLine = null;
+            }
+
+            // Remove resizing class
+            document.body.classList.remove('resizing');
+
+            // Re-enable text selection
+            document.body.style.userSelect = '';
+        });
+
+        // Initialize resize handles on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add resize handles to initial columns
+            const headers = document.querySelectorAll('#dataTable thead th');
+            headers.forEach(th => {
+                if (!th.classList.contains('add-column-cell')) {
+                    addResizeHandle(th);
+                }
+            });
+        });
     </script>
 </body>
 </html>
