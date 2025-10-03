@@ -970,6 +970,76 @@
             border-radius: 0 0 4px 4px;
         }
 
+        /* Edit modal styles */
+        .edit-modal {
+            background: white;
+            border-radius: 8px;
+            padding: 25px;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .edit-modal h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .edit-modal textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            line-height: 1.4;
+            resize: vertical;
+            flex: 1;
+        }
+
+        .edit-modal textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+
+        .edit-modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .edit-modal-buttons button {
+            padding: 8px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .edit-modal-buttons .btn-save {
+            background: #28a745;
+            color: white;
+        }
+
+        .edit-modal-buttons .btn-save:hover {
+            background: #218838;
+        }
+
+        .edit-modal-buttons .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .edit-modal-buttons .btn-cancel:hover {
+            background: #545b62;
+        }
+
         /* Column resizing */
         th {
             position: relative;
@@ -1032,12 +1102,12 @@
                                 <div class="file-input-container">
                                     <div class="file-input-row">
                                         <div class="file-input-wrapper">
-                                            <input type="file" id="fileInput" accept=".txt,.csv,.tsv" onchange="handleFileSelectAndLoad()">
+                                            <input type="file" id="fileInput" accept=".txt,.csv,.tsv,.json,.jsonl" onchange="handleFileSelectAndLoad()">
                                             <span class="file-input-button">Choose File</span>
                                         </div>
                                         <div id="fileName" class="file-name-display" style="display: none;"></div>
                                     </div>
-                                    <div class="helper-text">Supports text files (.txt) and delimited files (.csv, .tsv)</div>
+                                    <div class="helper-text">Supports text files (.txt), delimited files (.csv, .tsv), and JSON files (.json, .jsonl)</div>
                                 </div>
                                 <div id="filePreview" class="file-preview" style="display: none;"></div>
                             </div>
@@ -1154,6 +1224,9 @@
         }
 
         function processLines(lines) {
+            // Reset to default columns for non-JSON files
+            showDefaultColumns();
+
             data = lines.map((line, index) => {
                 const row = {
                     id: index,
@@ -1257,11 +1330,11 @@
 
             // Validate file type
             const fileName = file.name.toLowerCase();
-            const validExtensions = ['.txt', '.csv', '.tsv'];
+            const validExtensions = ['.txt', '.csv', '.tsv', '.json', '.jsonl'];
             const isValidFile = validExtensions.some(ext => fileName.endsWith(ext));
             
             if (!isValidFile) {
-                alert('Invalid file format! Please upload a .txt, .csv, or .tsv file.\n\nAccepted formats:\n- Text files (.txt): One input per line\n- Delimited files (.csv, .tsv): Choose which column to label');
+                alert('Invalid file format! Please upload a .txt, .csv, .tsv, .json, or .jsonl file.\n\nAccepted formats:\n- Text files (.txt): One input per line\n- Delimited files (.csv, .tsv): Choose which column to label\n- JSON files (.json, .jsonl): Choose which key to label');
                 fileInput.value = '';
                 previewDiv.style.display = 'none';
                 fileNameDiv.style.display = 'none';
@@ -1320,52 +1393,143 @@
 
         function loadFromFileContent(content, fileName) {
             const lines = content.split('\n').filter(line => line.trim());
-            
+
             if (lines.length === 0) {
                 alert('File appears to be empty!');
                 return;
             }
-            
-            if (fileName.endsWith('.csv') || fileName.endsWith('.tsv')) {
+
+            if (fileName.endsWith('.json') || fileName.endsWith('.jsonl')) {
+                // Handle JSON/JSONL files
+                let jsonData = [];
+
+                try {
+                    if (fileName.endsWith('.jsonl')) {
+                        // JSONL: each line is a separate JSON object
+                        jsonData = lines.map(line => JSON.parse(line));
+                    } else {
+                        // JSON: parse entire content as JSON array or single object
+                        const parsed = JSON.parse(content);
+                        if (Array.isArray(parsed)) {
+                            jsonData = parsed;
+                        } else {
+                            jsonData = [parsed];
+                        }
+                    }
+
+                    if (jsonData.length === 0) {
+                        alert('No JSON objects found in file!');
+                        return;
+                    }
+
+                    // Smart handling for nested structures (like OpenAI eval format)
+                    let flattenedData = jsonData;
+                    let keyArray = [];
+
+                    // Check if this looks like OpenAI eval format with "item" wrappers
+                    const hasItemWrapper = jsonData.every(obj =>
+                        obj && typeof obj === 'object' && obj.item && typeof obj.item === 'object'
+                    );
+
+                    if (hasItemWrapper) {
+                        // Flatten the structure by extracting the "item" contents
+                        flattenedData = jsonData.map(obj => obj.item);
+                        parsedFileData = flattenedData; // Update the global data
+                    }
+
+                    // Extract all unique keys from JSON objects
+                    const allKeys = new Set();
+                    flattenedData.forEach(obj => {
+                        if (typeof obj === 'object' && obj !== null) {
+                            Object.keys(obj).forEach(key => allKeys.add(key));
+                        }
+                    });
+
+                    if (allKeys.size === 0) {
+                        alert('No valid keys found in JSON objects!');
+                        return;
+                    }
+
+                    // Convert to array for easier handling
+                    keyArray = Array.from(allKeys);
+
+                    // Show JSON key selection modal
+                    parsedFileData = flattenedData;
+                    fileColumns = keyArray;
+                    showJsonKeySelectionModal(jsonData, keyArray);
+                    return;
+
+                } catch (error) {
+                    alert('Invalid JSON format! Please check your file and try again.\\n\\nError: ' + error.message);
+                    return;
+                }
+            } else if (fileName.endsWith('.csv') || fileName.endsWith('.tsv')) {
                 const delimiter = fileName.endsWith('.csv') ? ',' : '\t';
                 const parsedLines = lines.map(line => parseDelimitedLine(line, delimiter));
-                
+
                 // Check if this is a multi-column file
                 const maxColumns = Math.max(...parsedLines.map(row => row.length));
-                
+
                 if (maxColumns > 1) {
                     // Multi-column file - show column selection modal
                     parsedFileData = parsedLines;
                     fileColumns = [];
-                    
+
                     // Generate column names
                     for (let i = 0; i < maxColumns; i++) {
                         fileColumns.push(`Column ${i + 1}`);
                     }
-                    
+
                     showColumnSelectionModal(parsedLines, fileColumns);
                     return;
                 } else {
                     // Single column - process normally
                     const processedLines = parsedLines.map(row => row[0] || '').filter(line => line.trim());
-                    
+
                     if (processedLines.length === 0) {
                         alert('No valid data found in file!');
                         return;
                     }
-                    
+
                     processLines(processedLines);
                 }
             } else {
                 // Text file - use lines as-is
                 processLines(lines);
             }
-            
+
             // Clear file input and preview
             document.getElementById('fileInput').value = '';
             document.getElementById('filePreview').style.display = 'none';
             document.getElementById('fileName').style.display = 'none';
             currentFile = null;
+        }
+
+        let useJsonColumns = false;
+        let globalClickTimeout;
+
+        function hideDefaultColumns() {
+            useJsonColumns = true;
+            const thead = document.querySelector('#dataTable thead tr');
+
+            // Hide the default input and label columns
+            const inputHeader = thead.querySelector('th:first-child');
+            const labelHeader = thead.querySelector('th:nth-child(2)');
+
+            if (inputHeader) inputHeader.style.display = 'none';
+            if (labelHeader) labelHeader.style.display = 'none';
+        }
+
+        function showDefaultColumns() {
+            useJsonColumns = false;
+            const thead = document.querySelector('#dataTable thead tr');
+
+            // Show the default input and label columns
+            const inputHeader = thead.querySelector('th:first-child');
+            const labelHeader = thead.querySelector('th:nth-child(2)');
+
+            if (inputHeader) inputHeader.style.display = '';
+            if (labelHeader) labelHeader.style.display = '';
         }
 
         function renderTableHeaders() {
@@ -1377,15 +1541,17 @@
                 existingHeaders[i].remove();
             }
 
-            // Add resize handles to existing headers if not present
-            const inputHeader = thead.querySelector('th:first-child');
-            const labelHeader = thead.querySelector('th:nth-child(2)');
+            // Add resize handles to existing headers if not present and not hidden
+            if (!useJsonColumns) {
+                const inputHeader = thead.querySelector('th:first-child');
+                const labelHeader = thead.querySelector('th:nth-child(2)');
 
-            if (!inputHeader.querySelector('.resize-handle')) {
-                addResizeHandle(inputHeader);
-            }
-            if (!labelHeader.querySelector('.resize-handle')) {
-                addResizeHandle(labelHeader);
+                if (inputHeader && !inputHeader.querySelector('.resize-handle')) {
+                    addResizeHandle(inputHeader);
+                }
+                if (labelHeader && !labelHeader.querySelector('.resize-handle')) {
+                    addResizeHandle(labelHeader);
+                }
             }
 
             // Add additional column headers before the "Add Column" header
@@ -1417,29 +1583,67 @@
                 // Add visual state classes
                 if (selectedRows.has(index)) {
                     tr.classList.add('selected');
-                } else if (row.correct_label) {
-                    tr.classList.add('labeled');
+                } else {
+                    // Check if row has a label based on current mode
+                    let hasLabel = false;
+                    if (useJsonColumns && window.labelColumnInternalKey) {
+                        hasLabel = !!(row[window.labelColumnInternalKey] && row[window.labelColumnInternalKey].trim());
+                    } else {
+                        hasLabel = !!(row.correct_label && row.correct_label.trim());
+                    }
+
+                    if (hasLabel) {
+                        tr.classList.add('labeled');
+                    }
                 }
 
-                let cellsHtml = `
-                    <td class="input-cell editable-cell" data-field="input" data-row="${index}">
-                        ${escapeHtml(row.input)}
-                        <button class="delete-row-btn" onclick="deleteRow(${index})" title="Delete row">×</button>
-                    </td>
-                    <td class="editable-cell" data-field="correct_label" data-row="${index}">${escapeHtml(row.correct_label)}</td>
-                `;
+                let cellsHtml = '';
 
-                // Add additional columns
-                additionalColumns.forEach(col => {
-                    cellsHtml += `<td class="editable-cell" data-field="${col.key}" data-row="${index}">${escapeHtml(row[col.key] || '')}</td>`;
+                if (useJsonColumns) {
+                    // JSON mode: only show JSON columns, hide default columns
+                    cellsHtml += `
+                        <td style="display: none;" class="input-cell editable-cell" data-field="input" data-row="${index}">
+                            ${escapeHtml(row.input || '')}
+                            <button class="delete-row-btn" onclick="deleteRow(${index})" title="Delete row">×</button>
+                        </td>
+                        <td style="display: none;" class="editable-cell" data-field="correct_label" data-row="${index}">${escapeHtml(row.correct_label || '')}</td>
+                    `;
+                } else {
+                    // Default mode: show input and label columns
+                    cellsHtml += `
+                        <td class="input-cell editable-cell" data-field="input" data-row="${index}">
+                            ${escapeHtml(row.input || '')}
+                            <button class="delete-row-btn" onclick="deleteRow(${index})" title="Delete row">×</button>
+                        </td>
+                        <td class="editable-cell" data-field="correct_label" data-row="${index}">${escapeHtml(row.correct_label || '')}</td>
+                    `;
+                }
+
+                // Add additional columns (JSON keys or regular additional columns)
+                additionalColumns.forEach((col, colIndex) => {
+                    const cellValue = row[col.key] || '';
+                    const deleteBtn = (useJsonColumns && colIndex === 0) ?
+                        `<button class="delete-row-btn" onclick="deleteRow(${index})" title="Delete row">×</button>` : '';
+
+                    cellsHtml += `<td class="editable-cell" data-field="${col.key}" data-row="${index}">
+                        ${escapeHtml(cellValue)}
+                        ${deleteBtn}
+                    </td>`;
                 });
 
                 tr.innerHTML = cellsHtml;
 
+                // Smart click handling to distinguish single vs double clicks
                 tr.addEventListener('click', (e) => {
                     // Don't trigger row click if clicking delete button or during editing
                     if (!e.target.classList.contains('delete-row-btn') && !e.target.classList.contains('cell-editor')) {
-                        handleRowClick(index);
+                        // Clear any existing timeout
+                        clearTimeout(globalClickTimeout);
+
+                        // Set a timeout to handle single click
+                        globalClickTimeout = setTimeout(() => {
+                            handleRowClick(index);
+                        }, 300); // 300ms delay to detect double-click
                     }
                 });
 
@@ -1449,6 +1653,17 @@
                         e.preventDefault();
                         e.stopPropagation();
                         showContextMenu(e, cell);
+                    });
+
+                    // Add double-click event listener for modal editing
+                    cell.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Clear the single-click timeout to prevent label application
+                        clearTimeout(globalClickTimeout);
+
+                        showEditModal(cell);
                     });
                 });
 
@@ -1466,27 +1681,44 @@
 
         function labelAllUnlabeled() {
             const selectedLabel = document.getElementById('labelSelect').value;
-            
+
             if (!selectedLabel) {
                 return;
             }
-            
+
             data.forEach((row, index) => {
+                let currentLabel = '';
+
+                // Check current label based on mode
+                if (useJsonColumns && window.labelColumnInternalKey) {
+                    currentLabel = row[window.labelColumnInternalKey] || '';
+                } else {
+                    currentLabel = row.correct_label || '';
+                }
+
                 // Only label rows that don't already have a label
-                if (!row.correct_label || !row.correct_label.trim()) {
-                    data[index].correct_label = selectedLabel;
+                if (!currentLabel.trim()) {
+                    if (useJsonColumns && window.labelColumnInternalKey) {
+                        data[index][window.labelColumnInternalKey] = selectedLabel;
+                    } else {
+                        data[index].correct_label = selectedLabel;
+                    }
                     selectedRows.add(index);
                 }
             });
-            
+
             renderTable();
         }
 
         function clearAllLabels() {
             data.forEach((row, index) => {
-                data[index].correct_label = '';
+                if (useJsonColumns && window.labelColumnInternalKey) {
+                    data[index][window.labelColumnInternalKey] = '';
+                } else {
+                    data[index].correct_label = '';
+                }
             });
-            
+
             selectedRows.clear();
             renderTable();
         }
@@ -1495,21 +1727,27 @@
 
         function handleRowClick(index) {
             const selectedLabel = document.getElementById('labelSelect').value;
-            
+
             if (!selectedLabel) {
                 alert('Please select a label first!');
                 return;
             }
-            
+
             // Toggle selection state
             if (selectedRows.has(index)) {
                 selectedRows.delete(index);
             } else {
-                // Apply label and add to selection
-                data[index].correct_label = selectedLabel;
+                // Apply label to the appropriate column
+                if (useJsonColumns && window.labelColumnInternalKey) {
+                    // JSON mode: update the selected label column
+                    data[index][window.labelColumnInternalKey] = selectedLabel;
+                } else {
+                    // Default mode: update correct_label
+                    data[index].correct_label = selectedLabel;
+                }
                 selectedRows.add(index);
             }
-            
+
             renderTable();
         }
 
@@ -1578,8 +1816,16 @@
                 return;
             }
 
-            // Check if all rows are labeled
-            const labeledRows = data.filter(row => row.correct_label && row.correct_label.trim());
+            // Check if all rows are labeled based on current mode
+            let labeledRows = [];
+            if (useJsonColumns && window.labelColumnInternalKey) {
+                // JSON mode: check the selected label column
+                labeledRows = data.filter(row => row[window.labelColumnInternalKey] && row[window.labelColumnInternalKey].trim());
+            } else {
+                // Default mode: check correct_label
+                labeledRows = data.filter(row => row.correct_label && row.correct_label.trim());
+            }
+
             const unlabeledRows = data.length - labeledRows.length;
 
             if (unlabeledRows > 0) {
@@ -1616,7 +1862,14 @@
         }
 
         function exportLabeledOnly() {
-            const labeledRows = data.filter(row => row.correct_label && row.correct_label.trim());
+            let labeledRows = [];
+            if (useJsonColumns && window.labelColumnInternalKey) {
+                // JSON mode: check the selected label column
+                labeledRows = data.filter(row => row[window.labelColumnInternalKey] && row[window.labelColumnInternalKey].trim());
+            } else {
+                // Default mode: check correct_label
+                labeledRows = data.filter(row => row.correct_label && row.correct_label.trim());
+            }
             closeExportModal();
             performExport(labeledRows);
         }
@@ -1638,13 +1891,22 @@
 
             const jsonlContent = exportData.map(row => {
                 const exportObject = {};
-                exportObject[inputColumnName] = row.input;
-                exportObject[labelColumnName] = row.correct_label || '';
 
-                // Add additional columns
-                additionalColumns.forEach(col => {
-                    exportObject[col.name] = row[col.key] || '';
-                });
+                if (useJsonColumns) {
+                    // JSON mode: export only the JSON columns
+                    additionalColumns.forEach(col => {
+                        exportObject[col.name] = row[col.key] || '';
+                    });
+                } else {
+                    // Default mode: export input/label columns plus additional
+                    exportObject[inputColumnName] = row.input || '';
+                    exportObject[labelColumnName] = row.correct_label || '';
+
+                    // Add additional columns
+                    additionalColumns.forEach(col => {
+                        exportObject[col.name] = row[col.key] || '';
+                    });
+                }
 
                 if (useItemSchema) {
                     return JSON.stringify({ item: exportObject });
@@ -1746,20 +2008,72 @@
             }
         }
 
+        function showJsonKeySelectionModal(jsonData, keys) {
+            // Create modal HTML for JSON key selection
+            const modalHtml = `
+                <div class="modal-overlay" id="columnModal">
+                    <div class="modal">
+                        <h2>Select JSON Key to Label</h2>
+                        <p>This JSON file contains multiple keys. Please select which key you want to create labels for:</p>
+
+                        <div class="column-preview" id="columnPreviewContent"></div>
+
+                        <div class="column-selection">
+                            <label for="columnSelect">Choose key:</label>
+                            <select id="columnSelect">
+                                ${keys.map((key, i) => `<option value="${i}">${escapeHtml(key)}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div class="column-selection" style="margin-top: 15px;">
+                            <label>
+                                <input type="checkbox" id="loadAllKeys" onchange="toggleAllKeysMode()">
+                                Load all keys as columns (check this to import all JSON keys as separate columns)
+                            </label>
+                        </div>
+
+                        <div id="labelColumnSelection" class="column-selection" style="margin-top: 15px; display: none;">
+                            <label for="labelColumnSelect">Which column will be used for labeling?</label>
+                            <select id="labelColumnSelect">
+                                ${keys.map((key, i) => `<option value="${i}">${escapeHtml(key)}</option>`).join('')}
+                            </select>
+                            <div class="helper-text">This column will be updated when you apply labels to rows</div>
+                        </div>
+
+                        <div class="modal-buttons">
+                            <button class="btn-secondary" onclick="closeColumnModal()">Cancel</button>
+                            <button class="btn-primary" onclick="confirmJsonKeySelection()">OK</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Update preview for first key
+            updateJsonKeyPreview(0);
+
+            // Add change listener to select
+            document.getElementById('columnSelect').addEventListener('change', function() {
+                updateJsonKeyPreview(parseInt(this.value));
+            });
+        }
+
         function showColumnSelectionModal(parsedData, columns) {
             // Check if first row might be headers (all non-empty and look like text)
             const firstRow = parsedData[0] || [];
-            const mightHaveHeaders = firstRow.length > 1 && firstRow.every(cell => 
+            const mightHaveHeaders = firstRow.length > 1 && firstRow.every(cell =>
                 cell && cell.trim() && isNaN(cell.trim())
             );
-            
+
             // Create modal HTML
             const modalHtml = `
                 <div class="modal-overlay" id="columnModal">
                     <div class="modal">
                         <h2>Select Column to Label</h2>
                         <p>This file contains multiple columns. Please select which column you want to create labels for:</p>
-                        
+
                         ${mightHaveHeaders ? `
                         <div class="header-option">
                             <label>
@@ -1768,16 +2082,16 @@
                             </label>
                         </div>
                         ` : ''}
-                        
+
                         <div class="column-preview" id="columnPreviewContent"></div>
-                        
+
                         <div class="column-selection">
                             <label for="columnSelect">Choose column:</label>
                             <select id="columnSelect">
                                 ${columns.map((col, i) => `<option value="${i}">${col}</option>`).join('')}
                             </select>
                         </div>
-                        
+
                         <div class="modal-buttons">
                             <button class="btn-secondary" onclick="closeColumnModal()">Cancel</button>
                             <button class="btn-primary" onclick="confirmColumnSelection()">OK</button>
@@ -1785,20 +2099,44 @@
                     </div>
                 </div>
             `;
-            
+
             // Add modal to page
             document.body.insertAdjacentHTML('beforeend', modalHtml);
-            
+
             // Initialize state
             hasHeaderRow = false;
-            
+
             // Update preview for first column
             updateColumnPreview(0);
-            
+
             // Add change listener to select
             document.getElementById('columnSelect').addEventListener('change', function() {
                 updateColumnPreview(parseInt(this.value));
             });
+        }
+
+        function updateJsonKeyPreview(keyIndex) {
+            const previewDiv = document.getElementById('columnPreviewContent');
+            const maxPreviewRows = 5;
+            const sampleObjects = parsedFileData.slice(0, maxPreviewRows);
+
+            const keyName = fileColumns[keyIndex];
+            let previewText = `Preview of "${keyName}" key:\n\n`;
+
+            sampleObjects.forEach((obj, i) => {
+                const value = obj[keyName];
+                const displayValue = value !== undefined ?
+                    (typeof value === 'object' ? JSON.stringify(value) : String(value)) :
+                    '(missing)';
+                previewText += `${i + 1}. ${displayValue}\n`;
+            });
+
+            const remainingObjects = parsedFileData.length - sampleObjects.length;
+            if (remainingObjects > 0) {
+                previewText += `\n... and ${remainingObjects} more objects`;
+            }
+
+            previewDiv.textContent = previewText;
         }
 
         function updateColumnPreview(columnIndex) {
@@ -1806,25 +2144,25 @@
             const startRow = hasHeaderRow ? 1 : 0;
             const maxPreviewRows = hasHeaderRow ? 6 : 5; // Show one extra if we skip header
             const sampleRows = parsedFileData.slice(startRow, startRow + maxPreviewRows);
-            
+
             const columnName = getColumnName(columnIndex);
             let previewText = `Preview of ${columnName}:`;
-            
+
             if (hasHeaderRow) {
                 previewText += ` (excluding header row)`;
             }
             previewText += `\n\n`;
-            
+
             sampleRows.forEach((row, i) => {
                 const value = row[columnIndex] || '(empty)';
                 previewText += `${i + 1}. ${value}\n`;
             });
-            
+
             const remainingRows = parsedFileData.length - startRow - sampleRows.length;
             if (remainingRows > 0) {
                 previewText += `\n... and ${remainingRows} more rows`;
             }
-            
+
             previewDiv.textContent = previewText;
         }
 
@@ -1874,18 +2212,136 @@
             hasHeaderRow = false;
         }
 
+        function toggleAllKeysMode() {
+            const loadAllKeys = document.getElementById('loadAllKeys').checked;
+            const columnSelect = document.getElementById('columnSelect');
+            const previewDiv = document.getElementById('columnPreviewContent');
+            const labelColumnDiv = document.getElementById('labelColumnSelection');
+
+            if (loadAllKeys) {
+                columnSelect.disabled = true;
+                labelColumnDiv.style.display = 'block';
+
+                // Smart detection of likely label column
+                const commonLabelKeys = ['ideal', 'label', 'output', 'target', 'answer', 'response'];
+                let defaultLabelIndex = 0;
+
+                for (let i = 0; i < fileColumns.length; i++) {
+                    const key = fileColumns[i];
+                    if (commonLabelKeys.includes(key.toLowerCase())) {
+                        defaultLabelIndex = i;
+                        break;
+                    }
+                }
+
+                // Set the default selection for label column
+                const labelSelect = document.getElementById('labelColumnSelect');
+                labelSelect.selectedIndex = defaultLabelIndex;
+
+                let previewText = `All keys will be loaded as separate columns.\n\n`;
+                previewText += `Columns: ${fileColumns.join(', ')}\n`;
+                previewText += `\nThe selected labeling column will be updated when you apply labels to rows.`;
+
+                previewDiv.textContent = previewText;
+            } else {
+                columnSelect.disabled = false;
+                labelColumnDiv.style.display = 'none';
+                updateJsonKeyPreview(parseInt(columnSelect.value));
+            }
+        }
+
+        function confirmJsonKeySelection() {
+            const loadAllKeys = document.getElementById('loadAllKeys').checked;
+
+            if (loadAllKeys) {
+                // Replace default columns entirely with JSON keys
+                const selectedLabelIndex = parseInt(document.getElementById('labelColumnSelect').value);
+                const labelColumnKey = fileColumns[selectedLabelIndex];
+
+                // Clear existing additional columns
+                additionalColumns = [];
+
+                // All JSON keys become columns (no primary input/label distinction)
+                fileColumns.forEach((key, index) => {
+                    const columnKey = 'json_' + key.replace(/[^a-zA-Z0-9]/g, '_');
+                    additionalColumns.push({
+                        name: key,
+                        key: columnKey,
+                        isLabelColumn: key === labelColumnKey
+                    });
+                });
+
+                const jsonRows = parsedFileData.map((obj, index) => {
+                    const row = {
+                        id: index
+                    };
+
+                    // Add all JSON keys as columns
+                    additionalColumns.forEach(col => {
+                        const key = col.name;
+                        const value = obj[key];
+                        row[col.key] = value !== undefined ?
+                            (typeof value === 'object' ? JSON.stringify(value) : String(value)) :
+                            '';
+                    });
+
+                    return row;
+                });
+
+                data = jsonRows;
+
+                // Store which column is used for labeling
+                window.labelColumnKey = labelColumnKey;
+                window.labelColumnInternalKey = 'json_' + labelColumnKey.replace(/[^a-zA-Z0-9]/g, '_');
+
+                // Hide the default input and label columns since we're using JSON keys
+                hideDefaultColumns();
+
+            } else {
+                // Load only selected key
+                const selectedKeyIndex = parseInt(document.getElementById('columnSelect').value);
+                const selectedKey = fileColumns[selectedKeyIndex];
+
+                const processedLines = parsedFileData.map(obj => {
+                    const value = obj[selectedKey];
+                    return value !== undefined ?
+                        (typeof value === 'object' ? JSON.stringify(value) : String(value)) :
+                        '';
+                }).filter(line => line.trim());
+
+                if (processedLines.length === 0) {
+                    alert('No valid data found in selected key!');
+                    return;
+                }
+
+                // Update input column name
+                inputColumnName = selectedKey;
+                document.getElementById('inputColumnHeader').textContent = selectedKey;
+
+                // Close modal and process the data
+                closeColumnModal();
+                processLines(processedLines);
+                return;
+            }
+
+            // Close modal and render table
+            closeColumnModal();
+            renderTableHeaders();
+            renderTable();
+        }
+
         function confirmColumnSelection() {
             const selectedColumnIndex = parseInt(document.getElementById('columnSelect').value);
-            
+
             // Extract data from selected column, skipping header if enabled
             const startRow = hasHeaderRow ? 1 : 0;
             const processedLines = parsedFileData.slice(startRow).map(row => row[selectedColumnIndex] || '').filter(line => line.trim());
-            
+
             if (processedLines.length === 0) {
                 alert('No valid data found in selected column!');
                 return;
             }
-            
+
             // Update input column name if we have a header
             if (hasHeaderRow) {
                 const headerName = getColumnName(selectedColumnIndex);
@@ -1894,10 +2350,10 @@
                     document.getElementById('inputColumnHeader').textContent = headerName;
                 }
             }
-            
+
             // Close modal
             closeColumnModal();
-            
+
             // Process the data
             processLines(processedLines);
 
@@ -2016,6 +2472,87 @@
             if (contextMenu) {
                 contextMenu.remove();
             }
+        }
+
+        function showEditModal(cell) {
+            // Remove any existing edit modal
+            hideEditModal();
+
+            const rowIndex = parseInt(cell.dataset.row);
+            const field = cell.dataset.field;
+            const currentValue = data[rowIndex][field] || '';
+
+            // Determine column name for modal title
+            let columnName = 'Cell';
+            if (field === 'input') {
+                columnName = inputColumnName;
+            } else if (field === 'correct_label') {
+                columnName = labelColumnName;
+            } else {
+                // Find the column name from additionalColumns
+                const col = additionalColumns.find(c => c.key === field);
+                columnName = col ? col.name : field;
+            }
+
+            // Create modal HTML
+            const modalHtml = `
+                <div class="modal-overlay" id="editModal">
+                    <div class="edit-modal">
+                        <h3>Edit ${escapeHtml(columnName)}</h3>
+                        <textarea id="editTextarea" placeholder="Enter text...">${escapeHtml(currentValue)}</textarea>
+                        <div class="edit-modal-buttons">
+                            <button class="btn-cancel" onclick="hideEditModal()">Cancel</button>
+                            <button class="btn-save" onclick="saveEditModal('${field}', ${rowIndex})">Save</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add modal to page
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Focus the textarea and select all text
+            const textarea = document.getElementById('editTextarea');
+            textarea.focus();
+            textarea.select();
+
+            // Handle keyboard shortcuts
+            textarea.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    hideEditModal();
+                } else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    // Ctrl+Enter or Cmd+Enter to save
+                    saveEditModal(field, rowIndex);
+                }
+            });
+
+            // Close modal when clicking outside
+            document.getElementById('editModal').addEventListener('click', function(e) {
+                if (e.target.id === 'editModal') {
+                    hideEditModal();
+                }
+            });
+        }
+
+        function hideEditModal() {
+            const modal = document.getElementById('editModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function saveEditModal(field, rowIndex) {
+            const textarea = document.getElementById('editTextarea');
+            const newValue = textarea.value;
+
+            // Update the data
+            data[rowIndex][field] = newValue;
+
+            // Close modal
+            hideEditModal();
+
+            // Re-render the table to show the updated value
+            renderTable();
         }
 
         function editCell(cell) {
