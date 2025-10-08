@@ -1,0 +1,481 @@
+Delivered-To: jbdamask@gmail.com
+Received: by 2002:a05:7011:3111:b0:4ce:45ab:d28d with SMTP id ti17csp949417mdb;
+        Sun, 5 Oct 2025 17:05:15 -0700 (PDT)
+X-Google-Smtp-Source: AGHT+IG+L3zKE53ZpdxhJC6SOlXcmM6gWpyBl4zVHsQ/TelWZAmF0043bMrYEUtn2AVOr2FIaEya
+X-Received: by 2002:a05:622a:4d92:b0:4e0:3cdb:d1df with SMTP id d75a77b69052e-4e576b23fdbmr137354941cf.61.1759709115136;
+        Sun, 05 Oct 2025 17:05:15 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1759709115; cv=none;
+        d=google.com; s=arc-20240605;
+        b=Oh9yCoxaIeJd4pDi8BW67an83ymB+sOYwpPiWUSboV1c8Bp8211GhJWPz+EttIK6w/
+         /PH0wXF1iyypmKbPxwgYTPQpbcF1xooNxXBUhtn7MvpW3ng2t7ND6+aRA8JfUTG9McOb
+         F9dKi2zsMmInhfxqeqNkWmgyUc1sz4huJ69dVwO1aoaYLmiqZSTb3IV2vL8d4D5smC9g
+         bPKK3WASHWgdr/Hqkb7O3YGkMcRMXs14PNGiktMFUzw5EWnxn+/X7VL9uKwxPzfCoF3L
+         00+gwd9gKUwikwyVd74p1nunZKJG0qN4EHEsFvRCe+GjZ2UkoA1au8Yt1jtcdCStOvVo
+         Uurw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=message-id:reply-to:to:from:subject:mime-version:date:sender
+         :dkim-signature:dkim-signature;
+        bh=9b8Q9zAv9kbPe0OYeRxi4rLAQuWyRMC0u9PjCpP/1zw=;
+        fh=/A1XkhSQ+xLRx+TB9vQKYXycpOSHMjulmNfFsac25Xg=;
+        b=MwearOoQUM7JB5TyxkYeZQj6DU1QW4ZQlC0Kf5Zk15FCGqqrwwx0vuQwzeXSNN/bDB
+         CKgqbJYg3/d59RTmRmMKscs/5Qhd3s15dhqEe/8EebjpWg4Edt/5rRcxwI+hPMOknWlS
+         VcPhMj79lZuNc6h4tTuqOfkuEnHLkKJUmIFzrPWyH9EuwAlFkH3V0jcBYYPZ/qjsLPTZ
+         Y9JdV15tQK0uG0wr0agX/86fuXx6ItcMniKLdZ9ZgnCkHAuNiU9fke5qufTVs5olJTk2
+         EkMuKNr594mrijSM+cwJ1TPlhgv0UCpFY9RSeu19sXXwD1BkPqAhp2KOC9OLQVvocCwp
+         Uaiw==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@courses.maven.com header.s=pic header.b="h9ENq5N/";
+       dkim=pass header.i=@mailgun.org header.s=mg header.b=WchXXpIc;
+       spf=pass (google.com: domain of bounce+288023.4d01b5-jbdamask=gmail.com@courses.maven.com designates 143.55.232.41 as permitted sender) smtp.mailfrom="bounce+288023.4d01b5-jbdamask=gmail.com@courses.maven.com";
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=maven.com
+Return-Path: <bounce+288023.4d01b5-jbdamask=gmail.com@courses.maven.com>
+Received: from pc232-41.mailgun.net (pc232-41.mailgun.net. [143.55.232.41])
+        by mx.google.com with UTF8SMTPS id d75a77b69052e-4e55cdd816dsi48143141cf.336.2025.10.05.17.05.14
+        for <jbdamask@gmail.com>
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Sun, 05 Oct 2025 17:05:15 -0700 (PDT)
+Received-SPF: pass (google.com: domain of bounce+288023.4d01b5-jbdamask=gmail.com@courses.maven.com designates 143.55.232.41 as permitted sender) client-ip=143.55.232.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@courses.maven.com header.s=pic header.b="h9ENq5N/";
+       dkim=pass header.i=@mailgun.org header.s=mg header.b=WchXXpIc;
+       spf=pass (google.com: domain of bounce+288023.4d01b5-jbdamask=gmail.com@courses.maven.com designates 143.55.232.41 as permitted sender) smtp.mailfrom="bounce+288023.4d01b5-jbdamask=gmail.com@courses.maven.com";
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=maven.com
+DKIM-Signature: a=rsa-sha256; v=1; c=relaxed/relaxed; d=courses.maven.com; q=dns/txt; s=pic; t=1759709114; x=1759716314;
+ h=Message-Id: Reply-To: To: To: From: From: Subject: Subject: Content-Type: Mime-Version: Date: Sender: Sender: X-Feedback-Id;
+ bh=9b8Q9zAv9kbPe0OYeRxi4rLAQuWyRMC0u9PjCpP/1zw=;
+ b=h9ENq5N/SQa1hQin5oXlhVYzmxL0n0eeTly1CZGYX9zZGFvAzxhTN4OxwxjTCCPCumFqLiEYNrmcYSDF7VnRCrVps0Piz5C+Ah8cr6N+lDmtZnw7Clc2l1IxxbhyhxTW1oSJoMSsfC02AJ1G1Jv8QyXlp0spdAfE9tHCqdgqNdQ=
+DKIM-Signature: a=rsa-sha256; v=1; c=relaxed/relaxed; d=mailgun.org; q=dns/txt; s=mg; t=1759709114; x=1759716314;
+ h=Message-Id: Reply-To: To: To: From: From: Subject: Subject: Content-Type: Mime-Version: Date: Sender: Sender: X-Feedback-Id;
+ bh=9b8Q9zAv9kbPe0OYeRxi4rLAQuWyRMC0u9PjCpP/1zw=;
+ b=WchXXpIchz+MUj4okF0rcMm8m+FcA48xdCBj1ALiPNPKzR+CKh7fwb7BxKqcUA21GAoBpe2WrmwKHT5bxD3RDq/MbJKzakZbwZn2w/zikF5kgoJWxlXA3me2LKllBD+jNiGMDqY8J/KO3jO7iETG7L5H2a35vH5KCSAR9lvPnxE=
+X-Mailgun-Sid: WyJhMzVlNyIsImpiZGFtYXNrQGdtYWlsLmNvbSIsIjRkMDFiNSJd
+X-Feedback-Id: parlance-labs@courses.maven.com::609973490eb5dc0a7a7ed070:mailgun
+Received: by 089a51ba7d5e957e962dcb15107dfd2464f285362b3f19abe2712c26c868abec with HTTP
+ id 68e307bac66d8167a66c0384; Mon, 06 Oct 2025 00:05:11 GMT
+X-Mailgun-Sending-Ip: 143.55.232.41
+X-Mailgun-Batch-Id: 68e307b752b3c84322f060de
+Sender: parlance-labs@courses.maven.com
+Date: Mon, 06 Oct 2025 00:05:11 +0000
+Mime-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="311ee69116fa9f220cd57e2cee2261979fe06c929d3a47db34f945e34557"
+Subject: Details for AI Evals Course
+From: Hamel Husain & Shreya Shankar <parlance-labs@courses.maven.com>
+To: jbdamask@gmail.com
+X-Mailgun-Drop-Message: false
+Reply-To: hamel@parlance-labs.com
+X-Mailgun-Variables: {"cohort_id": "21949", "course_id": "14937", "email_class": "broadcast",
+ "email_type": "enrolled", "env_email_uuid":
+ "prod.473c12ec-3ab4-4ed7-8884-7c9f884cefff", "is_from_maven": "False"}
+Message-Id: <20251006000511.45236a716b0e4cc8@courses.maven.com>
+
+--311ee69116fa9f220cd57e2cee2261979fe06c929d3a47db34f945e34557
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+Hi John D,Welcome to AI Evals For Engineers & PMs! Hamel and I are super ex=
+cited to kick off this cohort. This email will serve as an onboarding guide=
+=2E A link to a Google Doc with this em=
+ail's contents can be found here.Impor=
+tant LinksCourse reader. The course reader is available here: https://link.=
+courses.maven.com/c/eJwsj0FuwyAURE8DOyzAYGDBohtfw_rwvxu32ETgWMrtqyRdztNoRi_=
+XW23nsmHUKpjAc320Tq-sTBgdx2hQqmQ5ReVscDIoZTjtsJUlF-g9plYBM_Tzn57PO0U6Wi2FkN=
+NxLR_-eGwY763iYNyYlaYsRkhGGEInvPdGuBxW702mdV35LVobLIQ0oknK6uzHkBQ6r_wU0CNIv=
+kUttVVSTlJKq9RgrB4ncGpKkkzOnhn58enDDhcdQ6473_qytrovbxJnKJ14ibfzvHc2fjE9Mz1j=
+zZ0OfPWZni-m55bx6Zie6YLSxWdVNAKkJlYoRWg78BZ_EsIO_ZcZ-f2yfj9eUf8FAAD__9VQcks=
+ It will stay updated throughout the cohort. Treat it as internal to the co=
+urse; please do not redistribute. We highly recommend reading the course re=
+ader=C2=A0Discord. Please join our Discord at this link. Once you sign up, =
+it will ask you to submit an application with your maven email address. It =
+may take up to 72 hours for us to verify your application - please be patie=
+nt! If you do not see access by then, email Alan with your Discord handle a=
+nd your Maven email at alan@parlance-labs.com. The Discord community has ch=
+annels for each lesson and homework, and will be your main forum for discus=
+sion and ongoing support.=C2=A0 The lessons are organized into weeks, for e=
+xample the discord channel for week 1 is =E2=80=9Cweek-1-lessons=E2=80=9DMa=
+ven portal. All lesson pages, office hour links, and recordings live in the=
+ Maven course portal: https://link.courses.maven.com/c/eJw8j8GOpSAQRb8GdhrA=
+UnDBYjb-himLYnQGxYDPpP--43udXlXq5CYnh_KayzVvwRs9wigpv0rl59cwdlYGD0HppZfste1=
+Hq0atQfKOW5opYa1-KRkDYb1-6PV1suej5JQ4SD7u-cNfry34s-TQgu1IG6amwwUa4GAb5xw0ls=
+boHBDHGOXqcYhGu-AsaIZgVOxGNpF60jxATyA3b5TptVKDUqrXuoXedANaPSyKgcgJUJ-e2u548=
+9FS3uVW51jyPr-JnzBVlsmv13VW0f0RZhJm-l0LM51YEh7ETcKlCjPxjem5j7vphJnWvHMri_-3=
+BNyx_heg_j7Fb9vtzXcAAAD__ysIcD8 Make sure you can log in with the same emai=
+l you used for enrollment.=C2=A0 If you have any issues gaining access, ema=
+il support@maven.com.Delphi. This cohort we are trying an AI assistant that=
+ you can ask you evals questions to. See the =E2=80=9CDelphi=E2=80=9D secti=
+on below to learn more. You can access the assistant at: https://link.cours=
+es.maven.com/c/eJwsz71yhCAUxfGnkU7nglc-Coo0tnkEB-ESSVAccHcnb5_Z3ZTnV5yZvy9b=
+qdeSghXcoGG-3Gqj5-ZoRsWCxQB8nRhZriajwHCOjHaX8uKza82utbjgXbv-9fo9ydJRS84UGB3=
+35e23Wwr2rCUMqEbPBfl-dCv2SEH1WmvslTdRa_QUY2Sb1USRhOQSIjc6SKloQmVGNQGNBpAlK0=
+BMHEACwMT5gJMYpVNcrkDove4Q3j1t2N2djsGXnaW2xFr25SV2drkRy3a7rrN140cn5k7Mj8djC=
+JTPLQ0udWLe3E7587xSOVxm1X6vwe2u_XQIX8-41_Hdir8AAAD__wNGalo exercises. Our c=
+ourse has optional written and coding exercises. Written exercises are at t=
+he end of each chapter in the course reader. Coding exercises are hosted on=
+ GitHub: https://link.courses.maven.com/c/eJwsj02OhCAUhE8jOw0_T4EFi9l4DQOPZ=
+8uMNgbQZG4_6e5Z1pdKVT7MWy5tSdFJYcEyzFep9MoCrNIsOohchJGRE3q0mlshgNHh077g7mt1=
+oWQf0df2T9vvSY6eJe87RUbPe_nw60rRnSXHAbRCIQl75QP0QFH3xhjoNdrVGEBa15VtDoOBIGi=
+1hMEg8DFa5UFoCH4yiiuWnORyFJxPnPNRiAFGqSavxRQ4AaLpgH986nD4m54D5oOluqwlH8ubuN=
+nvldjuttbO2qmvTs6dnB-pbVd41Ts5-9TT7ffaf7Y6ORfCdFKPm28ht4EV9x2iP3z96YA_Xrbvp=
+9vJvwAAAP__1bdw8g They are optional but strongly recommended if you want ha=
+nds-on practice applying what you learn. We will provide links to the speci=
+fic coding exercises to do for the week in the lesson sections in Maven. Li=
+nks to exercise solutions are on the README in the form of video walkthroug=
+hs.Course DetailsFlipped classroom format. Lessons are pre-recorded and rel=
+eased at the beginning of each week. Our live time together is reserved for=
+ interactive problem-solving, not lectures=E2=80=94so you can get the most =
+out of the course. Feel free to ask any questions in office hours=E2=80=94a=
+bout lectures, about homeworks, about any problems you are trying to solve =
+in your projects, etc.=C2=A0There are 12 office hours with Hamel and me acr=
+oss the four weeks, scheduled across time zones.=C2=A0Additional TA office =
+hours and vendor workshops will be announced as they are confirmed.=C2=A0Al=
+l live sessions (office hours, bonus lessons) are recorded and usually post=
+ed on Maven within forty-eight hours.=C2=A0Bonus Mini Course: As a bonus fo=
+r all students, Isaac Flath is teaching a 5+ hour mini-course on how to tac=
+kle the optional homework assignments using AI assistance. Drawn from his p=
+opular AI coding course, this series is designed for both developers and PM=
+s. You will learn how to use AI agents as a partner to apply the course con=
+cepts, explore new topics, and complete the homework effectively. It=E2=80=
+=99s a course on AI Evals, and we want you to use AI to learn it.=C2=A0 You=
+=E2=80=99ll see these on the calendar.Schedule. Each week on Maven follows =
+the same structure: it begins with a =E2=80=9CStart Here=E2=80=9D section t=
+hat outlines objectives and readings for the week, followed by the week=E2=
+=80=99s lessons, a =E2=80=9CLinks and FAQ=E2=80=9D section, and then a sect=
+ion for office hours. See the screenshot below for how week 1 works:You wil=
+l see most of the lessons with a lock sign on them, like in the screenshot =
+above. The week=E2=80=99s content becomes available on Mondays at 12:00 AM =
+Pacific Time. This means you can always start the new material at the begin=
+ning of the week, with office hours running later in the week to reinforce =
+and extend what you=E2=80=99ve learned.Subscribing to the course calendar. =
+You can subscribe to the course calendar directly from the Maven portal. Th=
+is will put the office hours and any other live workshops on your calendar.=
+ See the screenshot below or follow this guide for how to subscribe to the =
+course calendar.DelphiEvery student in this cohort will receive ten months =
+of unlimited access to Delphi, our AI eval assistant trained on the complet=
+e body of our work. Invitations will be sent to your Maven email later this=
+ week; if you do not receive one by October 10, contact Alan at alan@parlan=
+ce-labs.com. Do not email me or Hamel=E2=80=94your email will probably get =
+lost.Once you are logged in, you can use Delphi at https://link.courses.mav=
+en.com/c/eJwsz72OqzAQxfGnwR3IH2MMhYvb8BpoPB4u3jUxskmifftVki3PrzjSn8pe6rWm6L=
+WaYRZU7rXxayuYjRPRQ5QqWMFeOTs7OSsFgg9MeaWMrflQC0bCdv3p9XOy51stOXMUfHusH7_fU=
+_RnLXEAZ0hppt5ggB44un6aJugdzds0AfG2bWL34CxGo8hYDEwBpkBAdmYYjQqojUheS22VlKOU=
+0io1gNVmRKfGIBmIpg7kp6cNBz74NlA5RGrrVsuxvsUvmBuL7PfrOltn_nV66fTyfD6HyPnc04C=
+p08uOB-dBVP8VIh7YvjuQ_19V78eH178BAAD__55CaDc Think of Delphi as a complemen=
+t to Discord and office hours: you can ask it any question about evals and =
+get an instant response, whether you are debugging code, clarifying a conce=
+pt, or looking for examples. The interface looks like the screenshot attach=
+ed below.=C2=A0Keep in mind that Delphi is fully experimental. It may not s=
+ound like us, and its answers can be vague or even incorrect. To get the mo=
+st value out of Delphi, keep these guidelines in mind:Be specific. Provide =
+context and details about your situation rather than asking broad questions=
+=2E For example:Instead of: =E2=80=9CHow=20=
+do I evaluate my legal RAG system?=
+=E2=80=9DTry: =E2=80=9CI=E2=80=99m building a RAG system that retrieves cas=
+e law relevant to motions under California=E2=80=99s Racial Justice Act. Th=
+e model generates candidate passages for attorneys to cite in their filings=
+=2E My concern is whether the retrieval=
+ is surfacing precedent that is both o=
+n-point and still good law. What evaluation methods should I use to measure=
+ retrieval quality and detect when the system cites outdated or overturned =
+cases?=E2=80=9DAsk follow-ups. If an answer feels vague or incomplete, push=
+ further and ask clarifying questions. For example:Instead of stopping at: =
+=E2=80=9CDelphi says: you can use precision and recall to evaluate retrieva=
+l.=E2=80=9DFollow up with: =E2=80=9CCan you show me how to calculate precis=
+ion and recall for my dataset of 200 Racial Justice Act motions, where each=
+ motion can have multiple relevant cases? How would you define a =E2=80=98r=
+elevant=E2=80=99 case in this context, and what baseline numbers should I e=
+xpect?=E2=80=9DRephrase your question. Try different phrasings of the same =
+question. For example:Less effective: =E2=80=9CWhen should I use pairwise c=
+omparisons?=E2=80=9DMore effective: =E2=80=9CWhen should I use pairwise com=
+parisons and when should I not? Can you give me a concrete example? Which a=
+pproach should I start with?=E2=80=9DCross-check. Use Delphi alongside Disc=
+ord discussions and office hours, not in place of them! We are looking at a=
+ll our data (aka your queries), but since this is the first time we are usi=
+ng Delphi, we do not know how good it will be.If you notice an incorrect or=
+ unhelpful answer, let us know in Discord so we can improve it for everyone=
+=2EOther StuffLifetime access and retak=
+es. You will have lifetime access to a=
+ll course recordings, slides, and materials, as well as to our Discord comm=
+unity. In addition, students in this October 2025 cohort (Cohort 3) have un=
+limited retake flexibility. That means if we open a new cohort in the futur=
+e, you do not need to register again. Instead, simply email Alan (alan@parl=
+ance-labs.com) and say you would like to join that new cohort, mentioning t=
+hat you were part of Cohort 3. Alan will confirm your prior enrollment and =
+add you to the roster for the later cohort.Technical support. Contact suppo=
+rt@maven.com for enrollment or payment issues, and contact alan@parlance-la=
+bs.com for Discord or Delphi access.That=E2=80=99s everything you need to g=
+et started. Please post in Discord if you have any questions. It=E2=80=99s =
+going to be an awesome course! Get excited!Best,Shreya and Hamel
+--311ee69116fa9f220cd57e2cee2261979fe06c929d3a47db34f945e34557
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+
+<head>
+  <style>
+    .p3 {
+      font-family: Graphik, Arial, sans-serif;
+      font-style: normal;
+      font-size: 14px;
+      line-height: 18px;
+      letter-spacing: -0.005em;
+    }
+
+    .p3-semibold {
+      font-weight: 600;
+      color: #0d0d0c;
+    }
+
+    .p3-book {
+      font-weight: 400;
+    }
+
+    .italic {
+      font-style: italic;
+    }
+
+    .mt-8 {
+      margin-top: 8px;
+    }
+
+    .gray-900 {
+      color: #0d0d0c;
+    }
+
+    .gray-800 {
+      color: #1f1f1e;
+    }
+
+    .gray-700 {
+      color: #666664;
+    }
+
+    /* CLP section styles */
+    .clp ul {
+      list-style-type: none;
+      border-left: 1px dashed #c7c7c6;
+      padding-left: 18px;
+    }
+
+    .clp p {
+      margin: 0px;
+    }
+    .clp li {
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+
+<p class=3D"p2-tall">Hi John D,</p><p class=3D"p2-tall"></p><p class=3D"p2-=
+tall">Welcome to AI Evals For Engineers & PMs! Hamel and I are super excite=
+d to kick off this cohort. This email will serve as an onboarding guide. A =
+link to a Google Doc with this email's contents can be found <a target=3D"_=
+blank" rel=3D"noopener noreferrer nofollow" class=3D"underline text-blue-da=
+rk underline text-blue-dark" href=3D"https://link.courses.maven.com/c/eJws0=
+LmO2zAQBuCnITsLPIZXwcLYhbocCIIkrgSKHFraSKJDSkb27QOv0818wADz_7FMpe7DnLzgDhyN=
+5agNHzsHJw1NHhLjo6LouVHOMMc5UFzDvAxxCa35sZaQYmj7f93fb-hxq2VZMFHc7sPTj2NO_lZ=
+L6sDIyAXGkwwjnACTOVlr4WSiy9ZCxJwznbyGEUS2SUsljJFBaSc5WIs5Rwco6OwFE4ozphljiv=
+MOlJA6GK5HhhCjJcCeeVq3hjtuXSwrnduQa1mHD_F9WBrSxU_7fmtEnonoiehTia27lnJd8HHzl=
+GPFbX-MRPQ8v8HnT-LS_v7683K8Hj--nbX5Kb_CpWn2xd1H-66-T2cZ-pcLET2meSeyP9qNyNc2=
+hTpvV1r925jCGtpvAuz66Ojjv7sX_wIAAP__V0GAhw">here</a>.</p><p class=3D"p2-tal=
+l"></p><h2>Important Links</h2><ul class=3D"list-disc ml-8"><li><p class=3D=
+"p2-tall"><strong>Course reader.</strong> The course reader is available he=
+re:<a target=3D"_blank" rel=3D"noopener noreferrer nofollow" class=3D"under=
+line text-blue-dark underline text-blue-dark" href=3D"https://link.courses.=
+maven.com/c/eJwsj01uwyAUhE8DOyx-no1ZsOjG17Dg8WjcYhOBYym3r5J0OZ9GM_qw3mo71y1=
+5rRw4jvXROr2yAmcsTx6SVHHk5JUdnZVOKeC0h62sWELvPrYaEoZ-_tPzeSdPR6ulUOJ0XOuHPx=
+5b8vdW0wDWoNKEwoQIAihZMc8zCIsuzzMg5Zz5zdsYFBgMs1FTzNopwDiBw5gtSEMj37yWelRST=
+lLKUakBRm2mYNUUJQHizEB-fPqwh4uOAevOt77mVvf1TfwSSide_O08752ZL6YXppdUsdORXn2m=
+l4vppWF6WqYXukLp4rMqGoVETeRQitAjb_4nprCH_stAfr-k34eX138BAAD__6Ghcmk"> <u>ht=
+tps://docsend.com/v/rcdy7/evals-course-reader-fall-25</u></a>. It will stay=
+ updated throughout the cohort. Treat it as internal to the course; please =
+do not redistribute. We highly recommend reading the course reader&nbsp;</p=
+></li><li><p class=3D"p2-tall"><strong>Discord.</strong> Please join our Di=
+scord at this <a target=3D"_blank" rel=3D"noopener noreferrer nofollow" cla=
+ss=3D"underline text-blue-dark underline text-blue-dark" href=3D"https://li=
+nk.courses.maven.com/c/eJwsz7tygzAQheGnQR2MLiskFSrSkCJNmtSM2F1sErA8EibJ22ds=
+pzxfcWZ-zOdc9nGhqFWAIDDfSuX7VhCMExSBpJqs4KicDU4GpUDwlpZ1xDXVGqeSE2Gq-7_uv1e=
+OfCl5XZkEX47x6bfbQvFaMnXgDCrN2Jo0QQtMrvXeQ-swzN4D8jzP4hy9RQPKa60tkDMpsesdE8=
+4G0CoPYolaaquk7KWUVqkOrDZ9cqqfJAOib0A-e2q3pYMvHeZNLHWcS97Gh8QhrZXFGs_7fq2Ne=
+Wn00OiBloq5UHc6NXowFN7eP16_zY8o8XOitKX61YA83bMel0fUfwEAAP__gvxnYg"><u>link<=
+/u></a>. Once you sign up, it will ask you to submit an application with yo=
+ur maven email address. It may take up to 72 hours for us to verify your ap=
+plication - please be patient! If you do not see access by then, email Alan=
+ with your Discord handle and your Maven email at alan@parlance-labs.com. T=
+he Discord community has channels for each lesson and homework, and will be=
+ your main forum for discussion and ongoing support.&nbsp; The lessons are =
+organized into weeks, for example the discord channel for week 1 is =E2=80=
+=9C<strong>week-1-lessons</strong>=E2=80=9D</p></li><li><p class=3D"p2-tall=
+"><strong>Maven portal.</strong> All lesson pages, office hour links, and r=
+ecordings live in the Maven course portal:<a target=3D"_blank" rel=3D"noope=
+ner noreferrer nofollow" class=3D"underline text-blue-dark underline text-b=
+lue-dark" href=3D"https://link.courses.maven.com/c/eJw8j8GuniAQRp8GdpoBUXDB=
+ohtfwwzDUG1RDPib9O0b7226mszJl5wcKlup97pHr9VsZknlUxu_vzLzYGX0JoIKo2Sv7DhbmJU=
+ykg_c80oZW_OhFoyE7f5H7z8Xez5ryZmj5PNZv_nns0d_1RJ7YwdSmqkbMJjOcLSdc850lubknC=
+FOKcnNh8AwE5NzKUJAPXGaJojKOJWsApK716BHBTABwKhUb0Y9TGjVFIANkRMGvntaf-DDZ0_lk=
+HtbUy3H-kX8grmxzH6776uJ4YfQi9DL_7XQy4U140ncZQxN6IUfzO993d0g9LKVg2X1v0LEA9tv=
+YeDnG_wle7z-GwAA__8p1XCY"> <u>https://maven.com/parlance-labs/evals/2025-3/=
+home</u></a>. Make sure you can log in with the same email you used for enr=
+ollment.&nbsp; If you have any issues gaining access, email <strong>support=
+@maven.com</strong>.</p></li><li><p class=3D"p2-tall"><strong>Delphi.</stro=
+ng> This cohort we are trying an AI assistant that you can ask you evals qu=
+estions to. See the =E2=80=9CDelphi=E2=80=9D section below to learn more. Y=
+ou can access the assistant at: <a target=3D"_blank" rel=3D"noopener norefe=
+rrer nofollow" class=3D"underline text-blue-dark underline text-blue-dark" =
+href=3D"https://link.courses.maven.com/c/eJwsz72O6yAQhuGrMZ2tAQYDBcVpfBsWP-=
+NjdnGwwEm0d79KsuU8Gn3SG-te27Xm5AS3aFms99bpdXO0UrPkMAEPipHjWlkNlnNkdPhc1lh87=
+y606lP0_frT6-ckR7dWS6HE6PZYP36_5-TOVtOEWkYuKI7SBxyRkh6NMTjqaDdjMNK2bWx3ymAE=
+gyokRIne8gAbzaC0kIowRpadAKE4wAwAivMJlZCz13wO8HowA8Knp0-Hf9BtivVgua9bq8f6Frf=
+40okVt1_X2Qf5bxDLIJbn8zklKueeJ58Hsez-oMKa-wrJH75_Dwj_X1HvwYcTvwEAAP__xmVnVA=
+"><u>https://www.delphi.ai/hamel</u></a></p></li><li><p class=3D"p2-tall"><=
+strong>Optional exercises.</strong> Our course has optional written and cod=
+ing exercises. Written exercises are at the end of each chapter in the cour=
+se reader. Coding exercises are hosted on GitHub:<a target=3D"_blank" rel=
+=3D"noopener noreferrer nofollow" class=3D"underline text-blue-dark underli=
+ne text-blue-dark" href=3D"https://link.courses.maven.com/c/eJwsj8HOpCAQhJ9=
+GbhrAdoADh734GqZp2pFdHQygyb79n5n5j_WlUpWP8pZLW1L0WjlwgvJVKr-zAjcaET1EqcIk2C=
+szOSOdUiD4wLQvtGOtPpSMkbC2X9r-n-z5VfK-cxT8upcvv64U_VlyHMCMpDRTP2KAHjia3loLv=
+SG3WgvE67qKzUswq3IhhmiVJZg0B8TRKalHjhajSF5LPSkpH1LKSakBJj0-0KhHkAxEtgP59anD=
+gTe_BsqHSHVZSz6WD_Ez7pXF7rfWztqNfzo9d3p-prZd4V3v9Iyp5xv32n-3Oj0XpnRyTxu2kJs=
+o_m-IeGD914F8vmU_R7fXPwEAAP__eFNw7Q"> <u>https://github.com/ai-evals-course=
+/recipe-chatbot</u></a>. They are optional but strongly recommended if you =
+want hands-on practice applying what you learn. We will provide links to th=
+e specific coding exercises to do for the week in the lesson sections in Ma=
+ven. Links to exercise solutions are on the README in the form of video wal=
+kthroughs.</p><p class=3D"p2-tall"></p></li></ul><h2>Course Details</h2><ul=
+ class=3D"list-disc ml-8"><li><p class=3D"p2-tall"><strong>Flipped classroo=
+m format.</strong> Lessons are pre-recorded and released at the beginning o=
+f each week. Our live time together is reserved for interactive problem-sol=
+ving, not lectures=E2=80=94so you can get the most out of the course. Feel =
+free to ask any questions in office hours=E2=80=94about lectures, about hom=
+eworks, about any problems you are trying to solve in your projects, etc.&n=
+bsp;</p><ul class=3D"list-disc ml-8"><li><p class=3D"p2-tall">There are <st=
+rong>12 office hours with Hamel and me</strong> across the four weeks, sche=
+duled across time zones.&nbsp;</p></li><li><p class=3D"p2-tall">Additional =
+TA office hours and vendor workshops will be announced as they are confirme=
+d.&nbsp;</p></li><li><p class=3D"p2-tall"><strong>All live sessions (office=
+ hours, bonus lessons) are recorded and usually posted on Maven within fort=
+y-eight hours.</strong>&nbsp;</p></li></ul></li><li><p class=3D"p2-tall"><s=
+trong>Bonus Mini Course</strong>: As a bonus for all students, Isaac Flath =
+is teaching a 5+ hour mini-course on how to tackle the optional homework as=
+signments using AI assistance. Drawn from his popular <a target=3D"_blank" =
+rel=3D"noopener noreferrer nofollow" class=3D"underline text-blue-dark unde=
+rline text-blue-dark" href=3D"https://link.courses.maven.com/c/eJw8z03O2yAQ=
+xvHTmJ0tPsYGFiy68TUsPAwOjQ0RkKi9fZWkepfz00iP_lhupfYtBSeFBcuwPGuj9y3AKs2Cg8D=
+FPjNyQs9WcysEMLp8Ojc8fWtur8UH9K3_1_73QY5yLedJgVF-bV9_PlNwj1rCBFqhkISj8juMQE=
+GPxhgYNdpoDCDFGNnNzdyoJS6SkC9gvVJSLEaBkHqWCDGw5CSXs-B84ZzPQkwwS7V4LZadEyCaA=
+fi3p02Xf1GesFwstS3Wcm0fcas_G7HT3Xp_tEH9GuQ6yPXne5DrnXKvZZArltzpTx8pHykT1ZSP=
+MZY6YgkpH6y633vwl2_3AfjxTv7MvZz8FwAA__9Qs3JF"><u>AI coding course</u></a>, =
+this series is designed for both developers and PMs. You will learn how to =
+use AI agents as a partner to apply the course concepts, explore new topics=
+, and complete the homework effectively. It=E2=80=99s a course on AI Evals,=
+ and we want you to use AI to learn it.&nbsp; You=E2=80=99ll see these on t=
+he calendar.</p></li><li><p class=3D"p2-tall"><strong>Schedule.</strong> Ea=
+ch week on Maven follows the same structure: it begins with a =E2=80=9CStar=
+t Here=E2=80=9D section that outlines objectives and readings for the week,=
+ followed by the week=E2=80=99s lessons, a =E2=80=9CLinks and FAQ=E2=80=9D =
+section, and then a section for office hours. See the screenshot below for =
+how week 1 works:</p></li></ul><p class=3D"p2-tall"><br><img src=3D"https:/=
+/d2426xcxuh3ht5.cloudfront.net/AVPcYn1UTaONxiJtN0YG_screenshot.png" alt=3D"=
+screenshot.png" id=3D"033cbaeb-eb25-4ad1-bab0-49176551f568" width=3D"100%" =
+height=3D"auto" isimageuploading=3D"false"><br></p><p class=3D"p2-tall">You=
+ will see most of the lessons with a lock sign on them, like in the screens=
+hot above. The week=E2=80=99s content becomes available on Mondays at 12:00=
+ AM Pacific Time. This means you can always start the new material at the b=
+eginning of the week, with office hours running later in the week to reinfo=
+rce and extend what you=E2=80=99ve learned.</p><p class=3D"p2-tall"></p><ul=
+ class=3D"list-disc ml-8"><li><p class=3D"p2-tall"><strong>Subscribing to t=
+he course calendar.</strong> You can subscribe to the course calendar direc=
+tly from the Maven portal. This will put the office hours and any other liv=
+e workshops on your calendar. See the screenshot below or follow <a target=
+=3D"_blank" rel=3D"noopener noreferrer nofollow" class=3D"underline text-bl=
+ue-dark underline text-blue-dark" href=3D"https://link.courses.maven.com/c/=
+eJxE0EGupSAQBdDVwAwDWAoOGPTEbRgoii_dKAb0JX_3nf9eJz2sk1Ry78W613ZvOTqtFlg41qd=
+1-rkVLKPh0UGUKkycnDLTYuSiFHA6fC4bFt-7C636iL7f__T-vsjR2WopFDmdr-3jz5Oju1qNA5=
+gRlSYUow8ggKIR1loQBpdkLSCllPjujJXaTzGggaRV1DQDzCnJSRqlLCHPTks9KSlnKeWk1ACTH=
+mdv1BwkAaJlID99-nD4F50D1oPnvqVWj-0tbvWlEy9uv--rs_EX0yvT607l-v_C9Eon06tvd8ZC=
+nel1HvViYRT9CR1bDvn8EncVXqAvdEbfRPgWTyu8ud8h-sP3Pwzk188Q7xAvp_8GAAD__6BneQM=
+"><u>this guide</u></a> for how to subscribe to the course calendar.</p></l=
+i></ul><p class=3D"p2-tall"></p><p class=3D"p2-tall"><img src=3D"https://d2=
+426xcxuh3ht5.cloudfront.net/FvB9dMNS263d9Hiy0vZg_screen2.png" alt=3D"screen=
+2.png" id=3D"7e945a13-627f-4da7-b9fc-211e18b7dda4" width=3D"100%" height=3D=
+"auto" isimageuploading=3D"false"></p><p class=3D"p2-tall"></p><h2>Delphi</=
+h2><p class=3D"p2-tall">Every student in this cohort will receive ten month=
+s of unlimited access to Delphi, our AI eval assistant trained on the compl=
+ete body of our work. Invitations will be sent to your Maven email later th=
+is week; if you do not receive one by October 10, contact Alan at alan@parl=
+ance-labs.com. Do not email me or Hamel=E2=80=94your email will probably ge=
+t lost.<br></p><p class=3D"p2-tall">Once you are logged in, you can use Del=
+phi at<a target=3D"_blank" rel=3D"noopener noreferrer nofollow" class=3D"un=
+derline text-blue-dark underline text-blue-dark" href=3D"https://link.cours=
+es.maven.com/c/eJwsz72O6yAQhuGrMZ2tAQYDBcVpfBsWP-NjdnGwwEm0d79KsuU8Gn3SG-te=
+27Xm5AS3aFms99bpdXO0UrPkMAEPipHjWlkNlnNkdPhc1lh87y606lP0_frT6-ckR7dWS6HE6PZ=
+YP36_5-TOVtOEWkYuKI7SBxyRkh6NMTjqaDdjMNK2bWx3ymAEgyokRIne8gAbzaC0kIowRpadAK=
+E4wAwAivMJlZCz13wO8HowA8Knp0-Hf9BtivVgua9bq8f6Frf40okVt1_X2Qf5bxDLIJbn8zklK=
+ueeJ58Hsez-oMKa-wrJH75_Dwj_X1HvwYcTvwEAAP__xmVnVA"> <u>https://www.delphi.a=
+i/hamel</u></a>. Think of Delphi as a <em>complement</em> to Discord and of=
+fice hours: you can ask it any question about evals and get an instant resp=
+onse, whether you are debugging code, clarifying a concept, or looking for =
+examples. The interface looks like the screenshot attached below.&nbsp;</p>=
+<p class=3D"p2-tall"><br><img src=3D"https://d2426xcxuh3ht5.cloudfront.net/=
+zgOjTg5ZRlK0F1DRnC75_screen3.png" alt=3D"screen3.png" id=3D"58551a64-22d1-4=
+124-86bd-6742fef3e05c" width=3D"100%" height=3D"auto" isimageuploading=3D"f=
+alse"><br></p><p class=3D"p2-tall">Keep in mind that Delphi is fully experi=
+mental. It may not sound like us, and its answers can be vague or even inco=
+rrect. To get the most value out of Delphi, keep these guidelines in mind:<=
+/p><ul class=3D"list-disc ml-8"><li><p class=3D"p2-tall"><strong>Be specifi=
+c.</strong> Provide context and details about your situation rather than as=
+king broad questions. For example:</p><ul class=3D"list-disc ml-8"><li><p c=
+lass=3D"p2-tall">Instead of: <em>=E2=80=9CHow do I evaluate my legal RAG sy=
+stem?=E2=80=9D</em></p></li><li><p class=3D"p2-tall">Try: <em>=E2=80=9CI=E2=
+=80=99m building a RAG system that retrieves case law relevant to motions u=
+nder California=E2=80=99s Racial Justice Act. The model generates candidate=
+ passages for attorneys to cite in their filings. My concern is whether the=
+ retrieval is surfacing precedent that is both on-point and still good law.=
+ What evaluation methods should I use to measure retrieval quality and dete=
+ct when the system cites outdated or overturned cases?=E2=80=9D</em></p></l=
+i></ul></li><li><p class=3D"p2-tall"><strong>Ask follow-ups.</strong> If an=
+ answer feels vague or incomplete, push further and ask clarifying question=
+s. For example:</p><ul class=3D"list-disc ml-8"><li><p class=3D"p2-tall">In=
+stead of stopping at: <em>=E2=80=9CDelphi says: you can use precision and r=
+ecall to evaluate retrieval.=E2=80=9D</em></p></li><li><p class=3D"p2-tall"=
+>Follow up with: <em>=E2=80=9CCan you show me how to calculate precision an=
+d recall for my dataset of 200 Racial Justice Act motions, where each motio=
+n can have multiple relevant cases? How would you define a =E2=80=98relevan=
+t=E2=80=99 case in this context, and what baseline numbers should I expect?=
+=E2=80=9D</em></p></li></ul></li><li><p class=3D"p2-tall"><strong>Rephrase =
+your question.</strong> Try different phrasings of the same question. For e=
+xample:</p><ul class=3D"list-disc ml-8"><li><p class=3D"p2-tall">Less effec=
+tive: =E2=80=9CWhen should I use pairwise comparisons?=E2=80=9D</p></li><li=
+><p class=3D"p2-tall">More effective: =E2=80=9CWhen should I use pairwise c=
+omparisons <em>and when should I not? Can you give me a concrete example? W=
+hich approach should I start with?</em>=E2=80=9D</p></li></ul></li><li><p c=
+lass=3D"p2-tall"><strong>Cross-check.</strong> Use Delphi alongside Discord=
+ discussions and office hours, not in place of them! We are looking at all =
+our data (aka your queries), but since this is the first time we are using =
+Delphi, we do not know how good it will be.</p></li></ul><p class=3D"p2-tal=
+l">If you notice an incorrect or unhelpful answer, let us know in Discord s=
+o we can improve it for everyone.<br></p><h2>Other Stuff</h2><ul class=3D"l=
+ist-disc ml-8"><li><p class=3D"p2-tall"><strong>Lifetime access and retakes=
+=2E</strong> You will have <em>lifetime=
+</em> access to all course recordings,=
+ slides, and materials, as well as to our Discord community. In addition, s=
+tudents in this October 2025 cohort (Cohort 3) have unlimited retake flexib=
+ility. That means if we open a new cohort in the future, you do not need to=
+ register again. Instead, simply email Alan (alan@parlance-labs.com) and sa=
+y you would like to join that new cohort, mentioning that you were part of =
+Cohort 3. Alan will confirm your prior enrollment and add you to the roster=
+ for the later cohort.</p></li><li><p class=3D"p2-tall"><strong>Technical s=
+upport.</strong> Contact support@maven.com for enrollment or payment issues=
+, and contact alan@parlance-labs.com for Discord or Delphi access.</p><p cl=
+ass=3D"p2-tall"></p></li></ul><p class=3D"p2-tall">That=E2=80=99s everythin=
+g you need to get started. Please post in Discord if you have any questions=
+=2E It=E2=80=99s going to be an awesome c=
+ourse! Get excited!</p><p class=3D"p=
+2-tall"></p><p class=3D"p2-tall">Best,</p><p class=3D"p2-tall"></p><p class=
+=3D"p2-tall">Shreya and Hamel</p><img width=3D"1" height=3D"1" alt=3D"" src=
+=3D"https://link.courses.maven.com/o/eJwsz8GO8yAMBOCnKbdENjExHLj-rxERY_5mNy=
+kVtJH27Vdt9zif5jAj9VrbY9lytBgoGKnP1vWVkcLEJkfKgKszGpFdYAiIZPRI277InnqPa6spS=
+-qPP3383DXqrdV912z0di4ffz63HO-t5pF4ErQqw5RWGkgzD957GlhC8Z5ESynmGjNOZRXPNFvy=
+qoGZHQuJzNkBODVbtGAdAswA4BBHcnaaE-O8gpKIvxB8_vTxSKfeRqmH2fpSWj2Wt8R_ae9qWvx=
+aczpS_74Q_H_NfVfPaH8DAAD__40uWyE">
+--311ee69116fa9f220cd57e2cee2261979fe06c929d3a47db34f945e34557--
