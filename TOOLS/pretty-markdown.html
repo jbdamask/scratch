@@ -449,10 +449,24 @@
             }
         }
 
+        // Function to update button states based on editor content
+        function updateButtonStates() {
+            const hasContent = editor.value.trim().length > 0;
+
+            // Enable/disable buttons based on content presence
+            copyBtn.disabled = !hasContent;
+            saveBtn.disabled = !hasContent;
+            pdfBtn.disabled = !hasContent;
+            copyBtnPreview.disabled = !hasContent;
+            saveBtnPreview.disabled = !hasContent;
+            pdfBtnPreview.disabled = !hasContent;
+        }
+
         // Update preview when editor content changes
         editor.addEventListener('input', () => {
             currentContent = editor.value;
             updatePreview();
+            updateButtonStates(); // Check button states whenever content changes
         });
 
         // Copy functionality
@@ -674,6 +688,7 @@
 
         // Initialize with empty content
         updatePreview();
+        updateButtonStates();
     </script>
 </body>
 </html>
