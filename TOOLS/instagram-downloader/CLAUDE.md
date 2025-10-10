@@ -9,4 +9,12 @@ When building complex webapps:
 - Always use FastAPI or Flask for the backend
 - Always use Vite for the frontend
 - Always use shadcn components for UI
+- Always use Tailwind css
 - Always favor a clean, minimalist interface that is intuitive
+- Always make a start.sh script that automatically starts the backend in its virtual environment and frontend
+
+Tailwind CSS Configuration Fix:
+- ALWAYS install Tailwind CSS v3.x (not v4) to avoid PostCSS plugin configuration errors
+- Use: npm install -D tailwindcss@^3.4.0 postcss autoprefixer
+- Tailwind v4 has breaking changes in PostCSS configuration that cause build failures
+

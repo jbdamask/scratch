@@ -17,8 +17,8 @@ import glob
 
 class InstagramDownloader:
     def __init__(self, base_output_dir="downloads", extract_frames=False):
-        # Always use "downloads" as the base directory
-        self.base_output_dir = Path("downloads")
+        # Use the provided base directory
+        self.base_output_dir = Path(base_output_dir)
         self.base_output_dir.mkdir(exist_ok=True)
         self.extract_frames = extract_frames
 
