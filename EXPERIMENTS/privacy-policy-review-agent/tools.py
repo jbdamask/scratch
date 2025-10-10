@@ -275,7 +275,7 @@ def list_output_files(extension: str = None) -> str:
         files = [f.name for f in out_dir.iterdir() if f.is_file()]
     return json.dumps({"files": files})
 
-# General web page scraper. Used by the Policy search agent function to retrieve policy links
+# General web page scraper. Used by the Policy search agent function to retrieve policy links and read content.
 from urllib.parse import urljoin, urldefrag
 import requests
 from bs4 import BeautifulSoup
