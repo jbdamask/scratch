@@ -191,6 +191,37 @@ async def serve_static_file(file_path: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error serving file: {str(e)}")
 
+@app.delete("/folders/{date}/{timestamp}")
+async def delete_folder(date: str, timestamp: str):
+    """Delete a download folder and all its contents"""
+    try:
+        import shutil
+
+        folder_path = downloads_path / date / timestamp
+
+        # Security check: ensure the path is within downloads directory
+        if not str(folder_path.resolve()).startswith(str(downloads_path.resolve())):
+            raise HTTPException(status_code=403, detail="Access denied")
+
+        # Check if folder exists
+        if not folder_path.exists():
+            raise HTTPException(status_code=404, detail="Folder not found")
+
+        # Delete the entire folder
+        shutil.rmtree(folder_path)
+
+        # Check if parent date directory is now empty and delete it too
+        date_dir = downloads_path / date
+        if date_dir.exists() and not any(date_dir.iterdir()):
+            date_dir.rmdir()
+
+        return {"success": True, "message": f"Deleted folder {date}/{timestamp}"}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error deleting folder: {str(e)}")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

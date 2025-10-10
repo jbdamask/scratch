@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { ChevronLeft, ChevronRight, Download, Folder, X } from 'lucide-react'
-import './App.css'
+import { ChevronLeft, ChevronRight, Download, Folder, X, Play, Trash2 } from 'lucide-react'
 
 interface ImageInfo {
   filename: string
@@ -33,6 +29,24 @@ function App() {
   useEffect(() => {
     fetchFolders()
   }, [])
+
+  // Add keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (images.length === 0) return
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault()
+        prevImage()
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault()
+        nextImage()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [images.length])
 
   const fetchFolders = async () => {
     try {
@@ -95,10 +109,12 @@ function App() {
   }
 
   const nextImage = () => {
+    console.log('Next image clicked, current index:', currentImageIndex)
     setCurrentImageIndex((prev) => (prev + 1) % images.length)
   }
 
   const prevImage = () => {
+    console.log('Previous image clicked, current index:', currentImageIndex)
     setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
@@ -107,139 +123,464 @@ function App() {
     setIsModalOpen(true)
   }
 
+  const deleteFolder = async (folder: FolderInfo, event: React.MouseEvent) => {
+    event.stopPropagation() // Prevent triggering the folder click
+
+    if (!confirm(`Are you sure you want to delete the folder from ${folder.date}?`)) {
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/folders/${folder.date}/${folder.timestamp}`, {
+        method: 'DELETE'
+      })
+
+      if (response.ok) {
+        // Refresh the folders list
+        await fetchFolders()
+
+        // If this was the selected folder, clear the images
+        if (selectedFolder === folder.path) {
+          setSelectedFolder(null)
+          setImages([])
+        }
+      } else {
+        const error = await response.json()
+        alert(`Error deleting folder: ${error.detail}`)
+      }
+    } catch (error) {
+      console.error('Error deleting folder:', error)
+      alert('Failed to delete folder')
+    }
+  }
+
+  const cardStyle = {
+    padding: '16px',
+    background: '#1e293b',
+    border: '1px solid #334155',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    transition: 'all 0.2s'
+  }
+
+  const cardHoverStyle = {
+    borderColor: '#34d399',
+    background: '#334155'
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-          Instagram Video Downloader
-        </h1>
+    <div style={{
+      minHeight: '100vh',
+      background: '#0a0e1a',
+      padding: '24px',
+      fontFamily: 'JetBrains Mono, Consolas, Monaco, Courier New, monospace',
+      color: '#a3b8cc'
+    }}>
+      <div style={{maxWidth: '1152px', margin: '0 auto'}}>
+        <header style={{marginBottom: '32px'}}>
+          <h1 style={{
+            fontSize: '30px',
+            fontWeight: 'bold',
+            color: '#34d399',
+            letterSpacing: '0.1em',
+            margin: '0 0 24px 0',
+            textAlign: 'center'
+          }}>
+            ► INSTAGRAM VIDEO TO PIX
+          </h1>
 
-        {/* URL Input Section */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex gap-4">
-            <Input
-              type="url"
-              placeholder="Paste Instagram URL here..."
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="flex-1"
-              disabled={isLoading}
-            />
-            <Button
-              onClick={downloadVideo}
-              disabled={isLoading || !url.trim()}
-              className="whitespace-nowrap"
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
-                  Downloading...
-                </>
-              ) : (
-                <>
-                  <Download className="w-4 h-4 mr-2" />
-                  Download
-                </>
-              )}
-            </Button>
+          {/* URL Input Section */}
+          <div style={{
+            background: '#1e293b',
+            border: '1px solid #334155',
+            borderRadius: '4px',
+            padding: '16px',
+            marginBottom: '24px'
+          }}>
+            <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
+              <input
+                type="url"
+                placeholder="Paste Instagram URL here..."
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                disabled={isLoading}
+                style={{
+                  flex: 1,
+                  padding: '12px 16px',
+                  background: '#0f172a',
+                  border: '1px solid #334155',
+                  borderRadius: '4px',
+                  color: '#e2e8f0',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#34d399';
+                  e.target.style.background = '#1e293b';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#334155';
+                  e.target.style.background = '#0f172a';
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isLoading && url.trim()) {
+                    downloadVideo();
+                  }
+                }}
+              />
+              <button
+                onClick={downloadVideo}
+                disabled={isLoading || !url.trim()}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #34d399',
+                  color: isLoading || !url.trim() ? '#64748b' : '#34d399',
+                  background: 'transparent',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  cursor: isLoading || !url.trim() ? 'not-allowed' : 'pointer',
+                  transition: 'all 0.2s',
+                  fontFamily: 'inherit',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLoading && url.trim()) {
+                    e.target.style.background = '#34d399';
+                    e.target.style.color = '#0f172a';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isLoading && url.trim()) {
+                    e.target.style.background = 'transparent';
+                    e.target.style.color = '#34d399';
+                  }
+                }}
+              >
+                {isLoading ? (
+                  <>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid transparent',
+                      borderTop: '2px solid currentColor',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }} />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} />
+                    Download
+                  </>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
+        </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div style={{display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px'}}>
           {/* Folder Navigation */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-md p-4">
-              <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <Folder className="w-5 h-5 mr-2" />
-                Downloads
+          <div>
+            <div style={{
+              ...cardStyle,
+              cursor: 'default'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+                color: '#34d399',
+                marginBottom: '16px',
+                letterSpacing: '0.05em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <Folder size={20} />
+                ▼ DOWNLOAD HISTORY
               </h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {folders.map((folder) => (
-                  <button
-                    key={folder.path}
-                    onClick={() => loadFolderImages(folder)}
-                    className={`w-full text-left p-3 rounded-md transition-colors ${
-                      selectedFolder === folder.path
-                        ? 'bg-blue-100 border-blue-300'
-                        : 'bg-gray-50 hover:bg-gray-100'
-                    }`}
-                  >
-                    <div className="text-sm font-medium">{folder.date}</div>
-                    <div className="text-xs text-gray-500">{folder.timestamp}</div>
-                  </button>
-                ))}
+              <div style={{maxHeight: '400px', overflowY: 'auto'}}>
+                {folders.length === 0 ? (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '24px',
+                    color: '#64748b',
+                    fontSize: '14px'
+                  }}>
+                    No downloads yet
+                  </div>
+                ) : (
+                  <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                    {folders.map((folder) => (
+                      <div
+                        key={folder.path}
+                        onClick={() => loadFolderImages(folder)}
+                        style={{
+                          ...cardStyle,
+                          padding: '12px',
+                          background: selectedFolder === folder.path ? '#334155' : '#1e293b',
+                          borderColor: selectedFolder === folder.path ? '#34d399' : '#334155'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = '#34d399';
+                          e.currentTarget.style.background = '#334155';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = selectedFolder === folder.path ? '#34d399' : '#334155';
+                          e.currentTarget.style.background = selectedFolder === folder.path ? '#334155' : '#1e293b';
+                        }}
+                      >
+                        <div style={{display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between'}}>
+                          <div style={{flex: 1}}>
+                            <div style={{fontSize: '14px', fontWeight: '500', color: '#e2e8f0', marginBottom: '4px'}}>
+                              {folder.date}
+                            </div>
+                            <div style={{fontSize: '12px', color: '#64748b'}}>
+                              {folder.timestamp}
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => deleteFolder(folder, e)}
+                            style={{
+                              width: '24px',
+                              height: '24px',
+                              border: '1px solid #dc2626',
+                              color: '#dc2626',
+                              background: 'transparent',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              transition: 'all 0.2s',
+                              flexShrink: 0
+                            }}
+                            onMouseEnter={(e) => {
+                              e.target.style.background = '#dc2626';
+                              e.target.style.color = '#ffffff';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.target.style.background = 'transparent';
+                              e.target.style.color = '#dc2626';
+                            }}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
           {/* Main Content */}
-          <div className="lg:col-span-3">
+          <div style={{minWidth: 0, overflow: 'hidden'}}>
             {images.length > 0 ? (
-              <div className="bg-white rounded-lg shadow-md p-6">
+              <div style={{...cardStyle, cursor: 'default', width: '100%', maxWidth: '100%'}}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: '16px'
+                }}>
+                  <h3 style={{
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    color: '#34d399',
+                    margin: 0,
+                    letterSpacing: '0.05em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <Play size={20} />
+                    ▼ FRAME VIEWER ({images.length} frames)
+                  </h3>
+                  <div style={{
+                    fontSize: '14px',
+                    color: '#34d399',
+                    fontWeight: '500',
+                    fontFamily: 'inherit'
+                  }}>
+                    {images[currentImageIndex]?.filename || 'No image selected'}
+                  </div>
+                </div>
+
                 {/* Current Image Display */}
-                <div className="relative mb-6">
+                <div style={{position: 'relative', marginBottom: '16px'}}>
                   <img
                     src={`${API_BASE}${images[currentImageIndex]?.url}`}
                     alt={`Frame ${currentImageIndex + 1}`}
-                    className="w-full max-h-96 object-contain rounded-lg cursor-pointer"
+                    style={{
+                      width: '100%',
+                      maxHeight: '400px',
+                      objectFit: 'contain',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      background: '#0f172a'
+                    }}
                     onClick={() => openModal(images[currentImageIndex])}
                   />
 
                   {/* Navigation Arrows */}
                   {images.length > 1 && (
                     <>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white"
-                        onClick={prevImage}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          prevImage()
+                        }}
+                        style={{
+                          position: 'absolute',
+                          left: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '40px',
+                          height: '40px',
+                          border: '1px solid #34d399',
+                          color: '#34d399',
+                          background: 'rgba(30, 41, 59, 0.9)',
+                          borderRadius: '50%',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = '#34d399';
+                          e.target.style.color = '#0f172a';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'rgba(30, 41, 59, 0.9)';
+                          e.target.style.color = '#34d399';
+                        }}
                       >
-                        <ChevronLeft className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white/90 hover:bg-white"
-                        onClick={nextImage}
+                        <ChevronLeft size={20} />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          nextImage()
+                        }}
+                        style={{
+                          position: 'absolute',
+                          right: '8px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          width: '40px',
+                          height: '40px',
+                          border: '1px solid #34d399',
+                          color: '#34d399',
+                          background: 'rgba(30, 41, 59, 0.9)',
+                          borderRadius: '50%',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.background = '#34d399';
+                          e.target.style.color = '#0f172a';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.background = 'rgba(30, 41, 59, 0.9)';
+                          e.target.style.color = '#34d399';
+                        }}
                       >
-                        <ChevronRight className="w-4 h-4" />
-                      </Button>
+                        <ChevronRight size={20} />
+                      </button>
                     </>
                   )}
 
                   {/* Frame Counter */}
-                  <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 rounded text-sm">
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '8px',
+                    right: '8px',
+                    background: 'rgba(0, 0, 0, 0.8)',
+                    color: '#34d399',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontFamily: 'inherit'
+                  }}>
                     {currentImageIndex + 1} / {images.length}
                   </div>
                 </div>
 
                 {/* Thumbnail Strip */}
-                <div className="flex gap-2 overflow-x-auto pb-4">
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  overflowX: 'auto',
+                  paddingBottom: '8px',
+                  background: '#0f172a',
+                  padding: '12px',
+                  borderRadius: '4px',
+                  border: '1px solid #334155'
+                }}>
                   {images.map((image, index) => (
                     <img
                       key={image.path}
                       src={`${API_BASE}${image.url}`}
                       alt={`Thumbnail ${index + 1}`}
-                      className={`w-20 h-20 object-cover rounded cursor-pointer flex-shrink-0 ${
-                        index === currentImageIndex
-                          ? 'ring-2 ring-blue-500'
-                          : 'opacity-70 hover:opacity-100'
-                      }`}
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                        objectFit: 'cover',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        border: index === currentImageIndex ? '2px solid #34d399' : '2px solid transparent',
+                        opacity: index === currentImageIndex ? 1 : 0.7,
+                        transition: 'all 0.2s'
+                      }}
                       onClick={() => setCurrentImageIndex(index)}
+                      onMouseEnter={(e) => {
+                        if (index !== currentImageIndex) {
+                          e.target.style.opacity = '1';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (index !== currentImageIndex) {
+                          e.target.style.opacity = '0.7';
+                        }
+                      }}
                     />
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-lg shadow-md p-12 text-center">
-                <div className="text-gray-400 mb-4">
-                  <Download className="w-16 h-16 mx-auto" />
+              <div style={{
+                ...cardStyle,
+                cursor: 'default',
+                textAlign: 'center',
+                padding: '48px 24px'
+              }}>
+                <div style={{color: '#64748b', marginBottom: '16px'}}>
+                  <Download size={64} style={{margin: '0 auto'}} />
                 </div>
-                <h3 className="text-lg font-medium text-gray-600 mb-2">
-                  No images to display
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: '500',
+                  color: '#94a3b8',
+                  marginBottom: '8px'
+                }}>
+                  ● Awaiting video download
                 </h3>
-                <p className="text-gray-500">
-                  Download a video or select a folder to view frames
+                <p style={{color: '#64748b', fontSize: '14px'}}>
+                  Paste an Instagram URL and download to extract frames
                 </p>
               </div>
             )}
@@ -247,26 +588,72 @@ function App() {
         </div>
 
         {/* Full-size Image Modal */}
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] p-0">
-            <DialogTitle className="sr-only">Full size image</DialogTitle>
-            <div className="relative">
+        {isModalOpen && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '24px'
+          }} onClick={() => setIsModalOpen(false)}>
+            <div style={{
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              background: '#1e293b',
+              border: '1px solid #34d399',
+              borderRadius: '4px',
+              overflow: 'hidden'
+            }} onClick={(e) => e.stopPropagation()}>
               <img
                 src={selectedImage ? `${API_BASE}${selectedImage.url}` : ''}
                 alt="Full size"
-                className="w-full h-auto max-h-[85vh] object-contain"
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight: '85vh',
+                  objectFit: 'contain',
+                  display: 'block'
+                }}
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute top-2 right-2 bg-white/90 hover:bg-white"
+              <button
                 onClick={() => setIsModalOpen(false)}
+                style={{
+                  position: 'absolute',
+                  top: '8px',
+                  right: '8px',
+                  width: '32px',
+                  height: '32px',
+                  border: '1px solid #34d399',
+                  color: '#34d399',
+                  background: 'rgba(30, 41, 59, 0.9)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#34d399';
+                  e.target.style.color = '#0f172a';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = 'rgba(30, 41, 59, 0.9)';
+                  e.target.style.color = '#34d399';
+                }}
               >
-                <X className="w-4 h-4" />
-              </Button>
+                <X size={16} />
+              </button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        )}
       </div>
     </div>
   )

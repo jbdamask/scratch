@@ -5,7 +5,7 @@
 echo "🚀 Starting Instagram Downloader Webapp..."
 
 # Check if virtual environment exists
-if [ ! -d ".venv" ]; then
+if [ ! -d "backend/.venv" ]; then
     echo "❌ Virtual environment not found. Please run: python3 -m venv .venv && source .venv/bin/activate"
     exit 1
 fi
@@ -31,8 +31,7 @@ trap cleanup SIGINT SIGTERM
 # Start backend
 echo "🔧 Starting backend server..."
 cd backend
-source ../.venv/bin/activate
-python main.py &
+.venv/bin/python main.py &
 BACKEND_PID=$!
 cd ..
 

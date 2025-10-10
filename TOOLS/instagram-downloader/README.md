@@ -1,6 +1,6 @@
-# Instagram Video Downloader
+# Instagram Video To Pix
 
-A Python script to download Instagram videos and optionally extract frames from them. Downloads videos without requiring Instagram login or API access.
+A web application to download Instagram videos and extract frames from them. Downloads videos without requiring Instagram login or API access and provides a sleek dark-themed interface to browse extracted frames.
 
 ## Features
 
