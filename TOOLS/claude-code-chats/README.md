@@ -1,10 +1,8 @@
 # Claude Code Chat History Viewer
 
-A sleek, terminal-inspired web application for browsing your local Claude Code chat history files.
+Browse your Claude Code chat history files.
 
-![Claude Code Chat History Viewer](https://img.shields.io/badge/Claude%20Code-Chat%20History-34d399?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTIxIDEyQzIxIDEzLjEgMjAuMSAxNCAzOSAxNEgxN0w4LjUgMjAuNUw5LjkxIDIxLjkxTDE2IDIySDMuOTFMMTguNSAxNC41QzIwLjI4IDEzLjczIDIxIDEyIDIxIDEyWiIgZmlsbD0iIzM0ZDM5OSIvPgo8L3N2Zz4K)
-
-## Features
+## Features (can you tell this was an LLM wrote this README?)
 
 - 🌟 **Futuristic Terminal UI** - Dark theme with emerald green accents
 - 📁 **Project Navigation** - Browse Claude Code project directories
@@ -13,15 +11,6 @@ A sleek, terminal-inspired web application for browsing your local Claude Code c
 - 🔍 **JSON Pretty Printing** - Automatically formats JSON content in messages
 - ⚡ **Real-time Loading** - Fast file browsing with loading states
 - 🎨 **Interactive Design** - Hover effects and smooth transitions
-
-## Screenshots
-
-The interface features a cyberpunk-inspired design with:
-- Dark navy background (`#0a0e1a`)
-- Emerald green accents for interactive elements
-- Monospace font (JetBrains Mono, Consolas, Monaco)
-- Terminal-style arrows and bullets
-- Responsive card-based layout
 
 ## Quick Start
 
@@ -135,8 +124,8 @@ The modular React component structure makes it easy to add:
 
 ### Common Issues
 
-1. **Frontend won't start**: Check Node.js version requirement
-2. **No projects found**: Ensure Claude Code has been used and created chat files
+1. **Frontend won't start**: Check Node.js version requirement. Check port conflicts.
+2. **No projects found**: Ensure Claude Code has been used and created chat files. Also, this was built for a mac. If you're on a PC, try changing the source folder.
 3. **CORS errors**: Backend and frontend must run on specified ports
 4. **Styling issues**: All styles are inline, so Tailwind configuration shouldn't affect appearance
 
@@ -148,15 +137,6 @@ If default ports are in use:
 ## License
 
 MIT License - see LICENSE file for details.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
 ---
 
 **Note**: This tool is designed for viewing Claude Code chat history locally. It does not upload or share any data externally.
