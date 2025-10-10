@@ -12,6 +12,7 @@ interface FolderInfo {
   path: string
   date: string
   timestamp: string
+  video_filename?: string
 }
 
 function App() {
@@ -33,6 +34,12 @@ function App() {
   // Add keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isModalOpen) {
+        e.preventDefault()
+        setIsModalOpen(false)
+        return
+      }
+
       if (images.length === 0) return
 
       if (e.key === 'ArrowLeft') {
@@ -46,7 +53,7 @@ function App() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [images.length])
+  }, [images.length, isModalOpen])
 
   const fetchFolders = async () => {
     try {
@@ -340,9 +347,11 @@ function App() {
                             <div style={{fontSize: '14px', fontWeight: '500', color: '#e2e8f0', marginBottom: '4px'}}>
                               {folder.date}
                             </div>
-                            <div style={{fontSize: '12px', color: '#64748b'}}>
-                              {folder.timestamp}
-                            </div>
+                            {folder.video_filename && (
+                              <div style={{fontSize: '11px', color: '#64748b', fontStyle: 'italic', wordBreak: 'break-all'}}>
+                                {folder.video_filename}
+                              </div>
+                            )}
                           </div>
                           <button
                             onClick={(e) => deleteFolder(folder, e)}

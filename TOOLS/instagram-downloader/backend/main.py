@@ -39,6 +39,7 @@ class FolderInfo(BaseModel):
     path: str
     date: str
     timestamp: str
+    video_filename: str = None
 
 class ImageInfo(BaseModel):
     filename: str
@@ -130,11 +131,20 @@ async def get_folders():
                     if timestamp_dir.is_dir():
                         absolute_timestamp_dir = timestamp_dir.resolve()
                         folder_path = str(absolute_timestamp_dir.relative_to(absolute_downloads_path))
+
+                        # Find the video file in this directory
+                        video_filename = None
+                        for file_path in timestamp_dir.glob("*.mp4"):
+                            if file_path.is_file():
+                                video_filename = file_path.name
+                                break
+
                         folders.append({
                             "name": f"{date_dir.name} - {timestamp_dir.name}",
                             "path": folder_path,
                             "date": date_dir.name,
-                            "timestamp": timestamp_dir.name
+                            "timestamp": timestamp_dir.name,
+                            "video_filename": video_filename
                         })
 
         return {"folders": folders}
