@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Search } from 'lucide-react'
 
 interface Project {
   name: string
@@ -33,6 +34,14 @@ interface ChatData {
   }
 }
 
+interface SearchResult {
+  projectName: string
+  fileName: string
+  messageIndex: number
+  message: Message
+  matchText: string
+}
+
 const API_BASE = 'http://localhost:8000'
 
 function App() {
@@ -42,6 +51,11 @@ function App() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
   const [chatData, setChatData] = useState<ChatData | null>(null)
   const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [showSearchResults, setShowSearchResults] = useState(false)
+  const [showClearTextOnly, setShowClearTextOnly] = useState(true)
 
   useEffect(() => {
     fetchProjects()
@@ -88,13 +102,184 @@ function App() {
   }
 
   const goBack = () => {
-    if (selectedFile) {
+    if (showSearchResults) {
+      setShowSearchResults(false)
+      setSearchResults([])
+      setSearchTerm('')
+    } else if (selectedFile) {
       setSelectedFile(null)
       setChatData(null)
     } else if (selectedProject) {
       setSelectedProject(null)
       setFiles([])
     }
+  }
+
+  const performSearch = async (term: string) => {
+    if (!term.trim()) {
+      setSearchResults([])
+      setShowSearchResults(false)
+      return
+    }
+
+    setIsSearching(true)
+    setShowSearchResults(true)
+
+    try {
+      // First get all projects
+      const projectsResponse = await fetch(`${API_BASE}/projects`)
+      const projectsData = await projectsResponse.json()
+      const allProjects = projectsData.projects || []
+
+      const allResults: SearchResult[] = []
+
+      // Search through each project
+      for (const project of allProjects) {
+        try {
+          // Get all files for this project
+          const filesResponse = await fetch(`${API_BASE}/projects/${encodeURIComponent(project.name)}/files`)
+          const filesData = await filesResponse.json()
+          const projectFiles = filesData.files || []
+
+          // Search through each file in the project
+          for (const file of projectFiles) {
+            try {
+              // Get the chat data for this file
+              const chatResponse = await fetch(`${API_BASE}/projects/${encodeURIComponent(project.name)}/files/${encodeURIComponent(file.name)}`)
+              const chatData = await chatResponse.json()
+
+              // Search through messages in this file
+              if (chatData.messages) {
+                chatData.messages.forEach((message: Message, messageIndex: number) => {
+                  const content = renderMessageContent(message.message.content)
+                  const lowerContent = content.toLowerCase()
+                  const lowerTerm = term.toLowerCase()
+
+                  if (lowerContent.includes(lowerTerm)) {
+                    // Find the context around the match
+                    const matchIndex = lowerContent.indexOf(lowerTerm)
+                    const contextStart = Math.max(0, matchIndex - 100)
+                    const contextEnd = Math.min(content.length, matchIndex + term.length + 100)
+                    let matchText = content.substring(contextStart, contextEnd)
+
+                    // Add ellipsis if we're not at the start/end
+                    if (contextStart > 0) matchText = '...' + matchText
+                    if (contextEnd < content.length) matchText = matchText + '...'
+
+                    allResults.push({
+                      projectName: project.name,
+                      fileName: file.name,
+                      messageIndex,
+                      message,
+                      matchText
+                    })
+                  }
+                })
+              }
+            } catch (fileError) {
+              console.error(`Error searching file ${file.name}:`, fileError)
+            }
+          }
+        } catch (projectError) {
+          console.error(`Error searching project ${project.name}:`, projectError)
+        }
+      }
+
+      // Sort results by timestamp (most recent first) and limit to 100 results
+      allResults.sort((a, b) => new Date(b.message.timestamp).getTime() - new Date(a.message.timestamp).getTime())
+
+      const limitedResults = allResults.slice(0, 100)
+      setSearchResults(limitedResults)
+    } catch (error) {
+      console.error('Error performing search:', error)
+      setSearchResults([])
+    }
+
+    setIsSearching(false)
+  }
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const term = e.target.value
+    setSearchTerm(term)
+  }
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchTerm) {
+        performSearch(searchTerm)
+      } else {
+        setSearchResults([])
+        setShowSearchResults(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm])
+
+  const viewSearchResult = (result: SearchResult) => {
+    setSelectedProject(result.projectName)
+    fetchChatFile(result.projectName, result.fileName)
+    setShowSearchResults(false)
+  }
+
+  const highlightSearchTerm = (text: string, term: string) => {
+    if (!term) return text
+
+    const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+    const parts = text.split(regex)
+
+    return parts.map((part, index) =>
+      regex.test(part) ?
+        <span key={index} style={{background: '#fbbf24', color: '#0f172a', fontWeight: 'bold'}}>{part}</span> :
+        part
+    )
+  }
+
+  const isMessageClearText = (message: Message) => {
+    // Only show user and assistant messages
+    if (message.message.role !== 'user' && message.message.role !== 'assistant') {
+      return false
+    }
+
+    const content = message.message.content
+
+    // Handle array content (tool use messages, etc.)
+    if (Array.isArray(content)) {
+      // Check if any item in the array is clear text
+      return content.some(item => {
+        if (typeof item === 'object' && item.type === 'text' && item.text) {
+          return item.text.length > 10 && item.text.includes(' ')
+        }
+        return false
+      })
+    }
+
+    // Check if content is a string
+    if (typeof content !== 'string') {
+      return false
+    }
+
+    // If it's obviously JSON structure, exclude it
+    if (content.trim().startsWith('{') && content.trim().endsWith('}')) {
+      try {
+        const parsed = JSON.parse(content)
+        // If it successfully parses and looks like tool use or structured data, exclude it
+        if (parsed.type === 'tool_use' || parsed.name || parsed.input) {
+          return false
+        }
+      } catch (e) {
+        // If it fails to parse but looks like JSON, it might be malformed - still exclude
+        return false
+      }
+    }
+
+    // More lenient check for clear text
+    const trimmed = content.trim()
+    const hasReasonableLength = trimmed.length > 5
+    const hasLetters = /[a-zA-Z]/.test(trimmed)
+    const notPureJson = !(/^[\{\}\[\],":\s]*$/.test(trimmed))
+
+    return hasReasonableLength && hasLetters && notPureJson
   }
 
   const formatTimestamp = (timestamp: string) => {
@@ -154,42 +339,85 @@ function App() {
     }}>
       <div style={{maxWidth: '1152px', margin: '0 auto'}}>
         <header style={{marginBottom: '32px'}}>
-          <div style={{display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px'}}>
-            {(selectedProject || selectedFile) && (
-              <button
-                onClick={goBack}
-                style={{
-                  padding: '8px 12px',
-                  border: '1px solid #34d399',
-                  color: '#34d399',
-                  background: 'transparent',
-                  borderRadius: '4px',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  fontFamily: 'inherit'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.background = '#34d399';
-                  e.target.style.color = '#0f172a';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.background = 'transparent';
-                  e.target.style.color = '#34d399';
-                }}
-              >
-                ← Back
-              </button>
-            )}
-            <h1 style={{
-              fontSize: '30px',
-              fontWeight: 'bold',
-              color: '#34d399',
-              letterSpacing: '0.1em',
-              margin: 0
-            }}>
-              ► CLAUDE CODE CHAT HISTORY
-            </h1>
+          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px'}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+              {(selectedProject || selectedFile || showSearchResults) && (
+                <button
+                  onClick={goBack}
+                  style={{
+                    padding: '8px 12px',
+                    border: '1px solid #34d399',
+                    color: '#34d399',
+                    background: 'transparent',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    fontFamily: 'inherit'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#34d399';
+                    e.target.style.color = '#0f172a';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = 'transparent';
+                    e.target.style.color = '#34d399';
+                  }}
+                >
+                  ← Back
+                </button>
+              )}
+              <h1 style={{
+                fontSize: '30px',
+                fontWeight: 'bold',
+                color: '#34d399',
+                letterSpacing: '0.1em',
+                margin: 0
+              }}>
+                ► CLAUDE CODE CHAT HISTORY
+              </h1>
+            </div>
+
+            <div style={{position: 'relative', width: '300px'}}>
+              <div style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                <Search size={16} style={{
+                  position: 'absolute',
+                  left: '12px',
+                  color: '#64748b',
+                  zIndex: 1
+                }} />
+                <input
+                  type="text"
+                  placeholder="Search across all chats..."
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 36px',
+                    background: '#1e293b',
+                    border: '1px solid #334155',
+                    borderRadius: '20px',
+                    color: '#e2e8f0',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    outline: 'none',
+                    transition: 'all 0.2s'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#34d399';
+                    e.target.style.background = '#334155';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#334155';
+                    e.target.style.background = '#1e293b';
+                  }}
+                />
+              </div>
+            </div>
           </div>
 
           {selectedProject && !selectedFile && (
@@ -213,7 +441,107 @@ function App() {
           </div>
         )}
 
-        {!selectedProject && !loading && (
+        {showSearchResults && (
+          <div>
+            <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px'}}>
+              <h2 style={{
+                fontSize: '20px',
+                fontWeight: 'bold',
+                color: '#34d399',
+                margin: 0,
+                letterSpacing: '0.05em'
+              }}>
+                ▼ SEARCH RESULTS
+              </h2>
+              {!isSearching && searchResults.length > 0 && (
+                <div style={{fontSize: '14px', color: '#64748b'}}>
+                  {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+                </div>
+              )}
+            </div>
+
+            {isSearching && (
+              <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 0', gap: '8px'}}>
+                <div style={{color: '#34d399'}}>
+                  ● Searching chat archives...
+                </div>
+                <div style={{fontSize: '14px', color: '#64748b'}}>
+                  Scanning all projects and files recursively
+                </div>
+              </div>
+            )}
+
+            {!isSearching && searchResults.length === 0 && searchTerm && (
+              <div style={{
+                ...cardStyle,
+                textAlign: 'center',
+                color: '#64748b'
+              }}>
+                No results found for "{searchTerm}"
+              </div>
+            )}
+
+            {!isSearching && searchResults.length > 0 && (
+              <div style={{display: 'flex', flexDirection: 'column', gap: '8px'}}>
+                {searchResults.map((result, index) => (
+                  <div
+                    key={index}
+                    style={cardStyle}
+                    onClick={() => viewSearchResult(result)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#34d399';
+                      e.currentTarget.style.background = '#334155';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#334155';
+                      e.currentTarget.style.background = '#1e293b';
+                    }}
+                  >
+                    <div style={{display: 'flex', alignItems: 'flex-start', gap: '12px'}}>
+                      <div style={{color: '#34d399', marginTop: '2px'}}>🔍</div>
+                      <div style={{flex: 1}}>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px'}}>
+                          <h3 style={{color: '#e2e8f0', fontWeight: '500', margin: 0}}>
+                            {result.projectName} / {result.fileName}
+                          </h3>
+                          <span style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            ...(result.message.message.role === 'user'
+                              ? {background: '#1e3a8a', color: '#93c5fd'}
+                              : {background: '#064e3b', color: '#6ee7b7'})
+                          }}>
+                            {result.message.message.role.toUpperCase()}
+                          </span>
+                        </div>
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#cbd5e1',
+                          margin: '4px 0 0 0',
+                          lineHeight: '1.4',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          display: '-webkit-box',
+                          WebkitLineClamp: 3,
+                          WebkitBoxOrient: 'vertical'
+                        }}>
+                          {highlightSearchTerm(result.matchText, searchTerm)}
+                        </p>
+                        <div style={{fontSize: '12px', color: '#64748b', marginTop: '4px'}}>
+                          {formatTimestamp(result.message.timestamp)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!selectedProject && !loading && !showSearchResults && (
           <div>
             <h2 style={{
               fontSize: '20px',
@@ -334,17 +662,76 @@ function App() {
             </div>
 
             <div>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                color: '#34d399',
-                marginBottom: '12px',
-                letterSpacing: '0.05em'
-              }}>
-                ▼ MESSAGE STREAM
-              </h3>
+              <div style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px'}}>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  color: '#34d399',
+                  margin: 0,
+                  letterSpacing: '0.05em'
+                }}>
+                  ▼ MESSAGE STREAM
+                </h3>
+
+                <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                  {chatData && (
+                    <div style={{fontSize: '14px', color: '#64748b'}}>
+                      {showClearTextOnly
+                        ? `${chatData.messages.filter(isMessageClearText).length} of ${chatData.messages.length} messages`
+                        : `${chatData.messages.length} messages`
+                      }
+                    </div>
+                  )}
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '14px',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    userSelect: 'none'
+                  }}>
+                    <div style={{position: 'relative'}}>
+                      <input
+                        type="checkbox"
+                        checked={showClearTextOnly}
+                        onChange={(e) => setShowClearTextOnly(e.target.checked)}
+                        style={{
+                          width: '16px',
+                          height: '16px',
+                          margin: 0,
+                          opacity: 0,
+                          cursor: 'pointer'
+                        }}
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid #34d399',
+                        borderRadius: '3px',
+                        background: showClearTextOnly ? '#34d399' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s',
+                        pointerEvents: 'none'
+                      }}>
+                        {showClearTextOnly && (
+                          <span style={{color: '#0f172a', fontSize: '12px', fontWeight: 'bold'}}>✓</span>
+                        )}
+                      </div>
+                    </div>
+                    Clear text only
+                  </label>
+                </div>
+              </div>
               <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
-                {chatData.messages.map((message, index) => (
+                {chatData.messages
+                  .filter(message => !showClearTextOnly || isMessageClearText(message))
+                  .map((message, index) => (
                   <div key={message.uuid || index} style={{
                     background: '#1e293b',
                     border: '1px solid #334155',

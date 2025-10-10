@@ -1,5 +1,7 @@
 # Claude Code Chat History Viewer
 
+![Claude Code Chat History](img/claude-code-chat-history.png)
+
 Browse your Claude Code chat history files.
 
 ## Features (can you tell this was an LLM wrote this README?)
