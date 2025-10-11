@@ -18,6 +18,8 @@
 - Always use Tailwind css
 - Always favor a clean, minimalist interface that is intuitive
 - Always make a start.sh script that automatically starts the backend in its virtual environment and frontend
+- ALWAYS use type-only imports for TypeScript interfaces: `import type { InterfaceName } from './types'`
+- ALWAYS import HTTPException when using FastAPI error handling: `from fastapi import FastAPI, HTTPException`
 
 ## Tailwind CSS Configuration Fix:
 - ALWAYS install Tailwind CSS v3.x (not v4) to avoid PostCSS plugin configuration errors
@@ -25,18 +27,13 @@
 - Tailwind v4 has breaking changes in PostCSS configuration that cause build failures
 
 ## Theme Selection
-- ALWAYS ask the user which theme to use from available themes in /path/to/THEMES/
+- ALWAYS ask the user which theme to use from available themes.
+- ALWAYS determine the relative path to <repo-root>/THEMES dir from your working directory
 - List available themes with brief descriptions
-- Install the selected theme: npm install file:../THEMES/[theme-name]
-- Add theme preset to tailwind.config.js: const theme =
- require('@johnthemes/[theme-name]/tailwind.preset')
+- Install the selected theme: npm install file:<relative-path>/THEMES/[theme-name]
+- Install theme peer dependencies: npm install class-variance-authority clsx tailwind-merge @radix-ui/react-slot lucide-react
+- Add theme preset to tailwind.config.js: const theme = require('@johnthemes/[theme-name]/tailwind.preset')
 - Import base styles: @import '@johnthemes/[theme-name]/styles/globals.css'
 - Use theme components: import { Button, Card } from '@johnthemes/[theme-name]'
 - Apply theme classes: bg-background text-foreground
-
-This will make the agent:
-1. Scan /THEMES/ directory for available options
-2. Present theme choices to the user with descriptions
-3. Install the selected theme automatically
-4. Configure Tailwind and imports correctly
-5. Use theme components and classes throughout the app
+- NOTE: If symlink resolution issues occur, copy theme components to src/components/ui/ and create local utils.ts
