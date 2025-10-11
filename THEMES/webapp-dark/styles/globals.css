@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles extracted from instagram-downloader */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-mono;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Keyframes for loading animations */
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+}
+
+@layer components {
+  /* Card component pattern from your app */
+  .webapp-card {
+    @apply bg-card border border-border rounded-md p-4 cursor-pointer transition-all duration-200;
+  }
+
+  .webapp-card:hover {
+    @apply border-primary bg-secondary;
+  }
+
+  /* Input styling pattern */
+  .webapp-input {
+    @apply flex-1 p-3 bg-background border border-input rounded-md text-foreground text-sm font-mono outline-none transition-all duration-200;
+  }
+
+  .webapp-input:focus {
+    @apply border-primary bg-secondary;
+  }
+
+  /* Button patterns from your app */
+  .webapp-button {
+    @apply px-4 py-3 border border-primary text-primary bg-transparent rounded-md text-sm cursor-pointer transition-all duration-200 font-mono flex items-center gap-2 whitespace-nowrap;
+  }
+
+  .webapp-button:hover:not(:disabled) {
+    @apply bg-primary text-primary-foreground;
+  }
+
+  .webapp-button:disabled {
+    @apply text-muted-foreground cursor-not-allowed;
+  }
+
+  /* Loading spinner */
+  .webapp-spinner {
+    @apply w-4 h-4 border-2 border-transparent border-t-current rounded-full animate-spin;
+  }
+
+  /* Section headers */
+  .webapp-section-header {
+    @apply text-lg font-bold text-primary mb-4 tracking-wide flex items-center gap-2;
+  }
+}
