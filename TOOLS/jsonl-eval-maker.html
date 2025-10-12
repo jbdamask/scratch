@@ -4,7 +4,190 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JSONL Eval Maker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
+        :root {
+            /* Volino Theme Colors */
+            --background: #f8fafc;
+            --foreground: #334155;
+            --primary: #3b82f6;
+            --primary-foreground: #ffffff;
+            --secondary: #e2e8f0;
+            --secondary-foreground: #475569;
+            --muted: #f1f5f9;
+            --muted-foreground: #64748b;
+            --accent: #0ea5e9;
+            --accent-foreground: #0f172a;
+            --destructive: #ef4444;
+            --destructive-foreground: #fef2f2;
+            --border: #e2e8f0;
+            --input: #ffffff;
+            --ring: #3b82f6;
+            --card: #ffffff;
+            --card-foreground: #1e293b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #0ea5e9;
+        }
+
+        /* Volino Component Classes */
+        .volino-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            padding: 24px;
+        }
+
+        .volino-card-compact {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            padding: 16px;
+        }
+
+        .volino-button-primary {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            border-radius: 0.375rem;
+            padding: 8px 16px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            min-height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .volino-button-primary:hover {
+            background: #2563eb;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .volino-button-primary:disabled {
+            background: var(--muted);
+            color: var(--muted-foreground);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .volino-button-outline {
+            background: transparent;
+            color: var(--foreground);
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            padding: 8px 16px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .volino-button-outline:hover {
+            background: var(--muted);
+            border-color: var(--primary);
+        }
+
+        .volino-button-destructive {
+            background: var(--destructive);
+            color: var(--primary-foreground);
+            border: none;
+            border-radius: 0.375rem;
+            padding: 8px 16px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            min-height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .volino-button-destructive:hover {
+            background: #dc2626;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .volino-input {
+            background: var(--input);
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            padding: 8px 12px;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+            min-height: 36px;
+            width: 100%;
+        }
+
+        .volino-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
+        }
+
+        .volino-badge-success {
+            background: #dcfce7;
+            color: var(--success);
+            border: 1px solid #bbf7d0;
+            padding: 2px 8px;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .volino-badge-warning {
+            background: #fef3c7;
+            color: var(--warning);
+            border: 1px solid #fde68a;
+            padding: 2px 8px;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .volino-badge-danger {
+            background: #fee2e2;
+            color: var(--danger);
+            border: 1px solid #fecaca;
+            padding: 2px 8px;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .volino-badge-info {
+            background: #e0f2fe;
+            color: var(--info);
+            border: 1px solid #bae6fd;
+            padding: 2px 8px;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+        }
         * {
             margin: 0;
             padding: 0;
@@ -13,7 +196,8 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: #f5f5f5;
+            background-color: var(--background);
+            color: var(--foreground);
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -22,17 +206,18 @@
         }
 
         .header {
-            background: #fff;
+            background: var(--card);
             padding: 15px 20px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border);
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             flex-shrink: 0;
         }
 
         .header h1 {
-            color: #333;
+            color: var(--primary);
             margin: 0;
             font-size: 24px;
+            font-weight: 600;
         }
 
 
@@ -40,24 +225,18 @@
             width: 100%;
             height: 80px;
             padding: 10px;
-            border: 2px solid #ddd;
-            border-radius: 4px;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
             font-family: monospace;
             resize: vertical;
+            background: var(--input);
+            color: var(--foreground);
         }
 
-        .paste-area button {
-            margin-top: 10px;
-            padding: 8px 16px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        .paste-area button:hover {
-            background: #0056b3;
+        .paste-area textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
         }
 
         .main-content {
@@ -65,11 +244,11 @@
             display: flex;
             min-height: 0;
             overflow: hidden;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid var(--border);
         }
 
         .panel {
-            background: #fff;
+            background: var(--card);
             display: flex;
             flex-direction: column;
             overflow: hidden;
@@ -79,8 +258,8 @@
             width: 350px;
             min-width: 250px;
             max-width: 600px;
-            border-right: 1px solid #ddd;
-            border-bottom: 1px solid #ddd;
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
             resize: horizontal;
             overflow-y: auto;
             overflow-x: hidden;
@@ -100,9 +279,9 @@
         }
 
         .panel-header {
-            background: #f8f9fa;
+            background: var(--muted);
             padding: 12px 15px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -111,26 +290,26 @@
 
         .panel-title {
             font-weight: 600;
-            color: #333;
+            color: var(--foreground);
             margin: 0;
         }
 
         .collapse-btn {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
+            background: var(--secondary);
+            border: 1px solid var(--border);
             font-size: 14px;
             cursor: pointer;
             padding: 6px 10px;
-            color: #495057;
-            border-radius: 4px;
+            color: var(--secondary-foreground);
+            border-radius: 0.375rem;
             font-weight: 500;
             transition: all 0.2s ease;
         }
 
         .collapse-btn:hover {
-            background: #e9ecef;
-            border-color: #adb5bd;
-            color: #212529;
+            background: var(--muted);
+            border-color: var(--primary);
+            color: var(--foreground);
         }
 
         .config-panel.collapsed .collapse-btn {
@@ -164,9 +343,9 @@
         }
 
         .workspace-toolbar {
-            background: #f8f9fa;
+            background: var(--muted);
             padding: 15px 20px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border);
             display: flex;
             gap: 15px;
             align-items: center;
@@ -234,37 +413,38 @@
 
         .workspace-toolbar button {
             padding: 8px 16px;
-            border: 1px solid #ddd;
-            background: #fff;
-            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            border-radius: 0.375rem;
             cursor: pointer;
             font-weight: 500;
+            color: var(--foreground);
+            transition: all 0.2s;
         }
 
         .workspace-toolbar button:hover {
-            background: #f8f9fa;
+            background: var(--muted);
+            border-color: var(--primary);
         }
 
         .workspace-toolbar .btn-danger {
-            background: #dc3545;
-            color: white;
-            border-color: #dc3545;
+            background: var(--destructive);
+            color: var(--primary-foreground);
+            border-color: var(--destructive);
         }
 
         .workspace-toolbar .btn-danger:hover {
-            background: #c82333;
-            border-color: #bd2130;
+            background: #dc2626;
         }
 
         .workspace-toolbar .btn-success {
-            background: #28a745;
-            color: white;
-            border-color: #28a745;
+            background: var(--success);
+            color: var(--primary-foreground);
+            border-color: var(--success);
         }
 
         .workspace-toolbar .btn-success:hover {
-            background: #218838;
-            border-color: #1e7e34;
+            background: #059669;
         }
 
         .table-section {
@@ -280,7 +460,7 @@
             margin-bottom: 15px;
             display: flex;
             align-items: center;
-            color: #6c757d;
+            color: var(--muted-foreground);
             font-size: 14px;
         }
 
@@ -288,8 +468,8 @@
             flex: 1;
             overflow-y: scroll;
             overflow-x: auto;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
             min-height: 0;
         }
 
@@ -301,11 +481,12 @@
         th, td {
             padding: 8px 12px;
             text-align: left;
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border);
         }
 
         th {
-            background: #f8f9fa;
+            background: var(--muted);
+            color: var(--foreground);
             font-weight: 600;
             position: sticky;
             top: 0;
@@ -313,7 +494,7 @@
         }
 
         tr:hover {
-            background: #f8f9fa;
+            background: var(--muted);
         }
 
         .data-row {
@@ -322,23 +503,23 @@
         }
 
         .data-row.selected {
-            background: #e3f2fd;
+            background: #e0f2fe;
         }
 
         .data-row.labeled {
-            background: #e8f5e8;
+            background: #dcfce7;
         }
 
         .data-row:hover {
-            background: #f0f8ff;
+            background: var(--muted);
         }
 
         .data-row.selected:hover {
-            background: #bbdefb;
+            background: #bae6fd;
         }
 
         .data-row.labeled:hover {
-            background: #c8e6c9;
+            background: #bbf7d0;
         }
 
         .input-cell {
@@ -357,21 +538,30 @@
         .label-input-row input {
             flex: 1;
             padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
+            background: var(--input);
+            color: var(--foreground);
+        }
+
+        .label-input-row input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
         }
 
         .label-input-row button {
             padding: 8px 16px;
-            background: #28a745;
-            color: white;
+            background: var(--success);
+            color: var(--primary-foreground);
             border: none;
-            border-radius: 4px;
+            border-radius: 0.375rem;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
         .label-input-row button:hover {
-            background: #218838;
+            background: #059669;
         }
 
         .labels-list {
@@ -381,37 +571,48 @@
         .label-tag {
             display: inline-flex;
             align-items: center;
-            background: #e9ecef;
+            background: var(--secondary);
+            color: var(--secondary-foreground);
             padding: 4px 8px;
             margin: 2px;
             border-radius: 16px;
             font-size: 12px;
+            border: 1px solid var(--border);
         }
 
         .label-tag .remove-label {
             margin-left: 6px;
             background: none;
             border: none;
-            color: #6c757d;
+            color: var(--muted-foreground);
             cursor: pointer;
             font-size: 14px;
+            transition: color 0.2s;
         }
 
         .label-tag .remove-label:hover {
-            color: #dc3545;
+            color: var(--destructive);
         }
 
         .config-section select {
             width: 100%;
             padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 1px solid var(--border);
+            border-radius: 0.375rem;
             margin-bottom: 10px;
+            background: var(--input);
+            color: var(--foreground);
+        }
+
+        .config-section select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
         }
 
         .helper-text {
             font-size: 12px;
-            color: #666;
+            color: var(--muted-foreground);
             margin-top: 8px;
             line-height: 1.4;
         }
@@ -429,7 +630,7 @@
 
         .edit-icon {
             cursor: pointer;
-            color: #6c757d;
+            color: var(--muted-foreground);
             font-size: 12px;
             padding: 2px;
             border-radius: 2px;
@@ -438,17 +639,18 @@
         }
 
         .edit-icon:hover {
-            background: #f8f9fa;
-            color: #495057;
+            background: var(--muted);
+            color: var(--foreground);
             opacity: 1;
         }
 
         .header-input {
-            background: #fff;
-            border: 1px solid #007bff;
-            border-radius: 3px;
+            background: var(--input);
+            border: 1px solid var(--primary);
+            border-radius: 0.375rem;
             padding: 2px 6px;
             font-size: 13px;
+            color: var(--foreground);
             font-weight: 600;
             width: 120px;
         }
@@ -460,7 +662,7 @@
 
         .tab-header {
             display: flex;
-            border-bottom: 2px solid #e9ecef;
+            border-bottom: 2px solid var(--border);
             margin-bottom: 15px;
         }
 
@@ -470,20 +672,20 @@
             padding: 10px 16px;
             cursor: pointer;
             border-bottom: 2px solid transparent;
-            color: #6c757d;
+            color: var(--muted-foreground);
             font-weight: 500;
             transition: all 0.2s ease;
         }
 
         .tab-button:hover {
-            color: #495057;
-            background: #f8f9fa;
+            color: var(--foreground);
+            background: var(--muted);
         }
 
         .tab-button.active {
-            color: #007bff;
-            border-bottom-color: #007bff;
-            background: #f8f9fa;
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: var(--muted);
         }
 
         .tab-content {
@@ -495,9 +697,9 @@
         }
 
         .upload-section {
-            border: 2px dashed #ddd;
-            border-radius: 6px;
-            background: #fafafa;
+            border: 2px dashed var(--border);
+            border-radius: 0.5rem;
+            background: var(--muted);
             padding: 20px;
             text-align: center;
         }
@@ -529,23 +731,24 @@
         .file-input-button {
             display: inline-block;
             padding: 8px 16px;
-            background: #28a745;
-            color: white;
+            background: var(--success);
+            color: var(--primary-foreground);
             border: none;
-            border-radius: 4px;
+            border-radius: 0.375rem;
             cursor: pointer;
             font-weight: 500;
             font-size: 14px;
+            transition: all 0.2s;
         }
 
         .file-input-wrapper:hover .file-input-button {
-            background: #218838;
+            background: #059669;
         }
 
         .file-name-display {
             margin-top: 8px;
             font-size: 12px;
-            color: #666;
+            color: var(--muted-foreground);
             text-align: center;
             font-family: monospace;
         }
@@ -560,26 +763,18 @@
             width: 100%;
             height: 100px;
             padding: 12px;
-            border: 2px dashed #ddd;
-            border-radius: 6px;
+            border: 2px dashed var(--border);
+            border-radius: 0.5rem;
             font-family: monospace;
             resize: vertical;
-            background: #fafafa;
+            background: var(--input);
+            color: var(--foreground);
         }
 
-        .paste-section button {
-            padding: 10px 20px;
-            background: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: 500;
-            align-self: flex-start;
-        }
-
-        .paste-section button:hover {
-            background: #0056b3;
+        .paste-section textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgb(59 130 246 / 0.2);
         }
 
         .file-input-row {
@@ -595,15 +790,16 @@
 
         .file-input-row button {
             padding: 8px 16px;
-            background: #28a745;
-            color: white;
+            background: var(--success);
+            color: var(--primary-foreground);
             border: none;
-            border-radius: 4px;
+            border-radius: 0.375rem;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
         .file-input-row button:hover {
-            background: #218838;
+            background: #059669;
         }
 
         .file-preview {
@@ -1116,7 +1312,7 @@
                         <div id="paste-tab" class="tab-content">
                             <div class="paste-section">
                                 <textarea id="pasteData" placeholder="Paste your data here, one record per line..."></textarea>
-                                <button onclick="parseData()">Load Data</button>
+                                <button onclick="parseData()" class="volino-button-primary">Load Data</button>
                             </div>
                         </div>
                     </div>
@@ -1133,7 +1329,7 @@
                         <div id="add-label-tab" class="tab-content active">
                             <div class="label-input-row">
                                 <input type="text" id="labelInput" placeholder="Enter label name...">
-                                <button onclick="addLabel()">Add</button>
+                                <button onclick="addLabel()" class="volino-button-primary">Add</button>
                             </div>
                             <div class="labels-list" id="labelsList" style="margin-top: 10px;"></div>
                         </div>
@@ -1156,16 +1352,16 @@
             </div>
             <div class="workspace-content">
                 <div class="workspace-toolbar">
-                    <button onclick="labelAllUnlabeled()">Label All Unlabeled</button>
-                    <button onclick="clearAllLabels()" class="btn-danger">Clear All Labels</button>
+                    <button onclick="labelAllUnlabeled()" class="volino-button-outline">Label All Unlabeled</button>
+                    <button onclick="clearAllLabels()" class="volino-button-destructive">Clear All Labels</button>
                     
                     <div class="export-options">
                         <div class="checkbox-container">
                             <input type="checkbox" id="itemSchema" checked>
                             <label for="itemSchema" class="tooltip" id="itemSchemaLabel" onmouseenter="showTooltip(this, 'OpenAI custom schemas require records to be wrapped with {&quot;item&quot;: &lt;RECORD&gt; }. Checking this box will format your JSONL records appropriately')" onmouseleave="hideTooltip()">Item Schema?</label>
                         </div>
-                        <button onclick="exportJsonl()" class="btn-success">Export as JSONL</button>
-                        <span id="selectedCount" style="color: #6c757d; font-size: 14px;">0 rows selected</span>
+                        <button onclick="exportJsonl()" class="volino-button-primary">Export as JSONL</button>
+                        <span id="selectedCount" style="color: var(--muted-foreground); font-size: 14px;">0 rows selected</span>
                     </div>
                 </div>
                 <div class="table-section">
