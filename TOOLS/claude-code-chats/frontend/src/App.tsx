@@ -350,7 +350,7 @@ function App() {
     let exportContent = ''
 
     clearTextMessages.forEach((message) => {
-      const role = message.message?.role || 'unknown'
+      const role = (message.message?.role || 'unknown').toUpperCase()
       const content = renderMessageContent(message.message.content, true) // Use clear text only for export
 
       exportContent += `${role}:\n${content}\n\n`
