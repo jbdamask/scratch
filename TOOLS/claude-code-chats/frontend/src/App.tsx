@@ -151,7 +151,7 @@ function App() {
               // Search through messages in this file
               if (chatData.messages) {
                 chatData.messages.forEach((message: Message, messageIndex: number) => {
-                  const content = renderMessageContent(message.message.content)
+                  const content = renderMessageContent(message.message.content, true) // Use clear text only for search
                   const lowerContent = content.toLowerCase()
                   const lowerTerm = term.toLowerCase()
 
@@ -236,6 +236,11 @@ function App() {
   }
 
   const isMessageClearText = (message: Message) => {
+    // Check if message and message.message exist
+    if (!message || !message.message || !message.message.role) {
+      return false
+    }
+
     // Only show user and assistant messages
     if (message.message.role !== 'user' && message.message.role !== 'assistant') {
       return false
@@ -245,7 +250,7 @@ function App() {
 
     // Handle array content (tool use messages, etc.)
     if (Array.isArray(content)) {
-      // Check if any item in the array is clear text
+      // Check if any item in the array is clear text (even if there are also images)
       return content.some(item => {
         if (typeof item === 'object' && item.type === 'text' && item.text) {
           return item.text.length > 10 && item.text.includes(' ')
@@ -259,12 +264,25 @@ function App() {
       return false
     }
 
+    // Check for image-related content in string format - if it's purely image data, exclude
+    if ((content.includes('"type": "image"') ||
+        content.includes('base64') ||
+        content.includes('media_type') ||
+        content.includes('iVBORw0KGgo')) && // Common start of PNG base64
+        !content.includes(' ')) { // But if it has spaces, it might have text too
+      return false
+    }
+
     // If it's obviously JSON structure, exclude it
     if (content.trim().startsWith('{') && content.trim().endsWith('}')) {
       try {
         const parsed = JSON.parse(content)
         // If it successfully parses and looks like tool use or structured data, exclude it
         if (parsed.type === 'tool_use' || parsed.name || parsed.input) {
+          return false
+        }
+        // Check for image data in parsed JSON - exclude if it's purely image data
+        if (parsed.type === 'image' || (parsed.source && !parsed.text)) {
           return false
         }
       } catch (e) {
@@ -293,7 +311,7 @@ function App() {
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
   }
 
-  const renderMessageContent = (content: string | any[]) => {
+  const renderMessageContent = (content: string | any[], clearTextOnly: boolean = false) => {
     if (typeof content === 'string') {
       // Try to detect and pretty-print JSON
       try {
@@ -305,14 +323,49 @@ function App() {
       }
     }
     if (Array.isArray(content)) {
-      return content.map((item, index) => {
-        if (typeof item === 'object' && item.type === 'text') {
-          return item.text
-        }
-        return JSON.stringify(item, null, 2)
-      }).join(' ')
+      if (clearTextOnly) {
+        // Only return text items, skip images and other non-text content
+        return content
+          .filter(item => typeof item === 'object' && item.type === 'text')
+          .map(item => item.text)
+          .join(' ')
+      } else {
+        // Return everything (existing behavior)
+        return content.map((item, index) => {
+          if (typeof item === 'object' && item.type === 'text') {
+            return item.text
+          }
+          return JSON.stringify(item, null, 2)
+        }).join(' ')
+      }
     }
     return JSON.stringify(content, null, 2)
+  }
+
+  const exportClearTextMessages = () => {
+    if (!chatData || !selectedFile) return
+
+    const clearTextMessages = chatData.messages.filter(isMessageClearText)
+
+    let exportContent = ''
+
+    clearTextMessages.forEach((message) => {
+      const role = message.message?.role || 'unknown'
+      const content = renderMessageContent(message.message.content, true) // Use clear text only for export
+
+      exportContent += `${role}:\n${content}\n\n`
+    })
+
+    // Create and download the file
+    const blob = new Blob([exportContent], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${selectedFile.replace('.jsonl', '')}_clear_text.txt`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
   }
 
   const cardStyle = {
@@ -509,11 +562,11 @@ function App() {
                             borderRadius: '4px',
                             fontSize: '11px',
                             fontWeight: 'bold',
-                            ...(result.message.message.role === 'user'
+                            ...(result.message.message?.role === 'user'
                               ? {background: '#1e3a8a', color: '#93c5fd'}
                               : {background: '#064e3b', color: '#6ee7b7'})
                           }}>
-                            {result.message.message.role.toUpperCase()}
+                            {result.message.message?.role?.toUpperCase() || 'UNKNOWN'}
                           </span>
                         </div>
                         <p style={{
@@ -682,6 +735,30 @@ function App() {
                       }
                     </div>
                   )}
+                  <button
+                    onClick={exportClearTextMessages}
+                    style={{
+                      padding: '6px 12px',
+                      border: '1px solid #34d399',
+                      color: '#34d399',
+                      background: 'transparent',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      fontFamily: 'inherit'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = '#34d399';
+                      e.target.style.color = '#0f172a';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = 'transparent';
+                      e.target.style.color = '#34d399';
+                    }}
+                  >
+                    Export Clear Text
+                  </button>
                   <label style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -745,11 +822,11 @@ function App() {
                           borderRadius: '4px',
                           fontSize: '12px',
                           fontWeight: 'bold',
-                          ...(message.message.role === 'user'
+                          ...(message.message?.role === 'user'
                             ? {background: '#1e3a8a', color: '#93c5fd', border: '1px solid #1d4ed8'}
                             : {background: '#064e3b', color: '#6ee7b7', border: '1px solid #059669'})
                         }}>
-                          {message.message.role.toUpperCase()}
+                          {message.message?.role?.toUpperCase() || 'UNKNOWN'}
                         </span>
                         <span style={{fontSize: '12px', color: '#64748b'}}>
                           [{message.type}]
@@ -772,7 +849,7 @@ function App() {
                         margin: 0,
                         overflowX: 'auto'
                       }}>
-                        {renderMessageContent(message.message.content)}
+                        {renderMessageContent(message.message.content, showClearTextOnly)}
                       </pre>
                     </div>
                   </div>
