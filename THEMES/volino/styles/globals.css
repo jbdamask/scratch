@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles for Volino healthcare theme */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Improved focus styles for accessibility */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
+}
+
+@layer components {
+  /* Dashboard card pattern from Solutis design */
+  .volino-card {
+    @apply bg-card border border-border rounded-lg p-6 shadow-card transition-all duration-200 hover:shadow-md;
+  }
+
+  .volino-card-compact {
+    @apply bg-card border border-border rounded-lg p-4 shadow-card transition-all duration-200 hover:shadow-md;
+  }
+
+  /* Metric card for dashboard stats */
+  .volino-metric-card {
+    @apply volino-card text-center;
+  }
+
+  .volino-metric-value {
+    @apply text-3xl font-bold text-foreground;
+  }
+
+  .volino-metric-label {
+    @apply text-sm text-muted-foreground mt-1;
+  }
+
+  /* Input styling pattern */
+  .volino-input {
+    @apply flex h-10 w-full rounded-md border border-input bg-input px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /* Search input specific styling */
+  .volino-search {
+    @apply volino-input pl-9 bg-muted/50;
+  }
+
+  /* Button patterns from healthcare UI */
+  .volino-button {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .volino-button-primary {
+    @apply volino-button bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2;
+  }
+
+  .volino-button-secondary {
+    @apply volino-button bg-secondary text-secondary-foreground hover:bg-secondary/80 h-10 px-4 py-2;
+  }
+
+  .volino-button-outline {
+    @apply volino-button border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2;
+  }
+
+  .volino-button-ghost {
+    @apply volino-button hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2;
+  }
+
+  /* Sidebar styling */
+  .volino-sidebar {
+    @apply bg-sidebar border-r border-border;
+  }
+
+  .volino-sidebar-item {
+    @apply flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-active hover:text-sidebar-active-foreground;
+  }
+
+  .volino-sidebar-item-active {
+    @apply volino-sidebar-item bg-sidebar-active text-sidebar-active-foreground;
+  }
+
+  /* Table styling for medical data */
+  .volino-table {
+    @apply w-full border-collapse;
+  }
+
+  .volino-table-header {
+    @apply border-b border-border bg-muted/50;
+  }
+
+  .volino-table-header-cell {
+    @apply h-12 px-4 text-left align-middle font-medium text-muted-foreground;
+  }
+
+  .volino-table-row {
+    @apply border-b border-border transition-colors hover:bg-muted/50;
+  }
+
+  .volino-table-cell {
+    @apply p-4 align-middle;
+  }
+
+  /* Status badges for medical data */
+  .volino-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .volino-badge-success {
+    @apply volino-badge bg-success/10 text-success;
+  }
+
+  .volino-badge-warning {
+    @apply volino-badge bg-warning/10 text-warning;
+  }
+
+  .volino-badge-danger {
+    @apply volino-badge bg-danger/10 text-danger;
+  }
+
+  .volino-badge-info {
+    @apply volino-badge bg-info/10 text-info;
+  }
+
+  /* File/document item styling */
+  .volino-file-item {
+    @apply flex items-center gap-3 rounded-md p-3 transition-colors hover:bg-muted/50;
+  }
+
+  /* Lab value styling with color indicators */
+  .volino-lab-value {
+    @apply font-mono text-sm;
+  }
+
+  .volino-lab-normal {
+    @apply volino-lab-value text-success;
+  }
+
+  .volino-lab-borderline {
+    @apply volino-lab-value text-warning;
+  }
+
+  .volino-lab-abnormal {
+    @apply volino-lab-value text-danger;
+  }
+
+  /* Progress bar for lab ranges */
+  .volino-progress {
+    @apply h-2 w-full overflow-hidden rounded-full bg-secondary;
+  }
+
+  .volino-progress-indicator {
+    @apply h-full transition-all duration-300;
+  }
+
+  /* Chart container */
+  .volino-chart {
+    @apply rounded-lg border border-border bg-card p-4;
+  }
+
+  /* Loading spinner */
+  .volino-spinner {
+    @apply h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent;
+  }
+
+  /* Section headers */
+  .volino-section-header {
+    @apply text-lg font-semibold text-foreground mb-4 flex items-center gap-2;
+  }
+
+  /* Insights panel styling */
+  .volino-insights {
+    @apply space-y-4 rounded-lg border border-border bg-card p-6;
+  }
+
+  .volino-insight-item {
+    @apply rounded-md border border-border/50 p-4 text-sm;
+  }
+}

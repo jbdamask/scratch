@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volino Theme - Clean Modern UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.400.0/lucide.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        /* Volino Theme Colors and Styles */
+        :root {
+            --background: 248 250 252;
+            --foreground: 51 65 85;
+            --primary: 59 130 246;
+            --primary-foreground: 255 255 255;
+            --secondary: 226 232 240;
+            --secondary-foreground: 71 85 105;
+            --muted: 241 245 249;
+            --muted-foreground: 100 116 139;
+            --accent: 14 165 233;
+            --accent-foreground: 15 23 42;
+            --destructive: 239 68 68;
+            --destructive-foreground: 254 242 242;
+            --border: 226 232 240;
+            --input: 255 255 255;
+            --ring: 59 130 246;
+            --card: 255 255 255;
+            --card-foreground: 30 41 59;
+            --success: 16 185 129;
+            --warning: 245 158 11;
+            --danger: 239 68 68;
+            --info: 14 165 233;
+        }
+
+        body {
+            background-color: rgb(var(--background));
+            color: rgb(var(--foreground));
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        .volino-card {
+            background-color: rgb(var(--card));
+            border: 1px solid rgb(var(--border));
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            transition: all 0.2s;
+        }
+
+        .volino-card:hover {
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .volino-metric-card {
+            background-color: rgb(var(--card));
+            border: 1px solid rgb(var(--border));
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            text-align: center;
+        }
+
+        .volino-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            height: 2.5rem;
+            padding: 0.5rem 1rem;
+            background-color: rgb(var(--primary));
+            color: rgb(var(--primary-foreground));
+        }
+
+        .volino-button:hover {
+            background-color: rgb(var(--primary) / 0.9);
+        }
+
+        .volino-button-outline {
+            background-color: transparent;
+            border: 1px solid rgb(var(--border));
+            color: rgb(var(--foreground));
+        }
+
+        .volino-button-outline:hover {
+            background-color: rgb(var(--accent));
+            color: rgb(var(--accent-foreground));
+        }
+
+        .volino-input {
+            display: flex;
+            height: 2.5rem;
+            width: 100%;
+            border-radius: 0.375rem;
+            border: 1px solid rgb(var(--border));
+            background-color: rgb(var(--input));
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .volino-input:focus {
+            outline: none;
+            border-color: rgb(var(--ring));
+            box-shadow: 0 0 0 2px rgb(var(--ring) / 0.2);
+        }
+
+        .volino-badge {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 9999px;
+            padding: 0.125rem 0.625rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .volino-badge-success {
+            background-color: rgb(var(--success) / 0.1);
+            color: rgb(var(--success));
+        }
+
+        .volino-badge-warning {
+            background-color: rgb(var(--warning) / 0.1);
+            color: rgb(var(--warning));
+        }
+
+        .volino-badge-danger {
+            background-color: rgb(var(--danger) / 0.1);
+            color: rgb(var(--danger));
+        }
+
+        .volino-badge-info {
+            background-color: rgb(var(--info) / 0.1);
+            color: rgb(var(--info));
+        }
+
+        .sidebar {
+            background-color: rgb(var(--card));
+            border-right: 1px solid rgb(var(--border));
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-radius: 0.375rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: rgb(var(--muted-foreground));
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .sidebar-item:hover {
+            background-color: rgb(var(--muted));
+            color: rgb(var(--primary));
+        }
+
+        .sidebar-item.active {
+            background-color: rgb(var(--muted));
+            color: rgb(var(--primary));
+        }
+
+        .item-card {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: 1px solid rgb(var(--border));
+        }
+
+        .item-card:hover {
+            background-color: rgb(var(--muted) / 0.5);
+        }
+
+        .progress-bar {
+            height: 0.5rem;
+            width: 100%;
+            overflow: hidden;
+            border-radius: 9999px;
+            background-color: rgb(var(--secondary));
+        }
+
+        .progress-indicator {
+            height: 100%;
+            transition: all 0.3s;
+            border-radius: 9999px;
+            background-color: rgb(var(--primary));
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="sidebar w-64 p-4">
+            <div class="flex items-center gap-2 mb-8">
+                <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold">
+                    V
+                </div>
+                <span class="text-xl font-bold text-blue-500">Volino</span>
+            </div>
+
+            <nav class="space-y-2">
+                <div class="sidebar-item active">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    Dashboard
+                </div>
+                <div class="sidebar-item">
+                    <i data-lucide="folder" class="w-4 h-4"></i>
+                    Projects
+                </div>
+                <div class="sidebar-item">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                    Team
+                </div>
+                <div class="sidebar-item">
+                    <i data-lucide="bar-chart-3" class="w-4 h-4"></i>
+                    Analytics
+                </div>
+                <div class="sidebar-item">
+                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                    Documents
+                </div>
+                <div class="sidebar-item">
+                    <i data-lucide="calendar" class="w-4 h-4"></i>
+                    Calendar
+                </div>
+                <div class="sidebar-item">
+                    <i data-lucide="message-square" class="w-4 h-4"></i>
+                    Messages
+                </div>
+                <div class="sidebar-item">
+                    <i data-lucide="archive" class="w-4 h-4"></i>
+                    Archive
+                </div>
+            </nav>
+
+            <div class="mt-auto pt-8">
+                <div class="sidebar-item">
+                    <i data-lucide="settings" class="w-4 h-4"></i>
+                    Settings
+                </div>
+                <div class="sidebar-item">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                    Help
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-6">
+            <!-- Header -->
+            <header class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <h1 class="text-2xl font-bold">Dashboard</h1>
+                    <nav class="flex items-center gap-2 text-sm text-gray-500">
+                        <span>Overview</span>
+                    </nav>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div class="relative">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                        <input type="text" placeholder="Search anything..." class="volino-input pl-10 w-64">
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face"
+                             alt="User" class="w-8 h-8 rounded-full">
+                        <span class="text-sm font-medium">John Doe</span>
+                        <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    </div>
+
+                    <button class="p-2 rounded-lg hover:bg-gray-100">
+                        <i data-lucide="bell" class="w-4 h-4"></i>
+                    </button>
+
+                    <button class="volino-button">
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                        New Project
+                    </button>
+                </div>
+            </header>
+
+            <!-- Metric Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <div class="volino-metric-card">
+                    <div class="flex items-center justify-center mb-3">
+                        <i data-lucide="folder" class="w-8 h-8 text-blue-500"></i>
+                    </div>
+                    <div class="text-3xl font-bold mb-1">24</div>
+                    <div class="text-sm text-gray-500">Active Projects</div>
+                </div>
+
+                <div class="volino-metric-card">
+                    <div class="flex items-center justify-center mb-3">
+                        <i data-lucide="users" class="w-8 h-8 text-blue-500"></i>
+                    </div>
+                    <div class="text-3xl font-bold mb-1">12</div>
+                    <div class="text-sm text-gray-500">Team Members</div>
+                </div>
+
+                <div class="volino-metric-card">
+                    <div class="flex items-center justify-center mb-3">
+                        <i data-lucide="check-circle" class="w-8 h-8 text-green-500"></i>
+                    </div>
+                    <div class="text-3xl font-bold mb-1">89</div>
+                    <div class="text-sm text-gray-500">Tasks Completed</div>
+                </div>
+
+                <div class="volino-metric-card">
+                    <div class="flex items-center justify-center mb-3">
+                        <i data-lucide="trending-up" class="w-8 h-8 text-green-500"></i>
+                    </div>
+                    <div class="text-3xl font-bold mb-1">+12%</div>
+                    <div class="text-sm text-gray-500">Performance</div>
+                </div>
+            </div>
+
+            <!-- Main Dashboard Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                <!-- Recent Projects -->
+                <div class="lg:col-span-2">
+                    <div class="volino-card">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold flex items-center gap-2">
+                                <i data-lucide="folder" class="w-5 h-5"></i>
+                                Recent Projects
+                            </h3>
+                            <button class="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1">
+                                View all <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                            </button>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="item-card">
+                                <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="globe" class="w-5 h-5 text-blue-600"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium">Website Redesign</div>
+                                    <div class="text-sm text-gray-500">Design System & Frontend</div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="volino-badge-success">Active</span>
+                                    <div class="text-sm text-gray-500">85%</div>
+                                </div>
+                            </div>
+
+                            <div class="item-card">
+                                <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="smartphone" class="w-5 h-5 text-purple-600"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium">Mobile App</div>
+                                    <div class="text-sm text-gray-500">React Native Development</div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="volino-badge-warning">In Review</span>
+                                    <div class="text-sm text-gray-500">92%</div>
+                                </div>
+                            </div>
+
+                            <div class="item-card">
+                                <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                    <i data-lucide="database" class="w-5 h-5 text-green-600"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="font-medium">API Migration</div>
+                                    <div class="text-sm text-gray-500">Backend Infrastructure</div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="volino-badge-info">Planning</span>
+                                    <div class="text-sm text-gray-500">15%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Activity -->
+                <div class="volino-card">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold flex items-center gap-2">
+                            <i data-lucide="activity" class="w-5 h-5"></i>
+                            Team Activity
+                        </h3>
+                        <button class="text-sm text-blue-500 hover:text-blue-600 flex items-center gap-1">
+                            View all <i data-lucide="arrow-right" class="w-3 h-3"></i>
+                        </button>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3">
+                            <img src="https://images.unsplash.com/photo-1494790108755-2616b612b510?w=32&h=32&fit=crop&crop=face"
+                                 alt="Sarah" class="w-8 h-8 rounded-full">
+                            <div class="flex-1">
+                                <div class="text-sm">
+                                    <span class="font-medium">Sarah Johnson</span> completed the UI design for the homepage
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">2 hours ago</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=32&h=32&fit=crop&crop=face"
+                                 alt="Mike" class="w-8 h-8 rounded-full">
+                            <div class="flex-1">
+                                <div class="text-sm">
+                                    <span class="font-medium">Mike Chen</span> pushed 3 commits to the development branch
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">4 hours ago</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3">
+                            <img src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=32&h=32&fit=crop&crop=face"
+                                 alt="Emma" class="w-8 h-8 rounded-full">
+                            <div class="flex-1">
+                                <div class="text-sm">
+                                    <span class="font-medium">Emma Davis</span> updated the project timeline
+                                </div>
+                                <div class="text-xs text-gray-500 mt-1">6 hours ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Overview and Quick Actions -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Progress Overview -->
+                <div class="volino-card">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold flex items-center gap-2">
+                            <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+                            Progress Overview
+                        </h3>
+                        <button class="text-sm text-blue-500 hover:text-blue-600">View Details</button>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium">Website Redesign</span>
+                                <span class="text-sm text-gray-500">85%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-indicator" style="width: 85%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium">Mobile App</span>
+                                <span class="text-sm text-gray-500">92%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-indicator" style="width: 92%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium">API Migration</span>
+                                <span class="text-sm text-gray-500">15%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-indicator" style="width: 15%"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm font-medium">Documentation</span>
+                                <span class="text-sm text-gray-500">68%</span>
+                            </div>
+                            <div class="progress-bar">
+                                <div class="progress-indicator" style="width: 68%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="volino-card">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold flex items-center gap-2">
+                            <i data-lucide="zap" class="w-5 h-5"></i>
+                            Quick Actions
+                        </h3>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mb-6">
+                        <button class="volino-button">
+                            <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                            New Task
+                        </button>
+                        <button class="volino-button-outline">
+                            <i data-lucide="users" class="w-4 h-4 mr-2"></i>
+                            Invite Team
+                        </button>
+                        <button class="volino-button-outline">
+                            <i data-lucide="upload" class="w-4 h-4 mr-2"></i>
+                            Upload Files
+                        </button>
+                        <button class="volino-button-outline">
+                            <i data-lucide="calendar" class="w-4 h-4 mr-2"></i>
+                            Schedule
+                        </button>
+                    </div>
+
+                    <!-- Component Showcase -->
+                    <div class="space-y-4">
+                        <div class="flex gap-2 flex-wrap">
+                            <span class="volino-badge-success">Active</span>
+                            <span class="volino-badge-warning">Pending</span>
+                            <span class="volino-badge-danger">Overdue</span>
+                            <span class="volino-badge-info">Draft</span>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <input type="text" placeholder="Search projects..." class="volino-input flex-1">
+                            <button class="volino-button">
+                                <i data-lucide="search" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Simple interactivity
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+
+        // Simulate loading states
+        document.querySelectorAll('.volino-button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const originalText = this.innerHTML;
+                this.innerHTML = '<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>Loading...';
+                this.disabled = true;
+
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                    lucide.createIcons();
+                }, 1500);
+            });
+        });
+
+        // Animate progress bars on load
+        window.addEventListener('load', function() {
+            document.querySelectorAll('.progress-indicator').forEach(bar => {
+                const width = bar.style.width;
+                bar.style.width = '0%';
+                setTimeout(() => {
+                    bar.style.width = width;
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>

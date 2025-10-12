@@ -4,297 +4,291 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Text Select & Extract</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.400.0/lucide.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        /* Volino Theme Colors */
+        :root {
+            --background: 248 250 252;
+            --foreground: 51 65 85;
+            --primary: 59 130 246;
+            --primary-foreground: 255 255 255;
+            --secondary: 226 232 240;
+            --secondary-foreground: 71 85 105;
+            --muted: 241 245 249;
+            --muted-foreground: 100 116 139;
+            --accent: 14 165 233;
+            --accent-foreground: 15 23 42;
+            --destructive: 239 68 68;
+            --destructive-foreground: 254 242 242;
+            --border: 226 232 240;
+            --input: 255 255 255;
+            --ring: 59 130 246;
+            --card: 255 255 255;
+            --card-foreground: 30 41 59;
+            --success: 16 185 129;
+            --warning: 245 158 11;
+            --danger: 239 68 68;
+            --info: 14 165 233;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
+            background-color: rgb(var(--background));
+            color: rgb(var(--foreground));
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
 
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            display: flex;
+        .volino-card {
+            background-color: rgb(var(--card));
+            border: 1px solid rgb(var(--border));
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .volino-button {
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
-        }
-
-        .header h1 {
-            font-size: 24px;
-            font-weight: 300;
-        }
-
-        .file-input-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .file-input {
-            padding: 8px 15px;
+            justify-content: center;
+            white-space: nowrap;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            height: 2.5rem;
+            padding: 0.5rem 1rem;
+            background-color: rgb(var(--primary));
+            color: rgb(var(--primary-foreground));
             border: none;
-            border-radius: 5px;
-            background: rgba(255,255,255,0.2);
-            color: white;
             cursor: pointer;
-            transition: background 0.3s;
         }
 
-        .file-input:hover {
-            background: rgba(255,255,255,0.3);
+        .volino-button:hover:not(:disabled) {
+            background-color: rgb(var(--primary) / 0.9);
         }
 
-        .file-input::file-selector-button {
-            background: rgba(255,255,255,0.3);
-            border: none;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 3px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-
-        .export-btn {
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: background 0.3s;
-        }
-
-        .export-btn:hover {
-            background: #45a049;
-        }
-
-        .export-btn:disabled {
-            background: #ccc;
+        .volino-button:disabled {
+            background-color: rgb(var(--muted));
+            color: rgb(var(--muted-foreground));
             cursor: not-allowed;
         }
 
-        .main-container {
+        .volino-button-success {
+            background-color: rgb(var(--success));
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            height: 2.5rem;
+            padding: 0.5rem 1rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        }
+
+        .volino-button-success:hover:not(:disabled) {
+            background-color: rgb(var(--success) / 0.9);
+            box-shadow: 0 2px 4px 0 rgb(0 0 0 / 0.1);
+        }
+
+        .volino-button-success:disabled {
+            background-color: rgb(var(--muted));
+            color: rgb(var(--muted-foreground));
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .volino-button-danger {
+            background-color: rgb(var(--danger));
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            padding: 0;
+            font-size: 14px;
+        }
+
+        .volino-button-danger:hover:not(:disabled) {
+            background-color: rgb(var(--danger) / 0.9);
+        }
+
+        .volino-input {
             display: flex;
-            flex: 1;
-            padding: 10px;
-            overflow: hidden;
+            height: 2.5rem;
+            width: 100%;
+            border-radius: 0.375rem;
+            border: 1px solid rgb(var(--border));
+            background-color: rgb(var(--input));
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
         }
 
-        .panel {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            overflow: hidden;
+        .volino-input:focus {
+            outline: none;
+            border-color: rgb(var(--ring));
+            box-shadow: 0 0 0 2px rgb(var(--ring) / 0.2);
         }
 
-        .left-panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 200px;
-        }
-
-        .splitter {
-            width: 6px;
-            background: #e9ecef;
-            cursor: col-resize;
-            position: relative;
-            transition: background 0.2s;
-        }
-
-        .splitter:hover {
-            background: #667eea;
-        }
-
-        .splitter::before {
-            content: '';
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 2px;
-            height: 30px;
-            background: #adb5bd;
-            border-radius: 1px;
-        }
-
-        .splitter:hover::before {
-            background: white;
-        }
-
-        .right-panel {
-            width: 350px;
-            display: flex;
-            flex-direction: column;
-            min-width: 200px;
+        .header {
+            background-color: rgb(var(--card));
+            border-bottom: 1px solid rgb(var(--border));
+            box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(var(--border) / 0.1);
         }
 
         .panel-header {
-            background: #f8f9fa;
-            padding: 15px;
-            border-bottom: 1px solid #e9ecef;
+            background-color: rgb(var(--muted));
+            border-bottom: 1px solid rgb(var(--border));
+            color: rgb(var(--card-foreground));
             font-weight: 600;
-            color: #495057;
         }
 
-        .file-content {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            line-height: 1.6;
-            font-size: 14px;
-            color: #333;
-            user-select: text;
+        .splitter {
+            background-color: rgb(var(--border));
+            transition: background-color 0.2s;
         }
 
-        .file-content.empty {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #aaa;
-            font-style: italic;
+        .splitter:hover {
+            background-color: rgb(var(--primary));
         }
 
-        .extracted-text {
-            flex: 1;
-            overflow-y: auto;
+        .splitter::before {
+            background-color: rgb(var(--muted-foreground));
+        }
+
+        .splitter:hover::before {
+            background-color: white;
         }
 
         .text-item {
-            padding: 12px 15px;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 10px;
-            transition: background 0.2s;
+            border-bottom: 1px solid rgb(var(--border));
+            transition: background-color 0.2s;
         }
 
         .text-item:hover {
-            background: #f8f9fa;
-        }
-
-        .text-content {
-            flex: 1;
-            word-wrap: break-word;
-            font-size: 13px;
-            line-height: 1.4;
-        }
-
-        .remove-btn {
-            background: #dc3545;
-            color: white;
-            border: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            transition: background 0.2s;
-        }
-
-        .remove-btn:hover {
-            background: #c82333;
-        }
-
-        .empty-state {
-            padding: 40px 20px;
-            text-align: center;
-            color: #aaa;
-            font-style: italic;
+            background-color: rgb(var(--muted) / 0.5);
         }
 
         .selection-highlight {
-            background-color: #fff3cd !important;
+            background-color: rgb(var(--warning) / 0.3) !important;
             transition: background-color 0.3s;
+        }
+
+        .status-message {
+            background-color: rgb(var(--success) / 0.1);
+            border: 1px solid rgb(var(--success) / 0.3);
+            color: rgb(var(--success));
+            border-radius: 0.375rem;
+        }
+
+        .empty-state {
+            color: rgb(var(--muted-foreground));
+        }
+
+        .file-content.empty {
+            color: rgb(var(--muted-foreground));
         }
 
         .markdown-content h1, .markdown-content h2, .markdown-content h3,
         .markdown-content h4, .markdown-content h5, .markdown-content h6 {
-            margin: 20px 0 10px 0;
-            color: #2c3e50;
-        }
-
-        .markdown-content p {
-            margin: 10px 0;
-        }
-
-        .markdown-content ul, .markdown-content ol {
-            margin: 10px 0;
-            padding-left: 20px;
+            color: rgb(var(--card-foreground));
         }
 
         .markdown-content code {
-            background: #f4f4f4;
-            padding: 2px 4px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
+            background-color: rgb(var(--muted));
+            border-radius: 0.25rem;
         }
 
         .markdown-content pre {
-            background: #f4f4f4;
-            padding: 10px;
-            border-radius: 5px;
-            overflow-x: auto;
-            margin: 10px 0;
+            background-color: rgb(var(--muted));
+            border-radius: 0.375rem;
         }
 
-        .status-message {
-            padding: 10px 15px;
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
-            border-radius: 4px;
-            color: #155724;
-            margin: 10px 20px;
-            font-size: 12px;
+        /* Custom file input styling */
+        .file-input {
+            color: rgb(var(--muted-foreground));
+        }
+
+        .file-input::file-selector-button {
+            background-color: rgb(var(--secondary));
+            border: 1px solid rgb(var(--border));
+            color: rgb(var(--secondary-foreground));
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            margin-right: 0.75rem;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .file-input::file-selector-button:hover {
+            background-color: rgb(var(--accent));
+            color: rgb(var(--accent-foreground));
         }
     </style>
 </head>
-<body>
-    <div class="header">
-        <h1>Text Select & Extract</h1>
-        <div class="file-input-container">
+<body class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <div class="header px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold">
+                <i data-lucide="file-text" class="w-5 h-5"></i>
+            </div>
+            <h1 class="text-2xl font-bold text-blue-500">Text Select & Extract</h1>
+        </div>
+        <div class="flex items-center gap-4">
             <input type="file" id="fileInput" class="file-input" accept=".txt,.md,.pdf" />
-            <button id="exportBtn" class="export-btn" disabled>Export Selected Text</button>
+            <button id="exportBtn" class="volino-button-success" disabled>
+                <i data-lucide="download" class="w-4 h-4 mr-2"></i>
+                Export Selected Text
+            </button>
         </div>
     </div>
 
-    <div class="main-container" id="mainContainer">
-        <div class="panel left-panel" id="leftPanel">
-            <div class="panel-header">Document Viewer</div>
-            <div id="fileContent" class="file-content empty">
-                Select a file (.txt, .md, or .pdf) to display its content here
+    <!-- Main Container -->
+    <div class="flex flex-1 p-4 gap-1 overflow-hidden" id="mainContainer">
+        <!-- Left Panel -->
+        <div class="volino-card flex flex-col min-w-0" id="leftPanel" style="flex: 1;">
+            <div class="panel-header px-4 py-3 flex items-center gap-2">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
+                Document Viewer
+            </div>
+            <div id="fileContent" class="flex-1 p-5 overflow-y-auto leading-relaxed text-sm empty">
+                <div class="flex flex-col items-center justify-center h-full text-center empty-state">
+                    <i data-lucide="file-plus" class="w-12 h-12 mb-4 text-gray-300"></i>
+                    <p class="text-lg font-medium mb-2">No document loaded</p>
+                    <p class="text-sm">Select a file (.txt, .md, or .pdf) to display its content here</p>
+                </div>
             </div>
         </div>
 
-        <div class="splitter" id="splitter"></div>
+        <!-- Splitter -->
+        <div class="splitter w-1.5 cursor-col-resize relative" id="splitter">
+            <div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-0.5 h-8 rounded-full splitter::before"></div>
+        </div>
 
-        <div class="panel right-panel" id="rightPanel">
-            <div class="panel-header">Extracted Text</div>
-            <div id="extractedText" class="extracted-text">
-                <div class="empty-state">
-                    Selected text will appear here.<br>
-                    <small>Select text in the document and press spacebar to extract it.</small>
+        <!-- Right Panel -->
+        <div class="volino-card flex flex-col w-80 min-w-0" id="rightPanel">
+            <div class="panel-header px-4 py-3 flex items-center gap-2">
+                <i data-lucide="clipboard-list" class="w-4 h-4"></i>
+                Extracted Text
+            </div>
+            <div id="extractedText" class="flex-1 overflow-y-auto">
+                <div class="p-8 text-center empty-state">
+                    <i data-lucide="mouse-pointer-click" class="w-12 h-12 mb-4 text-gray-300 mx-auto"></i>
+                    <p class="font-medium mb-2">No text extracted yet</p>
+                    <p class="text-sm">Select text in the document and press <kbd class="px-2 py-1 bg-gray-100 rounded text-xs font-mono">spacebar</kbd> to extract it.</p>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.2/marked.min.js"></script>
     <script>
@@ -305,9 +299,15 @@
                 this.extractedText = document.getElementById('extractedText');
                 this.exportBtn = document.getElementById('exportBtn');
                 this.selectedTexts = [];
-                
+
                 this.initializeEventListeners();
                 this.initializeSplitter();
+                this.initializeIcons();
+            }
+
+            initializeIcons() {
+                // Initialize Lucide icons
+                lucide.createIcons();
             }
 
             initializeEventListeners() {
@@ -321,7 +321,7 @@
                 const leftPanel = document.getElementById('leftPanel');
                 const rightPanel = document.getElementById('rightPanel');
                 const mainContainer = document.getElementById('mainContainer');
-                
+
                 let isResizing = false;
                 let startX = 0;
                 let startLeftWidth = 0;
@@ -332,10 +332,10 @@
                     startX = e.clientX;
                     startLeftWidth = leftPanel.offsetWidth;
                     startRightWidth = rightPanel.offsetWidth;
-                    
+
                     document.body.style.cursor = 'col-resize';
                     document.body.style.userSelect = 'none';
-                    
+
                     e.preventDefault();
                 });
 
@@ -344,18 +344,15 @@
 
                     const deltaX = e.clientX - startX;
                     const containerWidth = mainContainer.offsetWidth - 6; // subtract splitter width
-                    
+
                     const newLeftWidth = startLeftWidth + deltaX;
                     const newRightWidth = startRightWidth - deltaX;
-                    
+
                     // Enforce minimum widths
                     if (newLeftWidth >= 200 && newRightWidth >= 200) {
-                        const leftPercentage = (newLeftWidth / containerWidth) * 100;
-                        const rightWidth = containerWidth - newLeftWidth;
-                        
                         leftPanel.style.flex = 'none';
                         leftPanel.style.width = `${newLeftWidth}px`;
-                        rightPanel.style.width = `${rightWidth}px`;
+                        rightPanel.style.width = `${newRightWidth}px`;
                     }
                 });
 
@@ -373,11 +370,11 @@
                 if (!file) return;
 
                 const fileType = file.name.split('.').pop().toLowerCase();
-                this.fileContent.className = 'file-content';
+                this.fileContent.className = 'flex-1 p-5 overflow-y-auto leading-relaxed text-sm';
 
                 try {
                     let content = '';
-                    
+
                     if (fileType === 'pdf') {
                         content = await this.readPdfFile(file);
                     } else if (fileType === 'md') {
@@ -392,7 +389,11 @@
                     this.fileContent.innerHTML = content;
                     this.showStatusMessage(`${file.name} loaded successfully`);
                 } catch (error) {
-                    this.fileContent.innerHTML = `<div style="color: red;">Error loading file: ${error.message}</div>`;
+                    this.fileContent.innerHTML = `<div class="text-red-500 text-center p-8">
+                        <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-2"></i>
+                        <p>Error loading file: ${error.message}</p>
+                    </div>`;
+                    this.initializeIcons();
                 }
             }
 
@@ -418,7 +419,7 @@
                                 const page = await pdf.getPage(i);
                                 const textContent = await page.getTextContent();
                                 const pageText = textContent.items.map(item => item.str).join(' ');
-                                fullText += `<h3>Page ${i}</h3><p>${pageText}</p><br>`;
+                                fullText += `<h3 class="text-lg font-semibold mt-6 mb-3 text-blue-600">Page ${i}</h3><p class="mb-4">${pageText}</p>`;
                             }
 
                             resolve(fullText);
@@ -461,9 +462,9 @@
                 const range = selection.getRangeAt(0);
                 try {
                     const span = document.createElement('span');
-                    span.className = 'selection-highlight';
+                    span.className = 'selection-highlight px-1 rounded';
                     range.surroundContents(span);
-                    
+
                     setTimeout(() => {
                         if (span.parentNode) {
                             span.outerHTML = span.innerHTML;
@@ -483,21 +484,21 @@
                 this.selectedTexts.push({ id: textId, text: text });
 
                 const textItem = document.createElement('div');
-                textItem.className = 'text-item';
-                
+                textItem.className = 'text-item p-3 flex justify-between items-start gap-3';
+
                 const textContent = document.createElement('div');
-                textContent.className = 'text-content';
+                textContent.className = 'flex-1 text-sm leading-relaxed break-words';
                 textContent.textContent = text;
-                
+
                 const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-btn';
+                removeBtn.className = 'volino-button-danger flex-shrink-0';
                 removeBtn.innerHTML = '&times;';
                 removeBtn.addEventListener('click', () => this.removeText(textId));
-                
+
                 textItem.appendChild(textContent);
                 textItem.appendChild(removeBtn);
                 this.extractedText.appendChild(textItem);
-                
+
                 this.updateExportButton();
                 this.showStatusMessage('Text extracted successfully');
             }
@@ -511,26 +512,28 @@
             renderExtractedTexts() {
                 if (this.selectedTexts.length === 0) {
                     this.extractedText.innerHTML = `
-                        <div class="empty-state">
-                            Selected text will appear here.<br>
-                            <small>Select text in the document and press spacebar to extract it.</small>
+                        <div class="p-8 text-center empty-state">
+                            <i data-lucide="mouse-pointer-click" class="w-12 h-12 mb-4 text-gray-300 mx-auto"></i>
+                            <p class="font-medium mb-2">No text extracted yet</p>
+                            <p class="text-sm">Select text in the document and press <kbd class="px-2 py-1 bg-gray-100 rounded text-xs font-mono">spacebar</kbd> to extract it.</p>
                         </div>
                     `;
+                    this.initializeIcons();
                 } else {
                     this.extractedText.innerHTML = '';
                     this.selectedTexts.forEach(item => {
                         const textItem = document.createElement('div');
-                        textItem.className = 'text-item';
-                        
+                        textItem.className = 'text-item p-3 flex justify-between items-start gap-3';
+
                         const textContent = document.createElement('div');
-                        textContent.className = 'text-content';
+                        textContent.className = 'flex-1 text-sm leading-relaxed break-words';
                         textContent.textContent = item.text;
-                        
+
                         const removeBtn = document.createElement('button');
-                        removeBtn.className = 'remove-btn';
+                        removeBtn.className = 'volino-button-danger flex-shrink-0';
                         removeBtn.innerHTML = '&times;';
                         removeBtn.addEventListener('click', () => this.removeText(item.id));
-                        
+
                         textItem.appendChild(textContent);
                         textItem.appendChild(removeBtn);
                         this.extractedText.appendChild(textItem);
@@ -548,7 +551,7 @@
                 const allText = this.selectedTexts.map(item => item.text).join('\n\n');
                 const blob = new Blob([allText], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
-                
+
                 const a = document.createElement('a');
                 a.href = url;
                 a.download = 'extracted-text.txt';
@@ -567,10 +570,14 @@
                 }
 
                 const statusDiv = document.createElement('div');
-                statusDiv.className = 'status-message';
-                statusDiv.textContent = message;
-                
+                statusDiv.className = 'status-message p-3 m-4 rounded-lg text-sm flex items-center gap-2';
+                statusDiv.innerHTML = `
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                    ${message}
+                `;
+
                 this.fileContent.parentNode.insertBefore(statusDiv, this.fileContent);
+                this.initializeIcons();
 
                 setTimeout(() => {
                     if (statusDiv.parentNode) {

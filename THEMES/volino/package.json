@@ -1,0 +1,34 @@
+{
+  "name": "@johnthemes/volino",
+  "version": "1.0.0",
+  "description": "Clean, modern UI theme with professional blue accents and light design",
+  "main": "index.js",
+  "files": [
+    "tailwind.preset.js",
+    "styles/",
+    "components/",
+    "tokens.js"
+  ],
+  "keywords": [
+    "theme",
+    "tailwind",
+    "modern",
+    "professional",
+    "dashboard",
+    "design-system",
+    "clean",
+    "volino"
+  ],
+  "peerDependencies": {
+    "tailwindcss": "^3.4.0",
+    "react": "^18.0.0",
+    "@types/react": "^18.0.0"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.0.0",
+    "@radix-ui/react-slot": "^1.0.0",
+    "lucide-react": "^0.400.0"
+  }
+}

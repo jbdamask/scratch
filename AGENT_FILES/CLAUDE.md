@@ -37,3 +37,7 @@
 - Use theme components: import { Button, Card } from '@johnthemes/[theme-name]'
 - Apply theme classes: bg-background text-foreground
 - NOTE: If symlink resolution issues occur, copy theme components to src/components/ui/ and create local utils.ts
+
+## Tips about yourself
+- If the user asks you about a prior chat, you can search json files in ~/.claude/projects to find it
+
