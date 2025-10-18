@@ -481,7 +481,12 @@ function App() {
 
           {selectedFile && (
             <div style={{color: '#94a3b8'}}>
-              <span style={{color: '#34d399'}}>File:</span> {selectedFile}
+              <div style={{marginBottom: '4px'}}>
+                <span style={{color: '#34d399'}}>Project:</span> {selectedProject}
+              </div>
+              <div>
+                <span style={{color: '#34d399'}}>File:</span> {selectedFile}
+              </div>
             </div>
           )}
         </header>
