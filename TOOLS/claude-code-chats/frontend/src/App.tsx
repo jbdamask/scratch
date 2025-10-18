@@ -56,10 +56,23 @@ function App() {
   const [isSearching, setIsSearching] = useState(false)
   const [showSearchResults, setShowSearchResults] = useState(false)
   const [showClearTextOnly, setShowClearTextOnly] = useState(true)
+  const [hoverImage, setHoverImage] = useState<{url: string, index: number, x: number, y: number} | null>(null)
+  const [clickedImage, setClickedImage] = useState<{url: string, index: number} | null>(null)
 
   useEffect(() => {
     fetchProjects()
   }, [])
+
+  // Handle escape key to close full-size image popup
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && clickedImage) {
+        setClickedImage(null)
+      }
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [clickedImage])
 
   const fetchProjects = async () => {
     setLoading(true)
@@ -311,6 +324,91 @@ function App() {
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
   }
 
+  // Extract image data URLs from message content
+  const extractImagesFromContent = (content: string | any[]): string[] => {
+    const images: string[] = []
+
+    if (Array.isArray(content)) {
+      content.forEach(item => {
+        if (typeof item === 'object' && item.type === 'image' && item.source) {
+          const mediaType = item.source.media_type || 'image/png'
+          const data = item.source.data
+          if (data) {
+            images.push(`data:${mediaType};base64,${data}`)
+          }
+        }
+      })
+    }
+
+    return images
+  }
+
+  // Parse text and hyperlink [Image #N] placeholders with hover
+  const hyperlinkImagePlaceholders = (text: string, images: string[]) => {
+    // Match [Image #N] pattern
+    const imagePattern = /\[Image #(\d+)\]/g
+    const parts = []
+    let lastIndex = 0
+    let match
+
+    while ((match = imagePattern.exec(text)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index))
+      }
+
+      // Add hyperlinked image placeholder
+      const imageNumber = parseInt(match[1], 10)
+      const imageUrl = images[imageNumber - 1] // Arrays are 0-indexed
+
+      if (imageUrl) {
+        parts.push(
+          <a
+            key={`img-${match.index}`}
+            href="#"
+            onMouseEnter={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              setHoverImage({
+                url: imageUrl,
+                index: imageNumber,
+                x: rect.left + rect.width / 2,
+                y: rect.top
+              })
+            }}
+            onMouseLeave={() => {
+              setHoverImage(null)
+            }}
+            onClick={(e) => {
+              e.preventDefault()
+              setClickedImage({ url: imageUrl, index: imageNumber })
+              setHoverImage(null) // Hide hover preview when clicking
+            }}
+            style={{
+              color: '#34d399',
+              textDecoration: 'underline',
+              cursor: 'pointer',
+              position: 'relative'
+            }}
+          >
+            {match[0]}
+          </a>
+        )
+      } else {
+        // Image not found, just add the placeholder text
+        parts.push(match[0])
+      }
+
+      lastIndex = match.index + match[0].length
+    }
+
+    // Add remaining text
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex))
+    }
+
+    return parts.length > 0 ? parts : text
+  }
+
   const renderMessageContent = (content: string | any[], clearTextOnly: boolean = false) => {
     if (typeof content === 'string') {
       // Try to detect and pretty-print JSON
@@ -340,6 +438,22 @@ function App() {
       }
     }
     return JSON.stringify(content, null, 2)
+  }
+
+  // Render message content with hyperlinked image placeholders
+  const renderMessageContentWithImageLinks = (content: string | any[], clearTextOnly: boolean = false) => {
+    // First extract images from the full content
+    const images = extractImagesFromContent(content)
+
+    // Render the text content
+    const textContent = renderMessageContent(content, clearTextOnly)
+
+    // If we have images and the text is a string, hyperlink the placeholders
+    if (images.length > 0 && typeof textContent === 'string') {
+      return hyperlinkImagePlaceholders(textContent, images)
+    }
+
+    return textContent
   }
 
   const exportClearTextMessages = () => {
@@ -854,7 +968,7 @@ function App() {
                         margin: 0,
                         overflowX: 'auto'
                       }}>
-                        {message.message?.content ? renderMessageContent(message.message.content, showClearTextOnly) : '[Invalid message]'}
+                        {message.message?.content ? renderMessageContentWithImageLinks(message.message.content, showClearTextOnly) : '[Invalid message]'}
                       </pre>
                     </div>
                   </div>
@@ -864,6 +978,149 @@ function App() {
           </div>
         )}
       </div>
+
+      {/* Image Hover Popup */}
+      {hoverImage && !clickedImage && (
+        <div
+          style={{
+            position: 'fixed',
+            left: `${hoverImage.x}px`,
+            top: `${hoverImage.y}px`,
+            transform: 'translate(-50%, -100%)',
+            zIndex: 1000,
+            pointerEvents: 'none',
+            marginTop: '-10px'
+          }}
+        >
+          <div
+            style={{
+              background: '#1e293b',
+              border: '2px solid #34d399',
+              borderRadius: '8px',
+              padding: '8px',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.8)'
+            }}
+          >
+            {/* Image label */}
+            <div
+              style={{
+                color: '#34d399',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                fontFamily: 'JetBrains Mono, Consolas, Monaco, Courier New, monospace',
+                marginBottom: '4px',
+                textAlign: 'center'
+              }}
+            >
+              Image #{hoverImage.index}
+            </div>
+
+            {/* Image */}
+            <img
+              src={hoverImage.url}
+              alt={`Image ${hoverImage.index}`}
+              style={{
+                maxWidth: '400px',
+                maxHeight: '300px',
+                objectFit: 'contain',
+                display: 'block',
+                borderRadius: '4px'
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Full-Size Click Popup Modal */}
+      {clickedImage && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.9)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2000,
+            padding: '20px'
+          }}
+          onClick={() => setClickedImage(null)}
+        >
+          <div
+            style={{
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setClickedImage(null)}
+              style={{
+                position: 'absolute',
+                top: '-40px',
+                right: '0',
+                background: '#34d399',
+                color: '#0f172a',
+                border: 'none',
+                borderRadius: '4px',
+                width: '32px',
+                height: '32px',
+                fontSize: '20px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold',
+                transition: 'all 0.2s'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = '#10b981'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = '#34d399'
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Image label */}
+            <div
+              style={{
+                position: 'absolute',
+                top: '-40px',
+                left: '0',
+                color: '#34d399',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                fontFamily: 'JetBrains Mono, Consolas, Monaco, Courier New, monospace'
+              }}
+            >
+              Image #{clickedImage.index}
+            </div>
+
+            {/* Image */}
+            <img
+              src={clickedImage.url}
+              alt={`Image ${clickedImage.index}`}
+              style={{
+                maxWidth: '100%',
+                maxHeight: '90vh',
+                objectFit: 'contain',
+                border: '2px solid #34d399',
+                borderRadius: '4px'
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
