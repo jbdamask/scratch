@@ -849,7 +849,7 @@ function App() {
                         margin: 0,
                         overflowX: 'auto'
                       }}>
-                        {renderMessageContent(message.message.content, showClearTextOnly)}
+                        {message.message?.content ? renderMessageContent(message.message.content, showClearTextOnly) : '[Invalid message]'}
                       </pre>
                     </div>
                   </div>
