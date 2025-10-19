@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LangFuse Trace Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #60a5fa;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+        }
+
+        .trace-counter {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        .trace-card {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            border: 1px solid #334155;
+        }
+
+        .trace-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #334155;
+        }
+
+        .trace-id {
+            font-size: 12px;
+            color: #64748b;
+            font-family: 'Courier New', monospace;
+        }
+
+        .trace-timestamp {
+            font-size: 12px;
+            color: #64748b;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #60a5fa;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .content-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 16px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #e2e8f0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .comment-area {
+            width: 100%;
+            min-height: 100px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 16px;
+            color: #e2e8f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 14px;
+            resize: vertical;
+        }
+
+        .comment-area:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .save-section {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #334155;
+        }
+
+        .save-controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 10px 16px;
+            color: #e2e8f0;
+            font-size: 14px;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        .save-button {
+            background: #10b981;
+        }
+
+        .save-button:hover {
+            background: #059669;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #64748b;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>LangFuse Trace Viewer</h1>
+            <div class="controls">
+                <button id="prevBtn" onclick="navigateTrace(-1)">← Previous</button>
+                <button id="nextBtn" onclick="navigateTrace(1)">Next →</button>
+                <span class="trace-counter" id="counter">No traces loaded</span>
+            </div>
+        </header>
+
+        <div id="traceContainer"></div>
+
+        <div class="save-section">
+            <h2 style="margin-bottom: 15px; font-size: 18px;">Save Annotated Traces</h2>
+            <div class="save-controls">
+                <input type="text" id="filename" placeholder="Enter filename (e.g., annotated_traces.json)" value="annotated_traces.json">
+                <button class="save-button" onclick="saveAnnotations()">Save to File</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Placeholder for trace data - will be populated by Python script
+        let traces = TRACES_DATA_PLACEHOLDER;
+        let currentIndex = 0;
+        let annotations = {};
+
+        function initializeAnnotations() {
+            traces.forEach(trace => {
+                if (!annotations[trace.id]) {
+                    annotations[trace.id] = {
+                        comments: ''
+                    };
+                }
+            });
+        }
+
+        function extractUserInput(trace) {
+            // Try to find user input from trace.input or from observations
+            if (trace.input) {
+                return JSON.stringify(trace.input, null, 2);
+            }
+
+            // Look for user input in observations
+            for (let obs of trace.observations || []) {
+                if (obs.input && obs.type === 'GENERATION') {
+                    return JSON.stringify(obs.input, null, 2);
+                }
+            }
+
+            return 'No input found';
+        }
+
+        function extractLLMOutput(trace) {
+            // Try to find LLM output from trace.output or from observations
+            if (trace.output) {
+                return JSON.stringify(trace.output, null, 2);
+            }
+
+            // Look for output in observations
+            for (let obs of trace.observations || []) {
+                if (obs.output && obs.type === 'GENERATION') {
+                    return JSON.stringify(obs.output, null, 2);
+                }
+            }
+
+            return 'No output found';
+        }
+
+        function renderTrace() {
+            const container = document.getElementById('traceContainer');
+
+            if (traces.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <h2>No Traces Available</h2>
+                        <p>Run the Python script to fetch traces from LangFuse</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const trace = traces[currentIndex];
+            const userInput = extractUserInput(trace);
+            const llmOutput = extractLLMOutput(trace);
+
+            container.innerHTML = `
+                <div class="trace-card">
+                    <div class="trace-header">
+                        <div class="trace-id">ID: ${trace.id}</div>
+                        <div class="trace-timestamp">${trace.timestamp || 'No timestamp'}</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">User Input</div>
+                        <div class="content-box">${userInput}</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">LLM Output</div>
+                        <div class="content-box">${llmOutput}</div>
+                    </div>
+
+                    <div class="section">
+                        <div class="section-title">Comments</div>
+                        <textarea
+                            class="comment-area"
+                            placeholder="Add your comments about this trace..."
+                            onchange="saveComment(this.value)"
+                        >${annotations[trace.id]?.comments || ''}</textarea>
+                    </div>
+                </div>
+            `;
+
+            updateControls();
+        }
+
+        function updateControls() {
+            document.getElementById('prevBtn').disabled = currentIndex === 0;
+            document.getElementById('nextBtn').disabled = currentIndex === traces.length - 1;
+            document.getElementById('counter').textContent =
+                traces.length > 0 ? `Trace ${currentIndex + 1} of ${traces.length}` : 'No traces loaded';
+        }
+
+        function navigateTrace(direction) {
+            const newIndex = currentIndex + direction;
+            if (newIndex >= 0 && newIndex < traces.length) {
+                currentIndex = newIndex;
+                renderTrace();
+            }
+        }
+
+        function saveComment(comment) {
+            const trace = traces[currentIndex];
+            annotations[trace.id].comments = comment;
+        }
+
+        function saveAnnotations() {
+            const exportData = traces.map(trace => ({
+                trace_id: trace.id,
+                timestamp: trace.timestamp,
+                user_input: extractUserInput(trace),
+                llm_output: extractLLMOutput(trace),
+                comments: annotations[trace.id]?.comments || ''
+            }));
+
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = document.getElementById('filename').value || 'annotated_traces.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            alert('Annotations saved successfully!');
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') navigateTrace(-1);
+            if (e.key === 'ArrowRight') navigateTrace(1);
+        });
+
+        // Initialize on load
+        window.onload = function() {
+            initializeAnnotations();
+            renderTrace();
+        };
+    </script>
+</body>
+</html>
