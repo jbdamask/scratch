@@ -5,6 +5,7 @@ import os
 import json
 import socket
 from datetime import datetime
+from openai import OpenAI
 
 load_dotenv(override=False)
 
@@ -759,6 +760,67 @@ app, rt = fast_app(
                 color: var(--foreground);
             }
 
+            /* Markdown styles in chat bubbles */
+            .chat-bubble.bot p {
+                margin-bottom: 0.5rem;
+            }
+            .chat-bubble.bot p:last-child {
+                margin-bottom: 0;
+            }
+            .chat-bubble.bot h1, .chat-bubble.bot h2, .chat-bubble.bot h3 {
+                color: var(--primary-accent);
+                margin-top: 0.75rem;
+                margin-bottom: 0.5rem;
+                font-weight: 600;
+            }
+            .chat-bubble.bot h1 { font-size: 1.1rem; }
+            .chat-bubble.bot h2 { font-size: 1rem; }
+            .chat-bubble.bot h3 { font-size: 0.9rem; }
+            .chat-bubble.bot code {
+                background: var(--background);
+                padding: 0.125rem 0.375rem;
+                border-radius: 0.25rem;
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+                font-size: 0.8rem;
+                color: hsl(212, 96.4%, 78.4%);
+            }
+            .chat-bubble.bot pre {
+                background: var(--background);
+                padding: 0.75rem;
+                border-radius: 0.375rem;
+                overflow-x: auto;
+                margin: 0.5rem 0;
+                border: 1px solid var(--border);
+            }
+            .chat-bubble.bot pre code {
+                background: none;
+                padding: 0;
+            }
+            .chat-bubble.bot ul, .chat-bubble.bot ol {
+                margin-left: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+            .chat-bubble.bot li {
+                margin-bottom: 0.25rem;
+            }
+            .chat-bubble.bot blockquote {
+                border-left: 3px solid var(--primary-accent);
+                padding-left: 0.75rem;
+                margin: 0.5rem 0;
+                color: hsl(215, 20.2%, 65.1%);
+            }
+            .chat-bubble.bot a {
+                color: var(--primary-accent);
+                text-decoration: none;
+            }
+            .chat-bubble.bot a:hover {
+                text-decoration: underline;
+            }
+            .chat-bubble.bot strong {
+                font-weight: 600;
+                color: var(--primary);
+            }
+
             .chat-input-container {
                 padding: 1rem;
                 background: var(--dark-tremor-background-muted);
@@ -1187,8 +1249,9 @@ def get():
                     }
                 }
 
-                function sendChatMessage() {
+                async function sendChatMessage() {
                     const input = document.getElementById('chat-input');
+                    const sendBtn = document.getElementById('chat-send');
                     const message = input.value.trim();
 
                     if (!message) return;
@@ -1196,14 +1259,39 @@ def get():
                     // Add user message to chat
                     addChatMessage(message, 'user');
 
-                    // Clear input
+                    // Clear input and disable send button
                     input.value = '';
+                    sendBtn.disabled = true;
+                    input.disabled = true;
 
-                    // TODO: Send message to backend and get response
-                    // For now, just show a placeholder response
-                    setTimeout(() => {
-                        addChatMessage('I am ready to help you analyze your traces. (AI not yet connected)', 'bot');
-                    }, 500);
+                    // Send message to backend
+                    try {
+                        const response = await fetch('/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                            },
+                            body: new URLSearchParams({
+                                'message': message
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (data.success) {
+                            addChatMessage(data.response, 'bot');
+                        } else {
+                            addChatMessage('Error: ' + (data.error || 'Unknown error occurred'), 'bot');
+                        }
+                    } catch (error) {
+                        addChatMessage('Failed to send message. Please try again.', 'bot');
+                        console.error('Chat error:', error);
+                    } finally {
+                        // Re-enable input and send button
+                        sendBtn.disabled = false;
+                        input.disabled = false;
+                        input.focus();
+                    }
                 }
 
                 function addChatMessage(message, sender) {
@@ -1221,7 +1309,13 @@ def get():
 
                     const bubble = document.createElement('div');
                     bubble.className = `chat-bubble ${sender}`;
-                    bubble.textContent = message;
+
+                    // Render markdown for bot messages, plain text for user messages
+                    if (sender === 'bot' && typeof marked !== 'undefined') {
+                        bubble.innerHTML = marked.parse(message);
+                    } else {
+                        bubble.textContent = message;
+                    }
 
                     messageDiv.appendChild(bubble);
                     messagesContainer.appendChild(messageDiv);
@@ -1704,6 +1798,82 @@ def post():
         return Div(f"Saved {len(export_data)} annotated traces to {filename}", cls="message success")
     except Exception as e:
         return Div(f"Error saving: {str(e)}", cls="message error")
+
+@rt('/chat')
+async def post(message: str = ""):
+    """Handle chat messages with OpenAI API"""
+    try:
+        if not message.strip():
+            return json.dumps({"error": "Message cannot be empty"})
+
+        # Initialize OpenAI client
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+        # Build context from traces and comments
+        traces_context = ""
+        if traces:
+            traces_context = "\n\n# LOADED TRACES AND COMMENTS\n\n"
+            traces_context += f"You have access to {len(traces)} traces. Below is the data:\n\n"
+
+            for idx, trace in enumerate(traces):
+                trace_id = trace['id']
+                trace_name = trace.get('name', 'litellm_request')
+                user_input = extract_user_input(trace, as_json=False)
+                llm_output = extract_llm_output(trace, as_json=False)
+                user_comment = annotations.get(trace_id, '')
+
+                traces_context += f"## Trace {idx + 1}\n"
+                traces_context += f"**ID:** {trace_id}\n"
+                traces_context += f"**Name:** {trace_name}\n"
+                traces_context += f"**Timestamp:** {trace['timestamp']}\n"
+                traces_context += f"**User Input:**\n{user_input[:500]}{'...' if len(user_input) > 500 else ''}\n\n"
+                traces_context += f"**LLM Output:**\n{llm_output[:500]}{'...' if len(llm_output) > 500 else ''}\n\n"
+
+                if user_comment:
+                    traces_context += f"**User Comment:**\n{user_comment}\n\n"
+
+                traces_context += "---\n\n"
+
+        # System message for the chatbot
+        system_message = """You are a helpful assistant specialized in analyzing AI application traces. You answer questions related to the loaded traces, user comments, and help categorize failures, identify patterns, and provide insights.
+
+Your capabilities include:
+- Analyzing trace data (inputs, outputs, timestamps)
+- Reviewing and categorizing user comments
+- Identifying patterns across multiple traces
+- Suggesting failure mode categories
+- Providing summaries and insights
+
+If asked to discuss topics unrelated to the traces or AI/LLM analysis, politely redirect the user back to trace analysis."""
+
+        # Add traces context to system message if available
+        if traces_context:
+            system_message += traces_context
+
+        # Call OpenAI API
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": message}
+            ],
+            temperature=0.7,
+            max_tokens=1500
+        )
+
+        # Extract the response message
+        assistant_message = response.choices[0].message.content
+
+        return json.dumps({
+            "response": assistant_message,
+            "success": True
+        })
+
+    except Exception as e:
+        return json.dumps({
+            "error": str(e),
+            "success": False
+        })
 
 def is_port_in_use(port):
     """Check if a port is already in use"""
