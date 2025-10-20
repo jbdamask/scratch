@@ -996,7 +996,7 @@ def render_tree_node(key, value, path="", depth=0):
         )
 
 def extract_user_input(trace, as_json=True):
-    """Extract user input from trace data"""
+    """Extract user input from trace data (excluding system messages)"""
     data = None
     if trace.get('input'):
         data = trace['input']
@@ -1019,7 +1019,9 @@ def extract_user_input(trace, as_json=True):
             text_parts = []
             for msg in data['messages']:
                 if isinstance(msg, dict) and 'content' in msg:
-                    text_parts.append(msg['content'])
+                    # Skip system messages - they are shown separately
+                    if msg.get('role') != 'system':
+                        text_parts.append(msg['content'])
             return '\n\n'.join(text_parts) if text_parts else json.dumps(data, indent=2)
         elif 'prompt' in data:
             return data['prompt']
@@ -1029,6 +1031,65 @@ def extract_user_input(trace, as_json=True):
         return data
 
     return json.dumps(data, indent=2)
+
+def extract_system_prompt(trace, as_json=True):
+    """Extract system prompt from trace data"""
+    system_content = None
+
+    # Look in observations metadata.attributes (Langfuse stores it there)
+    for obs in trace.get('observations', []):
+        if obs.get('metadata') and obs['metadata'].get('attributes'):
+            attributes = obs['metadata']['attributes']
+            # Look for pattern: llm.input_messages.{N}.message.role = "system"
+            # and get corresponding llm.input_messages.{N}.message.content
+            for key, value in attributes.items():
+                if key.endswith('.message.role') and value == 'system':
+                    # Extract the index and get the content
+                    # Key format: llm.input_messages.0.message.role
+                    content_key = key.replace('.role', '.content')
+                    system_content = attributes.get(content_key)
+                    if system_content:
+                        break
+            if system_content:
+                break
+
+    # If not found in observations metadata, try trace-level metadata
+    if not system_content:
+        metadata = trace.get('metadata', {})
+        if metadata:
+            for key, value in metadata.items():
+                if key.endswith('.message.role') and value == 'system':
+                    content_key = key.replace('.role', '.content')
+                    system_content = metadata.get(content_key)
+                    if system_content:
+                        break
+
+    # If still not found, try the input/observations input field approach
+    if not system_content:
+        data = trace.get('input')
+
+        # If not found, check observations input
+        if not data:
+            for obs in trace.get('observations', []):
+                if obs.get('input') and obs.get('type') == 'GENERATION':
+                    data = obs['input']
+                    break
+
+        if data:
+            # Extract system message from messages array
+            if isinstance(data, dict) and 'messages' in data and isinstance(data['messages'], list):
+                for msg in data['messages']:
+                    if isinstance(msg, dict) and msg.get('role') == 'system':
+                        system_content = msg.get('content')
+                        break
+
+    if system_content is None:
+        return None
+
+    if as_json:
+        return json.dumps({'role': 'system', 'content': system_content}, indent=2)
+
+    return system_content
 
 def extract_llm_output(trace, as_json=True):
     """Extract LLM output from trace data"""
@@ -1091,10 +1152,11 @@ def get():
                                 Input(type="number", name="limit", id="limit", value="50", min="1", max="100"),
                                 cls="form-group"
                             ),
-                            Button("Fetch Traces", type="submit"),
+                            Button("Fetch Traces", type="submit", id="fetch-traces-btn"),
                             hx_post="/fetch",
                             hx_target="#main-content",
                             hx_swap="innerHTML",
+                            hx_indicator="#fetch-traces-btn",
                         ),
                     ),
                     id="left-sidebar",
@@ -1323,6 +1385,27 @@ def get():
                     // Scroll to bottom
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 }
+
+                // Disable fetch button on submit and re-enable after response
+                document.addEventListener('htmx:beforeRequest', function(evt) {
+                    if (evt.detail.target.id === 'main-content') {
+                        const fetchBtn = document.getElementById('fetch-traces-btn');
+                        if (fetchBtn && evt.detail.elt.contains(fetchBtn)) {
+                            fetchBtn.disabled = true;
+                            fetchBtn.textContent = 'Fetching...';
+                        }
+                    }
+                });
+
+                document.addEventListener('htmx:afterSwap', function(evt) {
+                    if (evt.detail.target.id === 'main-content') {
+                        const fetchBtn = document.getElementById('fetch-traces-btn');
+                        if (fetchBtn) {
+                            fetchBtn.disabled = false;
+                            fetchBtn.textContent = 'Fetch Traces';
+                        }
+                    }
+                });
             """)
         )
     )
@@ -1392,6 +1475,7 @@ async def post(limit: int = 10):
                         "type": obs.type,
                         "input": obs.input,
                         "output": obs.output,
+                        "metadata": obs.metadata if hasattr(obs, 'metadata') else None,
                     })
 
                 if len(obs_response.data) < 100:
@@ -1477,6 +1561,7 @@ def get(index: int, view: str = "formatted"):
         return Div("Trace not found", cls="message error")
 
     trace = traces[index]
+    system_prompt_text = extract_system_prompt(trace, as_json=False)
     user_input_text = extract_user_input(trace, as_json=False)
     llm_output_text = extract_llm_output(trace, as_json=False)
 
@@ -1519,6 +1604,38 @@ def get(index: int, view: str = "formatted"):
             Div(
                 Div("Trace ID", cls="section-title"),
                 Div(trace['id'], cls="trace-id", style="margin-bottom: 15px;"),
+                cls="section"
+            ),
+            Div(
+                Div(
+                    Div(
+                        Div("System Prompt", cls="section-title"),
+                        Span("📋", cls="copy-icon", id=f"copy-system-{index}",
+                             onclick=f"copyToClipboard('system-text-{index}', 'copy-system-{index}')"),
+                        cls="section-header"
+                    ),
+                    Button("JSON" if view == "formatted" else "Formatted",
+                           hx_get=f"/trace-detail/{index}?view={'json' if view == 'formatted' else 'formatted'}",
+                           hx_target="#side-panel",
+                           hx_swap="innerHTML",
+                           cls="toggle-view"),
+                ),
+                Div(
+                    id=f"system-content-{index}",
+                    cls="formatted-view",
+                    **{"data-content": system_prompt_text or "No system prompt found", "data-text-id": f"system-text-{index}"}
+                ) if view == "formatted" else Div(
+                    extract_system_prompt(trace, as_json=True) or "No system prompt found",
+                    cls="content-box",
+                    id=f"system-text-{index}"
+                ),
+                Script(f"""
+                    if (document.getElementById('system-content-{index}')) {{
+                        const content = document.getElementById('system-content-{index}').getAttribute('data-content');
+                        document.getElementById('system-content-{index}').innerHTML = marked.parse(content);
+                        document.getElementById('system-content-{index}').setAttribute('id', 'system-text-{index}');
+                    }}
+                """) if view == "formatted" else None,
                 cls="section"
             ),
             Div(
