@@ -119,17 +119,21 @@ function App() {
   }
 
   const connectSSE = (baseUrl) => {
-    if (!baseUrl) return
-    
+    if (!baseUrl) {
+      console.error('⚠️ Cannot connect SSE: baseUrl is null or undefined')
+      return
+    }
+
     // Close existing connection
     if (eventSource) {
+      console.log('🔌 Closing existing SSE connection')
       eventSource.close()
     }
-    
-    console.log('🔗 Connecting to SSE stream...')
+
+    console.log(`🔗 Connecting to SSE stream at: ${baseUrl}/events`)
     const es = new EventSource(`${baseUrl}/events`)
     setEventSource(es)
-    
+
     es.addEventListener('progress', (event) => {
       const data = JSON.parse(event.data)
       console.log('📊 Progress update via SSE:', data)
@@ -140,7 +144,7 @@ function App() {
         progress_percent: data.progress_percent
       }))
     })
-    
+
     es.addEventListener('completed', (event) => {
       const data = JSON.parse(event.data)
       console.log('✅ Processing completed via SSE:', data)
@@ -150,7 +154,7 @@ function App() {
       es.close() // Close SSE connection
       setEventSource(null)
     })
-    
+
     es.addEventListener('status', (event) => {
       const status = JSON.parse(event.data)
       console.log('📊 Status update via SSE:', status)
@@ -161,13 +165,27 @@ function App() {
         progress_percent: status.progress_percent || 0
       })
     })
-    
+
+    es.addEventListener('open', (event) => {
+      console.log('✅ SSE connection opened successfully')
+    })
+
     es.onerror = (event) => {
       console.error('❌ SSE connection error:', event)
-      es.close()
-      setEventSource(null)
+      console.error(`❌ Failed SSE URL: ${baseUrl}/events`)
+      console.error(`❌ EventSource readyState: ${es.readyState}`) // 0 = CONNECTING, 1 = OPEN, 2 = CLOSED
+
+      // Don't close immediately - browser will retry automatically
+      // Only close if we're in CLOSED state
+      if (es.readyState === EventSource.CLOSED) {
+        console.log('🔌 SSE connection closed, cleaning up')
+        setEventSource(null)
+        setError('Lost connection to server. Please try again.')
+        setLoading(false)
+        setCurrentVideo(null)
+      }
     }
-    
+
     return es
   }
 
@@ -175,31 +193,48 @@ function App() {
   const findBackendUrl = async () => {
     const ports = [5000, 5001, 5002, 5003, 5004, 5005, 5006, 5007, 5008, 5009]
     console.log('🔍 Searching for backend server...')
-    
+
+    const errors = [] // Track all errors for debugging
+
     for (const port of ports) {
       try {
         console.log(`🌐 Trying port ${port}...`)
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 1000)
+
         const response = await fetch(`http://localhost:${port}/health`, {
           method: 'GET',
-          signal: AbortSignal.timeout(1000)
+          signal: controller.signal
         })
+
+        clearTimeout(timeoutId)
         console.log(`📡 Port ${port} response:`, response.status, response.statusText)
-        
+
         // Check if the health endpoint returns JSON
         const contentType = response.headers.get('content-type')
+        console.log(`📄 Port ${port} Content-Type:`, contentType)
+
         if (response.ok && contentType && contentType.includes('application/json')) {
           const healthData = await response.json()
+          console.log(`📋 Port ${port} health data:`, healthData)
+
           if (healthData.status === 'healthy') {
             console.log(`✅ Found backend server at http://localhost:${port}`)
             return `http://localhost:${port}`
           }
+        } else {
+          errors.push(`Port ${port}: Status ${response.status}, Content-Type: ${contentType}`)
         }
       } catch (error) {
-        console.log(`❌ Port ${port} failed:`, error.message)
+        const errorMsg = error.name === 'AbortError' ? 'Timeout' : error.message
+        console.log(`❌ Port ${port} failed: ${errorMsg}`)
+        errors.push(`Port ${port}: ${errorMsg}`)
         continue
       }
     }
+
     console.error('🚫 Backend server not found on any port')
+    console.error('🔍 Debug info - All errors:', errors)
     throw new Error('Backend server not found on any port')
   }
 

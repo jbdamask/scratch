@@ -9,6 +9,8 @@ import time
 import requests
 import subprocess
 import atexit
+import signal
+import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from flask import Flask, request, jsonify, Response
@@ -23,11 +25,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
+# Allow all localhost origins for development
 CORS(app, resources={
     r"/*": {
-        "origins": ["http://localhost:5173", "http://127.0.0.1:5173"],
+        "origins": "*",  # Allow all origins in development
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"]
+        "allow_headers": ["Content-Type", "Cache-Control"],
+        "expose_headers": ["Content-Type", "Cache-Control"],
+        "supports_credentials": False
     }
 })
 
@@ -139,22 +144,42 @@ def start_ollama_instances():
 def stop_ollama_instances():
     """Stop all Ollama instances"""
     global ollama_processes, ollama_ports
-    
+
+    if not ollama_processes:
+        return
+
     logger.info("Stopping Ollama instances...")
-    
+    print("\n🛑 Shutting down Ollama instances...")
+
     for process in ollama_processes:
         try:
-            process.terminate()
-            process.wait(timeout=5)
-            logger.info(f"Stopped Ollama process (PID: {process.pid})")
-        except subprocess.TimeoutExpired:
-            process.kill()
-            logger.warning(f"Force killed Ollama process (PID: {process.pid})")
+            if process.poll() is None:  # Check if process is still running
+                # Kill the entire process group since we used start_new_session=True
+                try:
+                    os.killpg(os.getpgid(process.pid), signal.SIGTERM)
+                    logger.info(f"Sent SIGTERM to Ollama process group (PID: {process.pid})")
+                except ProcessLookupError:
+                    # Process already terminated
+                    pass
+
+                # Wait for graceful shutdown
+                try:
+                    process.wait(timeout=5)
+                    logger.info(f"Stopped Ollama process (PID: {process.pid})")
+                except subprocess.TimeoutExpired:
+                    # Force kill if it doesn't terminate
+                    try:
+                        os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+                        logger.warning(f"Force killed Ollama process group (PID: {process.pid})")
+                    except ProcessLookupError:
+                        pass
+                    process.wait()
         except Exception as e:
             logger.error(f"Error stopping Ollama process: {str(e)}")
-    
+
     ollama_processes.clear()
     ollama_ports.clear()
+    print("✅ All Ollama instances stopped")
 
 def extract_paragraphs_from_pdf(pdf_file):
     """Extract paragraphs from PDF file"""
@@ -621,10 +646,22 @@ def health():
     logger.info(f"Health check from {request.remote_addr}")
     return jsonify({'status': 'healthy'})
 
+def signal_handler(signum, frame):
+    """Handle termination signals"""
+    signal_name = 'SIGINT' if signum == signal.SIGINT else 'SIGTERM'
+    logger.info(f"Received {signal_name}, shutting down...")
+    print(f"\n🛑 Received {signal_name}, shutting down...")
+    stop_ollama_instances()
+    sys.exit(0)
+
 if __name__ == '__main__':
+    # Register signal handlers for graceful shutdown
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     # Register cleanup function
     atexit.register(stop_ollama_instances)
-    
+
     # Start Ollama instances
     try:
         start_ollama_instances()
@@ -651,12 +688,9 @@ if __name__ == '__main__':
     if port != 5000:
         print(f"Note: Default port 5000 was in use, using port {port} instead")
         print(f"Update frontend to use: http://localhost:{port}/upload")
-    
+
     try:
         app.run(debug=False, host='0.0.0.0', port=port)  # Set debug=False to avoid reloader issues
-    except KeyboardInterrupt:
-        print("\n🛑 Shutting down...")
-        stop_ollama_instances()
     except Exception as e:
         logger.error(f"Flask server error: {str(e)}")
         stop_ollama_instances()
