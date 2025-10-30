@@ -4,7 +4,7 @@ from datetime import datetime
 from agents import Agent, ItemHelpers, MessageOutputItem, Runner, add_trace_processor, trace, WebSearchTool, ModelSettings
 from agents.tracing.processors import BatchTraceProcessor
 from utils import FileSpanExporter, output_file, load_prompt
-from tools import scrape_page, write_markdown
+from tools import scrape_page, write_markdown, classify_risk
 
 """
 This example shows the agents-as-tools pattern. The frontline agent receives a user message and
@@ -14,7 +14,7 @@ then picks which agents to call, as tools.
 
 add_trace_processor(BatchTraceProcessor(FileSpanExporter()))
 
-default_model = "gpt-5"
+default_model = "gpt-4.1-mini"
 
 # Get current date for prompt substitution
 today_date = datetime.now().strftime("%Y%m%d")
@@ -22,7 +22,7 @@ today_date = datetime.now().strftime("%Y%m%d")
 policy_police_single_agent = Agent(
     name="policy_police_single_agent",
     instructions=load_prompt("policy_police_single_agent_v2.md", today_date=today_date),
-    tools=[scrape_page, WebSearchTool(), write_markdown],
+    tools=[scrape_page, WebSearchTool(), write_markdown, classify_risk],
     model=default_model,
     model_settings=ModelSettings(parallel_tool_calls=False, max_turns=20),
 )

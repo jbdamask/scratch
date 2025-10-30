@@ -338,6 +338,19 @@ def scrape_and_save(vendor, url: str) -> str:
     except Exception as e:
         return f"Error scraping {url}: {e}"
 
+@function_tool
+def classify_risk(input: str) -> str:
+    """Classify the risk of a given input."""
+    CLASSIFIER_PROMPT_PATH = Path(__file__).parent / "prompts" / "classifier.md"
+    with open(CLASSIFIER_PROMPT_PATH, "r", encoding="utf-8") as f:
+        classifier_instructions = f.read()
+    client = OpenAI()
+    resp = client.responses.create(
+        model="gpt-4.1-mini",
+        instructions=classifier_instructions,
+        input=input,
+    )
+    return json.dumps({"risk": resp.risk})
 
 # Public interface -----------------------------------------------------------
 
@@ -348,4 +361,5 @@ __all__ = [
     "list_output_files",
     "read_file",
     "scrape_page",
+    "classify_risk",
 ] 

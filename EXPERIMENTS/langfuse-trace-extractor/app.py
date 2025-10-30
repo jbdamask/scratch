@@ -3,6 +3,7 @@ from langfuse import Langfuse
 from dotenv import load_dotenv
 import os
 import json
+import re
 import socket
 from datetime import datetime
 from openai import OpenAI
@@ -1342,6 +1343,29 @@ def get():
 
                         if (data.success) {
                             addChatMessage(data.response, 'bot');
+
+                            // Check if any traces were modified and refresh the detail panel if needed
+                            if (data.modified_trace_ids && data.modified_trace_ids.length > 0) {
+                                const panel = document.getElementById('side-panel');
+                                if (panel && panel.classList.contains('open')) {
+                                    const currentIndex = parseInt(panel.getAttribute('data-current-index'));
+                                    if (!isNaN(currentIndex)) {
+                                        // Get the trace ID for the currently displayed trace
+                                        const currentTraceId = panel.getAttribute('data-trace-id');
+
+                                        // If the current trace was modified, refresh the panel
+                                        if (currentTraceId && data.modified_trace_ids.includes(currentTraceId)) {
+                                            // Trigger HTMX to refresh the panel
+                                            const currentView = panel.getAttribute('data-view') || 'formatted';
+                                            fetch(`/trace-detail/${currentIndex}?view=${currentView}`)
+                                                .then(res => res.text())
+                                                .then(html => {
+                                                    panel.innerHTML = html;
+                                                });
+                                        }
+                                    }
+                                }
+                            }
                         } else {
                             addChatMessage('Error: ' + (data.error || 'Unknown error occurred'), 'bot');
                         }
@@ -1807,8 +1831,11 @@ def get(index: int, view: str = "formatted"):
                     }});
                 }}
 
-                // Store current index in the panel element for keyboard navigation
-                document.getElementById('side-panel').setAttribute('data-current-index', '{index}');
+                // Store current index, trace ID, and view in the panel element for keyboard navigation and refresh
+                const panel = document.getElementById('side-panel');
+                panel.setAttribute('data-current-index', '{index}');
+                panel.setAttribute('data-trace-id', '{trace['id']}');
+                panel.setAttribute('data-view', '{view}');
             """),
             cls="panel-content"
         ),
@@ -1918,7 +1945,7 @@ def post():
 
 @rt('/chat')
 async def post(message: str = ""):
-    """Handle chat messages with OpenAI API"""
+    """Handle chat messages with OpenAI Responses API"""
     try:
         if not message.strip():
             return json.dumps({"error": "Message cannot be empty"})
@@ -1951,8 +1978,8 @@ async def post(message: str = ""):
 
                 traces_context += "---\n\n"
 
-        # System message for the chatbot
-        system_message = """You are a helpful assistant specialized in analyzing AI application traces. You answer questions related to the loaded traces, user comments, and help categorize failures, identify patterns, and provide insights.
+        # System instructions for the chatbot
+        system_instructions = """You are a helpful assistant specialized in analyzing AI application traces. You answer questions related to the loaded traces, user comments, and help categorize failures, identify patterns, and provide insights.
 
 Your capabilities include:
 - Analyzing trace data (inputs, outputs, timestamps)
@@ -1960,30 +1987,99 @@ Your capabilities include:
 - Identifying patterns across multiple traces
 - Suggesting failure mode categories
 - Providing summaries and insights
+- Adding comments to trace records
+
+When asked to add comments to traces, you should respond with a special JSON block followed by your explanation.
+Format your response like this:
+
+```TRACE_ACTIONS
+[
+  {
+    "action": "append_comment",
+    "trace_id": "the-trace-id-here",
+    "comment": "The comment to add"
+  }
+]
+```
+
+Then provide your natural language response to the user.
 
 If asked to discuss topics unrelated to the traces or AI/LLM analysis, politely redirect the user back to trace analysis."""
 
-        # Add traces context to system message if available
+        # Build the full input by combining system instructions, context, and user message
+        full_input = system_instructions
         if traces_context:
-            system_message += traces_context
+            full_input += traces_context
+        full_input += f"\n\nUser: {message}\n\nAssistant:"
 
-        # Call OpenAI API
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": message}
-            ],
-            temperature=0.7,
-            max_tokens=1500
+        # Log the prompt being sent to the API
+        print("\n" + "="*80)
+        print("PROMPT SENT TO RESPONSES API:")
+        print("="*80)
+        print(full_input)
+        print("="*80)
+        print(f"Input length: {len(full_input)} characters")
+        print("="*80 + "\n")
+
+        # Call OpenAI Responses API
+        response = client.responses.create(
+            model="gpt-5",
+            input=full_input,
+            reasoning={"effort": "low"}
         )
 
-        # Extract the response message
-        assistant_message = response.choices[0].message.content
+        # Extract the response text
+        assistant_message = response.output_text
+
+        # Log the response received from the API
+        print("\n" + "="*80)
+        print("RESPONSE FROM API:")
+        print("="*80)
+        print(assistant_message)
+        print("="*80)
+        print(f"Response length: {len(assistant_message)} characters")
+        print("="*80 + "\n")
+
+        # Track which traces were modified
+        modified_trace_ids = []
+
+        # Parse the response for trace actions
+        action_pattern = r'```TRACE_ACTIONS\s*(\[.*?\])\s*```'
+        action_match = re.search(action_pattern, assistant_message, re.DOTALL)
+
+        if action_match:
+            try:
+                actions = json.loads(action_match.group(1))
+
+                # Execute each action
+                for action in actions:
+                    if action.get("action") == "append_comment":
+                        trace_id = action.get("trace_id")
+                        comment = action.get("comment")
+
+                        # Find the trace and append the comment
+                        for trace in traces:
+                            if trace['id'] == trace_id:
+                                current_comment = annotations.get(trace_id, '')
+                                # Append with a separator if there's existing content
+                                if current_comment.strip():
+                                    annotations[trace_id] = current_comment + "\n\n[AI Assistant]\n" + comment
+                                else:
+                                    annotations[trace_id] = "[AI Assistant]\n" + comment
+                                modified_trace_ids.append(trace_id)
+                                break
+
+                # Remove the JSON block from the response
+                assistant_message = re.sub(action_pattern, '', assistant_message, flags=re.DOTALL).strip()
+
+            except json.JSONDecodeError:
+                # If we can't parse the actions, just continue with the original message
+                pass
 
         return json.dumps({
             "response": assistant_message,
-            "success": True
+            "success": True,
+            "modified_trace_ids": modified_trace_ids
         })
 
     except Exception as e:
