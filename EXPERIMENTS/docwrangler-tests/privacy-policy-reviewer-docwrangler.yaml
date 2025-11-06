@@ -66,20 +66,15 @@ operations:
       Ensure the output is a single structured JSON object, not broken into
       multiple items. Pay special attention to escaping quotes within the
       excerpt to maintain JSON validity.
+  - type: unnest
+    name: Unnest It
+    unnest_key: data_ownership_excerpts
   - type: code_filter
-    name: Untitled Code Filter 3
-    code: |
-      def transform(document):
-          """
-          Returns True if the document should be kept, False otherwise.
-          Keeps only documents that contain at least one item in
-          'data_ownership_excerpts' with 'Relevant' == True.
-          """
-          excerpts = document.get("data_ownership_excerpts", [])
-          for item in excerpts:
-              if item.get("Relevant") is True:
-                  return True
-          return False
+    name: Untitled Code Filter 4
+    code: |-
+      def transform(doc: dict) -> bool:
+          # Return True to keep the document, False to filter it out
+          return doc['data_ownership_excerpts']['relevant'] == True
 pipeline:
   steps:
     - name: data_processing
@@ -87,7 +82,8 @@ pipeline:
       operations:
         - Split by Markdown heading
         - Data ownership sections
-        - Untitled Code Filter 3
+        - Unnest It
+        - Untitled Code Filter 4
   output:
     type: file
     path: >-
