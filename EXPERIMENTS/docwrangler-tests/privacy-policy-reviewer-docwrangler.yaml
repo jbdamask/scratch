@@ -1,0 +1,97 @@
+from_docwrangler: true
+optimizer_model: gpt-4o-mini
+datasets:
+  input:
+    type: file
+    path: >-
+      /modal/.docetl/kind-shark-qmckvdjl/files/docs_2025-11-06T13-41-12-529Z.json
+    source: local
+default_model: gpt-4o-mini
+operations:
+  - type: split
+    name: Split by Markdown heading
+    sample: 5
+    split_key: markdown
+    method: delimiter
+    method_kwargs:
+      delimiter: '##'
+  - type: map
+    name: Data ownership sections
+    output:
+      schema:
+        data_ownership_excerpts: 'list[{Relevant: boolean, Excerpt: string, Reason: string}]'
+    prompt: >-
+      Determine if the text provided below pertains to Data Ownership & Control.
+      This is defined as issues related to intellectual property rights,
+      licensing terms, and control over customer data, including vendor claims
+      of perpetual or irrevocable rights to customer content, and lack of
+      clarity about data ownership and customer control rights.
+
+
+      Instructions:
+
+      1. **Analyze the provided text** to identify any sections that relate to
+      the definition above.
+
+      2. **If relevant sections are found**:
+         - Extract the exact text.
+         - Provide a clear reason why it pertains to Data Ownership & Control.
+         - Format the output as a single JSON string, ensuring all quotes within the excerpt are escaped:
+           ```json
+           {
+             "Relevant": "TRUE",
+             "Excerpt": "[Exact text from the document, with escaped quotes]",
+             "Reason": "[Explanation of relevance to Data Ownership & Control]"
+           }
+           ```
+         - Example:
+           ```json
+           {
+             "Relevant": "TRUE",
+             "Excerpt": "Our use of customer data is governed by our customer agreements covering access to and use of those offerings.",
+             "Reason": "This pertains to data ownership as it references customer agreements that define control over data use."
+           }
+           ```
+      3. **If no relevant sections are found**, return the following JSON as a
+      single string:
+         ```json
+         {
+           "Relevant": "FALSE"
+         }
+         ```
+
+      {{ input.markdown_chunk }}
+
+
+      Ensure the output is a single structured JSON object, not broken into
+      multiple items. Pay special attention to escaping quotes within the
+      excerpt to maintain JSON validity.
+  - type: code_filter
+    name: Untitled Code Filter 3
+    code: |
+      def transform(document):
+          """
+          Returns True if the document should be kept, False otherwise.
+          Keeps only documents that contain at least one item in
+          'data_ownership_excerpts' with 'Relevant' == True.
+          """
+          excerpts = document.get("data_ownership_excerpts", [])
+          for item in excerpts:
+              if item.get("Relevant") is True:
+                  return True
+          return False
+pipeline:
+  steps:
+    - name: data_processing
+      input: input
+      operations:
+        - Split by Markdown heading
+        - Data ownership sections
+        - Untitled Code Filter 3
+  output:
+    type: file
+    path: >-
+      /modal/.docetl/kind-shark-qmckvdjl/pipelines/outputs/Untitled_Analysis.json
+    intermediate_dir: >-
+      /modal/.docetl/kind-shark-qmckvdjl/pipelines/Untitled_Analysis/intermediates
+system_prompt: {}
