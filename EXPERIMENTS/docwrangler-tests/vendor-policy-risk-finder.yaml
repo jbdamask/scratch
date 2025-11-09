@@ -1,0 +1,251 @@
+from_docwrangler: true
+optimizer_model: gpt-5-nano
+datasets:
+  input:
+    type: file
+    path: >-
+      /docetl-data/.docetl/autumn-lion-08sddkl1/files/docs_2025-11-09T13-40-36-776Z.json
+    source: local
+default_model: gpt-5-nano
+operations:
+  - type: split
+    name: Split data
+    sample: 5
+    split_key: markdown
+    method: delimiter
+    method_kwargs:
+      delimiter: '##'
+  - type: code_filter
+    name: Filter Out Short Text
+    code: |-
+      def transform(doc: dict) -> bool:
+          # Return True to keep the document, False to filter it out
+          return len(doc['markdown_chunk']) >= 25
+  - type: parallel_map
+    name: Excerpt Categorizer Map
+    output:
+      schema:
+        categories: 'list[{category_name: string, excerpts: list[string], reason: string}]'
+    prompts:
+      - prompt: >-
+          You will receive text and your job is to categorize it as one of the
+          following:
+
+
+          # Categories and Definitions
+
+          - Policy Gap
+            - Exclusions or limitations in vendor policies that create gaps in protection for customer-uploaded data. Vendor's standard terms may not apply to the most sensitive customer content, creating uncertainty about how proprietary, confidential, or regulated data will be protected.
+
+          - Data Use & Purpose Limitation
+            - How vendors use customer data beyond core service delivery, including for marketing, analytics, personalization, telemetry, or other secondary purposes. Concerns about inadequate purpose limitation and potential data monetization.
+
+          - Privacy & Regulatory Compliance
+            - Compliance with privacy regulations (GDPR, CCPA, Reg S-P), Data Processing Agreements (DPAs), and handling of sensitive regulated data (MNPI). Includes privacy commitments, regulatory alignment, and privacy rights programs.
+
+          - Contract Modification & Governance
+            - Vendor's ability to unilaterally modify terms without customer consent, change management processes, notification requirements, and governance transparency. Includes vendor control over terms updates and supplemental agreements.
+
+          - Pricing, Subscription & Fees
+            - Information related to pricing, payments, payment terms and the like.
+
+          - Cross-Border Data Transfers
+            - Issues related to international data transfers, data residency requirements, jurisdictional concerns, governing law, and applicable venue. Includes transfer mechanism adequacy (SCCs, DPF) and jurisdictional exposure.
+
+          - Third-Party Sharing & Sub-processors
+            - Vendor's sharing of data with sub-processors, affiliates, partners, or other third parties, and the complexity this adds to oversight and accountability. Includes concerns about sub-processor transparency and customer objection rights.
+
+          - Data Security & Encryption
+            - Security controls including encryption, multi-factor authentication, access controls, and safeguards for protecting customer data. Covers both the presence of strong security measures and their absence.
+
+          - Data Lifecycle & Portability
+            - Data retention periods, deletion procedures, lifecycle management, post-termination handling, data portability, export capabilities, and migration support. Covers the full data lifecycle from retention to deletion and exit.
+
+          - Data Ownership & Control
+            - Issues related to intellectual property rights, licensing terms, and control over customer data. Includes vendor claims of perpetual or irrevocable rights to customer content, and lack of clarity about data ownership and customer control rights.
+
+          - Operational Burden & Responsibility Allocation
+            - Assignment of security, configuration, or access management responsibilities to the customer rather than the vendor. Concerns about vendors shifting critical operational burdens onto the customer organization.
+
+          - Liability & Legal
+            - Limitations of vendor liability, warranty disclaimers, indemnification terms, liability caps, available remedies, and dispute resolution processes (arbitration, forum selection, venue restrictions).
+
+          - Audit, Transparency & Incidents
+            - Audit rights, security certifications (SOC, ISO), transparency reports, third-party attestations, breach notification procedures, and incident response timelines. Covers oversight mechanisms and incident handling.
+
+          - Contact & Support Resources
+            - Information about company contact or support information. 
+
+          - Banal
+            - Text that doesn't pertain to any of the categories of interest above. Select this for things like boilerplate text, section headings, and other text that is not informative or interesting from a risk perspective.
+
+          {{ input.markdown_chunk }} 
+
+
+          # Constraints:
+
+          Use only the categories provided and do not make up categories. 
+
+
+          You should output a JSON object that includes your reasoning and the
+          exact text (this should usually be more than one sentence so as to
+          capture the full context) that drove your decision.
+        output_keys:
+          - categories
+        model: gpt-4.1-mini
+  - type: unnest
+    name: Unnest Categories
+    unnest_key: categories
+    recursive: true
+  - type: code_reduce
+    name: Reduce by Category
+    reduce_key:
+      - category_name
+    code: |
+      def transform(items: list) -> dict:
+          import json
+          by_cat = {}
+          for it in items:
+              cat = it.get('category_name', 'UNCATEGORIZED')
+              ex = it.get('excerpts', [])
+              if isinstance(ex, str):
+                  try: ex = json.loads(ex)
+                  except Exception: ex = [ex]
+              rsn = it.get('reason')
+              rsn_list = [rsn] if isinstance(rsn, str) else (list(rsn) if rsn else [])
+              e, r = by_cat.setdefault(cat, ([], []))
+              e.extend(ex)
+              r.extend(rsn_list)
+          return {
+              'category_name': list(by_cat.keys()),
+              'excerpts': [v[0] for v in by_cat.values()],
+              'reasons': [v[1] for v in by_cat.values()],
+          }
+  - type: parallel_map
+    name: Classify Risk
+    output:
+      schema:
+        category_risk: >-
+          list[{category: string, risk: string, reason: string, excerpts:
+          list[string]}]
+    prompts:
+      - prompt: >-
+          # Task
+
+          Your role is to leverage your compliance and legal expertise in a
+          thoughtful, yet pragmatic way. Your job is to read excerpts from
+          contract documents for a particular risk category and classify them in
+          aggregate as High Risk or Low Risk based on the rubric below.
+
+
+          ## Decision rule (be conservative)
+
+          - If any high‑risk cue appears—even softly or implicitly—label “High
+          Risk”.
+
+          - Only label “Low Risk” when the text is standard/benign and lacks
+          high‑risk cues.
+
+
+          ## High‑risk cues (any one triggers High Risk)
+
+          - Training/use of user or customer content (including conversations,
+          prompts, outputs, or feedback) to train/develop/improve AI or Machine
+          Learning models or services, especially without clear opt‑in.
+
+          - Retaining full conversations/chat logs or entire related threads,
+          especially when tied to actions like feedback/rating, without clear
+          limits.
+
+          - Broad, perpetual, irrevocable, sublicensable licenses over
+          user/customer content; “for any purpose” language.
+
+          - Sale or broad sharing of personal data/content with third parties or
+          affiliates without tight purpose limits.
+
+          - Vague/overbroad scope of data use that could encompass customer
+          content; unclear boundaries on retention, sharing, or purposes.
+
+          - Indefinite or open‑ended retention (“retain as long as necessary”
+          without constraints) or cross‑context behavioral advertising/profiling
+          across services.
+
+          - Automatic opt‑in to data sharing/model training; lack of clear
+          opt‑out/deletion when sensitive data is involved.
+
+          - Combining user data across contexts/products to build profiles
+          without narrow purposes.
+
+          - Statements around data crossing international borders without
+          notifying or requesting approval from customer
+
+          - Statements relating to uncontrolled contract changes
+
+
+          ## Low‑risk indicators (typical/benign language)
+
+          - Transparency commitments like publishing a sub‑processor list and
+          giving at least 30 days’ advance notice of material changes.
+
+          - Standard product controls (e.g., admin console to download your data
+          and manage user access).
+
+          - Statements clarifying that certain data (e.g., customer content
+          processed via an API) is governed by separate customer agreements,
+          i.e., outside the public privacy policy.
+
+          - Routine data collection descriptions (e.g., name, contact info,
+          credentials, DOB, payment info, transaction history) without expansive
+          usage/sharing claims.
+
+
+          ## Reasoning guidance
+
+          - Tie your rationale to the exact text present in the aggregate input;
+          do not assume anything.
+
+          - Do not downplay risk because the language seems common; the presence
+          of any high‑risk cue is sufficient for “High Risk”.
+
+
+          ## Style
+
+          - Be concise and specific. No extra formatting beyond the required
+          fields.
+
+
+          ## Input:
+
+          category: {{ input.category_name }}
+
+          text: {{ input.excerpts }}
+
+
+          ## Output Guidance:
+
+          - You must output the category name exactly as provided in the input
+
+          - You must output the text excerpts verbatim
+        output_keys:
+          - category_risk
+        model: gpt-4.1-mini
+pipeline:
+  steps:
+    - name: data_processing
+      input: input
+      operations:
+        - Split data
+        - Filter Out Short Text
+        - Excerpt Categorizer Map
+        - Unnest Categories
+        - Reduce by Category
+        - Classify Risk
+  output:
+    type: file
+    path: >-
+      /docetl-data/.docetl/autumn-lion-08sddkl1/pipelines/outputs/Vendor Policy
+      Risk Finder.json
+    intermediate_dir: >-
+      /docetl-data/.docetl/autumn-lion-08sddkl1/pipelines/Vendor Policy Risk
+      Finder/intermediates
+system_prompt: {}

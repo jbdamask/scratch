@@ -7,8 +7,8 @@ DocWrangler / DocETL are data processing tools written by Shreya. At first glanc
 2. File->New (exist out of the dialog box that pops up)
 3. Edit->Edit API Keys to add your OpenAI API key
 4. Upload the two otterai files from scratch/MISC_DATASETS
-5. Click the Load from YAML icon and load the vendor-policy-risk-categorizer.yaml file
-  5.1 As of this writing there's a bug in how the loader handles slipt componets. Fix this by deleting all the Method Args except for "delimiter" and type ## for the value (this tells the pipeline to split the input documents  on level 2 markdown headings)
+5. Click the Load from YAML icon and load the vendor-policy-risk-finder.yaml file
+  5.1 As of this writing there's a bug in how the loader handles split and code_reduce componets. Fix this for the Split operation by deleting all the Method Args except for "delimiter" and type ## for the value (this tells the pipeline to split the input documents  on level 2 markdown headings). Fix this for the code_reduce operation by typing "category_name" in the Reduce Key box.
 6. Click Run Fresh
 
 ## Notes
