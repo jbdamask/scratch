@@ -1,0 +1,140 @@
+from_docwrangler: true
+optimizer_model: gpt-5-nano
+datasets:
+  input:
+    type: file
+    path: >-
+      /docetl-data/.docetl/autumn-lion-08sddkl1/files/docs_2025-11-07T17-20-46-529Z
+      (1).json
+    source: local
+default_model: gpt-5-nano
+operations:
+  - type: split
+    name: Split data
+    sample: 5
+    split_key: markdown
+    method: delimiter
+    method_kwargs:
+      delimiter: '##'
+  - type: code_filter
+    name: Filter Out Short Text
+    code: |-
+      def transform(doc: dict) -> bool:
+          # Return True to keep the document, False to filter it out
+          return len(doc['markdown_chunk']) >= 25
+  - type: parallel_map
+    name: Excerpt Categorizer Map
+    output:
+      schema:
+        categories: 'list[{category_name: string, excerpts: list[string], reason: string}]'
+    prompts:
+      - prompt: >-
+          You will receive text and your job is to categorize it as one of the
+          following:
+
+
+          # Categories and Definitions
+
+          - Policy Gap
+            - Exclusions or limitations in vendor policies that create gaps in protection for customer-uploaded data. Vendor's standard terms may not apply to the most sensitive customer content, creating uncertainty about how proprietary, confidential, or regulated data will be protected.
+
+          - Data Use & Purpose Limitation
+            - How vendors use customer data beyond core service delivery, including for marketing, analytics, personalization, telemetry, or other secondary purposes. Concerns about inadequate purpose limitation and potential data monetization.
+
+          - Privacy & Regulatory Compliance
+            - Compliance with privacy regulations (GDPR, CCPA, Reg S-P), Data Processing Agreements (DPAs), and handling of sensitive regulated data (MNPI). Includes privacy commitments, regulatory alignment, and privacy rights programs.
+
+          - Contract Modification & Governance
+            - Vendor's ability to unilaterally modify terms without customer consent, change management processes, notification requirements, and governance transparency. Includes vendor control over terms updates and supplemental agreements.
+
+          - Cross-Border Data Transfers
+            - Issues related to international data transfers, data residency requirements, jurisdictional concerns, governing law, and applicable venue. Includes transfer mechanism adequacy (SCCs, DPF) and jurisdictional exposure.
+
+          - Third-Party Sharing & Sub-processors
+            - Vendor's sharing of data with sub-processors, affiliates, partners, or other third parties, and the complexity this adds to oversight and accountability. Includes concerns about sub-processor transparency and customer objection rights.
+
+          - Data Security & Encryption
+            - Security controls including encryption, multi-factor authentication, access controls, and safeguards for protecting customer data. Covers both the presence of strong security measures and their absence.
+
+          - Data Lifecycle & Portability
+            - Data retention periods, deletion procedures, lifecycle management, post-termination handling, data portability, export capabilities, and migration support. Covers the full data lifecycle from retention to deletion and exit.
+
+          - Data Ownership & Control
+            - Issues related to intellectual property rights, licensing terms, and control over customer data. Includes vendor claims of perpetual or irrevocable rights to customer content, and lack of clarity about data ownership and customer control rights.
+
+          - Operational Burden & Responsibility Allocation
+            - Assignment of security, configuration, or access management responsibilities to the customer rather than the vendor. Concerns about vendors shifting critical operational burdens onto the customer organization.
+
+          - Liability & Legal
+            - Limitations of vendor liability, warranty disclaimers, indemnification terms, liability caps, available remedies, and dispute resolution processes (arbitration, forum selection, venue restrictions).
+
+          - Audit, Transparency & Incidents
+            - Audit rights, security certifications (SOC, ISO), transparency reports, third-party attestations, breach notification procedures, and incident response timelines. Covers oversight mechanisms and incident handling.
+
+          - Contact & Support Resources
+            - Information about company contact or support information. 
+
+          - Banal
+            - Text that doesn't pertain to any of the categories of interest above. Select this for things like boilerplate text, section headings, and other text that is not informative or interesting from a risk perspective.
+
+          {{ input.markdown_chunk }} 
+
+
+          # Constraints:
+
+          Use only the categories provided and do not make up categories. 
+
+
+          You should output a JSON object that includes your reasoning and the
+          exact text (this should usually be more than one sentence so as to
+          capture the full context) that drove your decision.
+        output_keys:
+          - categories
+        model: gpt-4.1-mini
+  - type: unnest
+    name: Unnest Categories
+    unnest_key: categories
+    recursive: true
+  - type: code_reduce
+    name: Reduce by Category
+    reduce_key:
+      - category_name
+    code: |
+      def transform(items: list) -> dict:
+          import json
+          by_cat = {}
+          for it in items:
+              cat = it.get('category_name', 'UNCATEGORIZED')
+              ex = it.get('excerpts', [])
+              if isinstance(ex, str):
+                  try: ex = json.loads(ex)
+                  except Exception: ex = [ex]
+              rsn = it.get('reason')
+              rsn_list = [rsn] if isinstance(rsn, str) else (list(rsn) if rsn else [])
+              e, r = by_cat.setdefault(cat, ([], []))
+              e.extend(ex)
+              r.extend(rsn_list)
+          return {
+              'category_name': list(by_cat.keys()),
+              'excerpts': [v[0] for v in by_cat.values()],
+              'reasons': [v[1] for v in by_cat.values()],
+          }
+pipeline:
+  steps:
+    - name: data_processing
+      input: input
+      operations:
+        - Split data
+        - Filter Out Short Text
+        - Excerpt Categorizer Map
+        - Unnest Categories
+        - Reduce by Category
+  output:
+    type: file
+    path: >-
+      /docetl-data/.docetl/autumn-lion-08sddkl1/pipelines/outputs/Policy Risk
+      Evaluator v3.json
+    intermediate_dir: >-
+      /docetl-data/.docetl/autumn-lion-08sddkl1/pipelines/Policy Risk Evaluator
+      v3/intermediates
+system_prompt: {}
