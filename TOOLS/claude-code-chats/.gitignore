@@ -1,0 +1,25 @@
+# Backend port file
+backend/.backend_port
+
+# Python
+backend/.venv/
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.Python
+backend/.requirements_installed
+backend/*.log
+
+# Frontend
+frontend/.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store

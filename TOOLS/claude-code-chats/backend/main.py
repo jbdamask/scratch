@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import json
 import logging
+import socket
 from pathlib import Path
 from typing import List, Dict, Any
 
@@ -22,7 +23,7 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -128,7 +129,31 @@ async def read_chat_file(project_name: str, file_name: str):
         logger.error("Error reading chat file %s from project %s: %s", file_name, project_name, str(e))
         raise HTTPException(status_code=500, detail=str(e))
 
+def find_available_port(start_port: int = 8000, max_attempts: int = 10) -> int:
+    """Find an available port starting from start_port"""
+    for port in range(start_port, start_port + max_attempts):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind(('', port))
+                return port
+        except OSError:
+            continue
+    raise RuntimeError(f"Could not find an available port in range {start_port}-{start_port + max_attempts}")
+
 if __name__ == "__main__":
     import uvicorn
-    logger.info("Starting Claude Code Chat History Viewer API server on host 0.0.0.0:8000")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    # Find an available port
+    try:
+        port = find_available_port(8000)
+        logger.info(f"Starting Claude Code Chat History Viewer API server on host 0.0.0.0:{port}")
+
+        # Write port to a file so the start script can read it
+        port_file = Path(__file__).parent / ".backend_port"
+        with open(port_file, 'w') as f:
+            f.write(str(port))
+
+        uvicorn.run(app, host="0.0.0.0", port=port)
+    except RuntimeError as e:
+        logger.error(f"Failed to start server: {e}")
+        raise
