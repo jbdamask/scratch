@@ -1,3 +1,5 @@
+# LOL - after making this I found [aichat](https://github.com/sigoden/aichat) which is better
+
 # chat — a tiny streaming CLI for OpenAI models
 
 `chat` is a lightweight command-line tool that streams responses from OpenAI’s Responses API.  
