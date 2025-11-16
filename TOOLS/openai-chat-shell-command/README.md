@@ -3,7 +3,7 @@
 `chat` is a lightweight command-line tool that streams responses from OpenAI’s Responses API.  
 It supports natural streaming output, piping files into prompts, and selecting between GPT-4.1 and GPT-5 class models.
 
-<img src="public/chat.gif" width="600" />
+<img src="public/chat.gif" width="800" />
 
 ## Features
 - Natural, real-time streaming output  
