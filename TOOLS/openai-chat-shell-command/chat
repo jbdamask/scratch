@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+
+# Default model
+MODEL="gpt-4.1-mini"
+
+# Allowed models
+ALLOWED_MODELS=("gpt-4.1" "gpt-4.1-mini" "gpt-4.1-nano" "gpt-5" "gpt-5-mini" "gpt-5-nano")
+
+# Parse flags
+while getopts "m:" opt; do
+  case $opt in
+    m)
+      MODEL="$OPTARG"
+      ;;
+    *)
+      echo "Usage: chat [-m model] [prompt] or: cat file | chat [-m model] [prompt]" >&2
+      exit 1
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
+
+# Validate model
+is_valid_model=false
+for allowed in "${ALLOWED_MODELS[@]}"; do
+  if [ "$MODEL" = "$allowed" ]; then
+    is_valid_model=true
+    break
+  fi
+done
+
+if [ "$is_valid_model" = false ]; then
+  echo "Error: invalid model '$MODEL'"
+  echo "Allowed: ${ALLOWED_MODELS[*]}"
+  exit 1
+fi
+
+# Read stdin if present
+if [ -t 0 ]; then
+  STDIN=""
+else
+  STDIN="$(cat)"
+fi
+
+# Combine stdin and arguments
+if [ -n "$STDIN" ] && [ "$#" -gt 0 ]; then
+  INPUT="$STDIN"$'\n\n'"$*"
+elif [ -n "$STDIN" ]; then
+  INPUT="$STDIN"
+else
+  INPUT="$*"
+fi
+
+if [ -z "$INPUT" ]; then
+  echo "Usage: chat [-m model] [prompt]  or:  cat file | chat [-m model] [extra prompt]" >&2
+  exit 1
+fi
+
+# JSON-escape input
+JSON_INPUT=$(jq -Rs . <<< "$INPUT")
+
+curl -sN https://api.openai.com/v1/responses \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -d "{
+    \"model\": \"$MODEL\",
+    \"input\": $JSON_INPUT,
+    \"stream\": true
+  }" \
+| python3 -u -c '
+import sys, json
+for line in sys.stdin:
+    if not line.startswith("data: "):
+        continue
+    payload = line[len("data: "):].strip()
+    if payload == "[DONE]":
+        break
+    try:
+        evt = json.loads(payload)
+    except json.JSONDecodeError:
+        continue
+    if evt.get("type") == "response.output_text.delta":
+        delta = evt.get("delta", "")
+        sys.stdout.write(delta)
+        sys.stdout.flush()
+print()
+'
