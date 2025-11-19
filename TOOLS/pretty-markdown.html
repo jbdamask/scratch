@@ -500,12 +500,56 @@
             URL.revokeObjectURL(url);
         });
 
+        // Helper function to render Mermaid diagrams and create print-ready HTML
+        async function renderMermaidForPrint(markdownContent) {
+            const html = marked.parse(markdownContent);
+
+            // Create a temporary container to parse the HTML
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = html;
+
+            // Find all mermaid code blocks
+            const mermaidElements = tempContainer.querySelectorAll('code.language-mermaid');
+
+            if (mermaidElements.length > 0) {
+                // Process each mermaid diagram
+                for (let i = 0; i < mermaidElements.length; i++) {
+                    const element = mermaidElements[i];
+                    const diagramText = element.textContent;
+                    const diagramId = `mermaid-print-${i}-${Date.now()}`;
+
+                    try {
+                        // Render the mermaid diagram to SVG
+                        const { svg } = await mermaid.render(diagramId, diagramText);
+
+                        // Create a wrapper div for the rendered diagram
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'mermaid-wrapper';
+                        wrapper.style.textAlign = 'center';
+                        wrapper.style.margin = '15px 0';
+                        wrapper.innerHTML = svg;
+
+                        // Replace the code block with the rendered SVG
+                        element.parentNode.replaceWith(wrapper);
+                    } catch (err) {
+                        console.error('Failed to render mermaid diagram:', err);
+                        // If rendering fails, leave the code block as is
+                    }
+                }
+            }
+
+            return tempContainer.innerHTML;
+        }
+
         // PDF functionality
-        pdfBtn.addEventListener('click', () => {
+        pdfBtn.addEventListener('click', async () => {
+            const markdownContent = editor.value || currentContent;
+
+            // Render mermaid diagrams
+            const html = await renderMermaidForPrint(markdownContent);
+
             // Create a new window with the rendered markdown for printing
             const printWindow = window.open('', '_blank');
-            const markdownContent = editor.value || currentContent;
-            const html = marked.parse(markdownContent);
 
             const printDocument = `
                 <!DOCTYPE html>
@@ -550,6 +594,10 @@
                         ul, ol {
                             margin-bottom: 15px;
                             padding-left: 30px;
+                        }
+                        .mermaid-wrapper {
+                            margin: 15px 0;
+                            text-align: center;
                         }
                         @media print {
                             body {
@@ -605,11 +653,14 @@
             URL.revokeObjectURL(url);
         });
 
-        pdfBtnPreview.addEventListener('click', () => {
+        pdfBtnPreview.addEventListener('click', async () => {
+            const markdownContent = editor.value || currentContent;
+
+            // Render mermaid diagrams
+            const html = await renderMermaidForPrint(markdownContent);
+
             // Create a new window with the rendered markdown for printing
             const printWindow = window.open('', '_blank');
-            const markdownContent = editor.value || currentContent;
-            const html = marked.parse(markdownContent);
 
             const printDocument = `
                 <!DOCTYPE html>
@@ -654,6 +705,10 @@
                         ul, ol {
                             margin-bottom: 15px;
                             padding-left: 30px;
+                        }
+                        .mermaid-wrapper {
+                            margin: 15px 0;
+                            text-align: center;
                         }
                         @media print {
                             body {
