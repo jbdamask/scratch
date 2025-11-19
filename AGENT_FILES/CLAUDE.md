@@ -46,3 +46,6 @@
 - If you need to exercise cross-chat lookups, you now know where the information lives
 - Don't be afraid to use jq to help parse information out of the jsonl files
 - Make use of timestamps within the chats if you need to traverse time.
+
+## Security
+- When working with API keys or other sensitive credentials, NEVER print them in chat messages as this will risk exposure in logs.

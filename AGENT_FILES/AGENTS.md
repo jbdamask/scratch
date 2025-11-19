@@ -37,3 +37,6 @@
 - Use theme components: import { Button, Card } from '@johnthemes/[theme-name]'
 - Apply theme classes: bg-background text-foreground
 - NOTE: If symlink resolution issues occur, copy theme components to src/components/ui/ and create local utils.ts
+
+## Security
+- When working with API keys or other sensitive credentials, NEVER print them in chat messages as this will risk exposure in logs.
