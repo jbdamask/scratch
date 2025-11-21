@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Spectrogram Analyzer</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Audio Spectrogram Analyzer</h1>
+            <p>Upload an audio file to visualize its frequency spectrogram</p>
+        </header>
+
+        <div class="upload-section">
+            <div class="upload-box" id="uploadBox">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p>Drag and drop an audio file here</p>
+                <p class="small">or click to browse</p>
+                <p class="formats">Supported formats: WAV, MP3, OGG, FLAC, M4A</p>
+                <input type="file" id="fileInput" accept=".wav,.mp3,.ogg,.flac,.m4a" hidden>
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Processing audio file...</p>
+        </div>
+
+        <div class="error" id="error">
+            <p id="errorMessage"></p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="info-panel">
+                <h3>Audio Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="label">Filename:</span>
+                        <span class="value" id="filename"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Duration:</span>
+                        <span class="value" id="duration"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Sample Rate:</span>
+                        <span class="value" id="sampleRate"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="label">Samples:</span>
+                        <span class="value" id="samples"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="audio-player-panel">
+                <h3>Audio Player</h3>
+                <audio id="audioPlayer" controls></audio>
+            </div>
+
+            <div class="spectrogram-panel">
+                <div class="spectrogram-header">
+                    <h3>Frequency Spectrogram</h3>
+                    <div class="spectrogram-controls">
+                        <button id="zoomOutBtn" class="control-btn">−</button>
+                        <button id="zoomInBtn" class="control-btn">+</button>
+                        <button id="captureBtn" class="capture-btn">Capture View</button>
+                    </div>
+                </div>
+                <div class="spectrogram-view">
+                    <div class="y-axis-fixed" id="yAxisFixed">
+                        <div class="y-axis-label">Hz</div>
+                    </div>
+                    <div class="spectrogram-container" id="spectrogramContainer">
+                        <div class="spectrogram-wrapper">
+                            <img id="spectrogramImage" alt="Spectrogram">
+                        </div>
+                        <div class="playback-cursor" id="playbackCursor"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="chatbot-container minimized" id="chatbotContainer">
+        <div class="chatbot-header" id="chatbotHeader">
+            <span class="chatbot-title">Spectrogram Analysis</span>
+            <div class="chatbot-controls">
+                <button class="chatbot-btn" id="minimizeBtn">−</button>
+            </div>
+        </div>
+        <div class="chatbot-body">
+            <div class="chatbot-messages" id="chatMessages"></div>
+            <div class="chatbot-input-container">
+                <input type="text" class="chatbot-input" id="chatInput" placeholder="Ask about the spectrogram...">
+                <button class="chatbot-send-btn" id="sendBtn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/static/script.js"></script>
+    <script src="/static/chat.js"></script>
+</body>
+</html>
