@@ -37,41 +37,92 @@ ALLOWED_EXTENSIONS = {".wav", ".mp3", ".ogg", ".flac", ".m4a"}
 def generate_spectrogram(audio_path: str) -> str:
     """
     Generate a high-resolution spectrogram from an audio file and return as base64 encoded PNG.
+    Uses tiling approach to avoid matplotlib rendering limits on very wide images.
     """
+    from PIL import Image
+
     y, sr = librosa.load(audio_path, sr=None)
+    duration = len(y) / sr
 
     D = librosa.stft(y, n_fft=4096, hop_length=256)
     S_db = librosa.amplitude_to_db(np.abs(D), ref=np.max)
 
-    # Increase dynamic range by using percentile-based scaling
-    # This clips the bottom end and expands the visible range
-    vmin = np.percentile(S_db, 10)  # 10th percentile
-    vmax = np.percentile(S_db, 99)  # 99th percentile
+    # Global vmin/vmax for consistent coloring across tiles
+    vmin = np.percentile(S_db, 10)
+    vmax = np.percentile(S_db, 99)
 
-    duration = len(y) / sr
-    width_per_second = 200  # Keep original to avoid exceeding OpenAI vision limits
-    fig_width = max(20, duration * width_per_second / 100)
-    fig_height = 14  # Moderate increase from 12
+    # Define tile size - each tile is max 60 seconds of audio
+    # This keeps individual images under ~20k pixels at 120 DPI
+    tile_duration = 60  # seconds
+    num_tiles = int(np.ceil(duration / tile_duration))
 
-    fig = plt.figure(figsize=(fig_width, fig_height))
-    ax = fig.add_axes([0, 0, 1, 1])
+    dpi = 120
+    fig_height = 14
+    width_per_second = 200
 
-    # Use 'hot' colormap for more vibrant colors similar to the example
-    # hot goes: black -> red -> orange -> yellow -> white
-    img = ax.imshow(S_db, aspect='auto', origin='lower', cmap='hot',
-                    extent=[0, duration, 0, sr / 2], interpolation='bilinear',
-                    vmin=vmin, vmax=vmax)
+    tiles = []
 
-    ax.set_xlim([0, duration])
-    ax.set_ylim([0, sr / 2])
-    ax.axis('off')
+    for tile_idx in range(num_tiles):
+        start_time = tile_idx * tile_duration
+        end_time = min((tile_idx + 1) * tile_duration, duration)
+        tile_dur = end_time - start_time
 
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=120, bbox_inches='tight', pad_inches=0)  # Moderate increase to 120, stays under limits
-    buf.seek(0)
-    plt.close(fig)
+        # Calculate which STFT frames belong to this tile
+        times = librosa.frames_to_time(np.arange(S_db.shape[1]), sr=sr, hop_length=256)
+        frame_mask = (times >= start_time) & (times < end_time)
+        tile_S_db = S_db[:, frame_mask]
+        tile_times = times[frame_mask] - start_time  # Normalize to start at 0
 
-    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+        if tile_S_db.shape[1] == 0:
+            continue
+
+        freqs = librosa.fft_frequencies(sr=sr, n_fft=4096)
+
+        # Create figure for this tile
+        fig_width = max(20, tile_dur * width_per_second / 100)
+        fig = plt.figure(figsize=(fig_width, fig_height))
+        ax = fig.add_axes([0, 0, 1, 1])
+
+        ax.pcolormesh(tile_times, freqs, tile_S_db, cmap='hot', shading='auto',
+                      vmin=vmin, vmax=vmax)
+
+        ax.set_xlim([0, tile_dur])
+        ax.set_ylim([0, sr / 2])
+        ax.axis('off')
+
+        # Save tile to buffer
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=dpi, pad_inches=0)
+        buf.seek(0)
+        plt.close(fig)
+
+        # Load as PIL image
+        tile_img = Image.open(buf)
+        tiles.append(tile_img)
+
+    # Stitch tiles horizontally
+    if len(tiles) == 1:
+        final_img = tiles[0]
+    else:
+        # Calculate total width and max height
+        total_width = sum(img.width for img in tiles)
+        max_height = max(img.height for img in tiles)
+
+        # Create final image
+        final_img = Image.new('RGBA', (total_width, max_height))
+
+        # Paste tiles
+        x_offset = 0
+        for tile in tiles:
+            final_img.paste(tile, (x_offset, 0))
+            x_offset += tile.width
+
+    # Convert final image to base64
+    final_buf = io.BytesIO()
+    final_img.save(final_buf, format='PNG')
+    final_buf.seek(0)
+
+    img_base64 = base64.b64encode(final_buf.read()).decode('utf-8')
     return img_base64
 
 
@@ -110,7 +161,7 @@ def generate_zcr(audio_path: str) -> str:
     ax.axis('off')
 
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=120, bbox_inches='tight', pad_inches=0, facecolor='#0a0e1a')
+    plt.savefig(buf, format='png', dpi=100, pad_inches=0, facecolor='#0a0e1a')
     buf.seek(0)
     plt.close(fig)
 
