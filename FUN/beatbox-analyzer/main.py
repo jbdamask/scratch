@@ -49,9 +49,9 @@ def generate_spectrogram(audio_path: str) -> str:
     vmax = np.percentile(S_db, 99)  # 99th percentile
 
     duration = len(y) / sr
-    width_per_second = 200
+    width_per_second = 200  # Keep original to avoid exceeding OpenAI vision limits
     fig_width = max(20, duration * width_per_second / 100)
-    fig_height = 12
+    fig_height = 14  # Moderate increase from 12
 
     fig = plt.figure(figsize=(fig_width, fig_height))
     ax = fig.add_axes([0, 0, 1, 1])
@@ -67,7 +67,7 @@ def generate_spectrogram(audio_path: str) -> str:
     ax.axis('off')
 
     buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=100, bbox_inches='tight', pad_inches=0)
+    plt.savefig(buf, format='png', dpi=120, bbox_inches='tight', pad_inches=0)  # Moderate increase to 120, stays under limits
     buf.seek(0)
     plt.close(fig)
 
