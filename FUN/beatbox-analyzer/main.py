@@ -11,8 +11,8 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-from fastapi import FastAPI, File, UploadFile, HTTPException, Body
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi import FastAPI, File, UploadFile, HTTPException, Body, Request
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -43,6 +43,11 @@ def generate_spectrogram(audio_path: str) -> str:
     D = librosa.stft(y, n_fft=4096, hop_length=256)
     S_db = librosa.amplitude_to_db(np.abs(D), ref=np.max)
 
+    # Increase dynamic range by using percentile-based scaling
+    # This clips the bottom end and expands the visible range
+    vmin = np.percentile(S_db, 10)  # 10th percentile
+    vmax = np.percentile(S_db, 99)  # 99th percentile
+
     duration = len(y) / sr
     width_per_second = 200
     fig_width = max(20, duration * width_per_second / 100)
@@ -51,8 +56,11 @@ def generate_spectrogram(audio_path: str) -> str:
     fig = plt.figure(figsize=(fig_width, fig_height))
     ax = fig.add_axes([0, 0, 1, 1])
 
-    img = ax.imshow(S_db, aspect='auto', origin='lower', cmap='magma',
-                    extent=[0, duration, 0, sr / 2], interpolation='bilinear')
+    # Use 'hot' colormap for more vibrant colors similar to the example
+    # hot goes: black -> red -> orange -> yellow -> white
+    img = ax.imshow(S_db, aspect='auto', origin='lower', cmap='hot',
+                    extent=[0, duration, 0, sr / 2], interpolation='bilinear',
+                    vmin=vmin, vmax=vmax)
 
     ax.set_xlim([0, duration])
     ax.set_ylim([0, sr / 2])
@@ -112,14 +120,60 @@ async def upload_audio(file: UploadFile = File(...)):
 
 
 @app.get("/audio/{filename}")
-async def get_audio(filename: str):
+async def get_audio(filename: str, request: Request):
     """
-    Serve an audio file.
+    Serve an audio file with proper range request support for seeking.
     """
+    import mimetypes
+    import os
+
     file_path = UPLOAD_DIR / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="Audio file not found")
-    return FileResponse(file_path)
+
+    file_size = os.path.getsize(file_path)
+    media_type = mimetypes.guess_type(str(file_path))[0] or "audio/mpeg"
+
+    # Check for range request
+    range_header = request.headers.get("range")
+
+    if range_header:
+        # Parse range header
+        range_match = range_header.replace("bytes=", "").split("-")
+        start = int(range_match[0]) if range_match[0] else 0
+        end = int(range_match[1]) if len(range_match) > 1 and range_match[1] else file_size - 1
+
+        content_length = end - start + 1
+
+        def iter_file():
+            with open(file_path, "rb") as f:
+                f.seek(start)
+                remaining = content_length
+                while remaining > 0:
+                    chunk_size = min(8192, remaining)
+                    chunk = f.read(chunk_size)
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
+
+        headers = {
+            "Content-Range": f"bytes {start}-{end}/{file_size}",
+            "Accept-Ranges": "bytes",
+            "Content-Length": str(content_length),
+            "Content-Type": media_type,
+        }
+
+        return StreamingResponse(iter_file(), status_code=206, headers=headers)
+
+    # No range request, serve entire file
+    headers = {
+        "Accept-Ranges": "bytes",
+        "Content-Length": str(file_size),
+        "Content-Type": media_type,
+    }
+
+    return FileResponse(file_path, media_type=media_type, headers=headers)
 
 
 class ChatMessage(BaseModel):
@@ -180,7 +234,7 @@ async def chat(request: ChatRequest):
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert at audio analysis using spectrograms. Your particular discipline is analyzing spectrograms of beatboxers. Provide a concise analysis using beatboxer jargon and technical terms. Your analysis should consider the content of the spectral image, only."
+                        "content": "You are a beatboxer and expert in techniques and at audio analysis using spectrograms. Your particular discipline is analyzing spectrograms of beatboxers. Provide a concise analysis using beatboxer jargon and technical terms. Your analysis should consider the content of the spectral image, only."
                     }
                 ] + messages,
                 stream=True,

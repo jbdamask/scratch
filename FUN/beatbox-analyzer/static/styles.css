@@ -310,21 +310,19 @@ header p {
 
 .spectrogram-container img {
     height: 100%;
-    width: auto;
     display: block;
 }
 
 .playback-cursor {
-    position: absolute;
-    top: 0;
-    left: 0;
+    position: fixed;
     width: 3px;
-    height: 100%;
     background: rgba(255, 0, 0, 0.9);
     pointer-events: none;
     display: none;
     box-shadow: 0 0 15px rgba(255, 0, 0, 0.7);
     z-index: 50;
+    top: 0;
+    bottom: 0;
 }
 
 .playback-cursor.active {
@@ -362,7 +360,7 @@ header p {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    cursor: pointer;
+    cursor: grab;
 }
 
 .chatbot-title {

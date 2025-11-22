@@ -7,10 +7,74 @@ const sendBtn = document.getElementById('sendBtn');
 
 let chatHistory = [];
 let selectedImageData = null;
-let currentZoom = 1.0;
+
+// Make visibleSeconds globally accessible for script.js to reset
+window.visibleSeconds = null; // Will be set to full duration initially
+window.baseSpectrogramWidth = null; // Store the natural width when fully zoomed out
+
+// Make chatbot draggable
+let dragState = {
+    active: false,
+    hasMoved: false,
+    startX: 0,
+    startY: 0,
+    chatbotX: 0,
+    chatbotY: 0
+};
+
+function onDragMove(e) {
+    const deltaX = e.clientX - dragState.startX;
+    const deltaY = e.clientY - dragState.startY;
+
+    // Check if we've moved enough to be considered a drag (5px threshold)
+    if (!dragState.hasMoved && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+        dragState.hasMoved = true;
+        chatbotHeader.style.cursor = 'grabbing';
+        // Convert from right/bottom to left/top positioning
+        chatbotContainer.style.right = 'auto';
+        chatbotContainer.style.bottom = 'auto';
+        chatbotContainer.style.left = `${dragState.chatbotX}px`;
+        chatbotContainer.style.top = `${dragState.chatbotY}px`;
+    }
+
+    if (dragState.hasMoved) {
+        const newX = dragState.chatbotX + deltaX;
+        const newY = dragState.chatbotY + deltaY;
+
+        chatbotContainer.style.left = `${newX}px`;
+        chatbotContainer.style.top = `${newY}px`;
+    }
+}
+
+function onDragEnd(e) {
+    document.removeEventListener('mousemove', onDragMove);
+    document.removeEventListener('mouseup', onDragEnd);
+
+    chatbotHeader.style.cursor = 'grab';
+    dragState.active = false;
+}
+
+chatbotHeader.addEventListener('mousedown', (e) => {
+    if (e.target === minimizeBtn || e.button !== 0) return;
+
+    dragState.active = true;
+    dragState.hasMoved = false;
+    dragState.startX = e.clientX;
+    dragState.startY = e.clientY;
+
+    const rect = chatbotContainer.getBoundingClientRect();
+    dragState.chatbotX = rect.left;
+    dragState.chatbotY = rect.top;
+
+    document.addEventListener('mousemove', onDragMove);
+    document.addEventListener('mouseup', onDragEnd);
+
+    e.preventDefault();
+});
 
 chatbotHeader.addEventListener('click', (e) => {
-    if (e.target !== minimizeBtn) {
+    // Only toggle if we didn't drag and didn't click the minimize button
+    if (e.target !== minimizeBtn && !dragState.hasMoved) {
         chatbotContainer.classList.toggle('minimized');
     }
 });
@@ -142,25 +206,91 @@ function updateStreamingMessage(messageDiv, markdownText) {
 
 // Zoom and capture functionality
 // Note: spectrogramImage and spectrogramContainer are already declared in script.js
+// Note: window.audioDuration is available from script.js
 const zoomInBtn = document.getElementById('zoomInBtn');
 const zoomOutBtn = document.getElementById('zoomOutBtn');
+const zoomInMaxBtn = document.getElementById('zoomInMaxBtn');
+const zoomOutMaxBtn = document.getElementById('zoomOutMaxBtn');
 const captureBtn = document.getElementById('captureBtn');
 
+function initializeZoom() {
+    // Set initial visible seconds to full duration
+    if (window.audioDuration > 0 && window.visibleSeconds === null) {
+        window.visibleSeconds = window.audioDuration;
+    }
+}
+
 function zoomIn() {
-    currentZoom = Math.min(currentZoom * 1.5, 10);
+    // Decrease visible time by 1 second (zoom in)
+    if (!window.audioDuration) return;
+    initializeZoom();
+    window.visibleSeconds = Math.max(window.visibleSeconds - 1, 1);
     applyZoom();
 }
 
 function zoomOut() {
-    currentZoom = Math.max(currentZoom / 1.5, 0.5);
+    // Increase visible time by 1 second (zoom out)
+    if (!window.audioDuration) return;
+    initializeZoom();
+    window.visibleSeconds = Math.min(window.visibleSeconds + 1, window.audioDuration);
+    applyZoom();
+}
+
+function zoomInMax() {
+    // Decrease visible time by 10 seconds (zoom in more)
+    if (!window.audioDuration) return;
+    initializeZoom();
+    window.visibleSeconds = Math.max(window.visibleSeconds - 10, 1);
+    applyZoom();
+}
+
+function zoomOutMax() {
+    // Increase visible time by 10 seconds (zoom out more)
+    if (!window.audioDuration) return;
+    initializeZoom();
+    window.visibleSeconds = Math.min(window.visibleSeconds + 10, window.audioDuration);
     applyZoom();
 }
 
 function applyZoom() {
-    if (spectrogramImage) {
-        spectrogramImage.style.width = `${currentZoom * 100}%`;
-    }
+    // For button clicks, zoom around viewport center
+    const containerWidth = spectrogramContainer.clientWidth;
+    const centerX = containerWidth / 2;
+    applyZoomAtPoint(centerX);
 }
+
+function applyZoomAtPoint(mouseX) {
+    if (!spectrogramImage || !window.audioDuration) return;
+
+    initializeZoom();
+
+    // Store base width once
+    if (window.baseSpectrogramWidth === null) {
+        window.baseSpectrogramWidth = spectrogramImage.offsetWidth;
+    }
+
+    // Calculate what time is currently at the mouse position
+    const oldWidth = spectrogramImage.offsetWidth;
+    const scrollLeft = spectrogramContainer.scrollLeft;
+    const mouseInImage = scrollLeft + mouseX;
+    const timeAtMouse = (mouseInImage / oldWidth) * window.audioDuration;
+
+    // Resize
+    const zoomFactor = window.audioDuration / window.visibleSeconds;
+    const targetWidth = Math.round(window.baseSpectrogramWidth * zoomFactor);
+    spectrogramImage.style.width = `${targetWidth}px`;
+
+    // Try to keep that same time at the mouse position
+    // Wait a frame for the browser to apply the resize
+    requestAnimationFrame(() => {
+        const newWidth = spectrogramImage.offsetWidth;
+        const newMouseInImage = (timeAtMouse / window.audioDuration) * newWidth;
+        const newScrollLeft = newMouseInImage - mouseX;
+        spectrogramContainer.scrollLeft = Math.max(0, newScrollLeft);
+    });
+}
+
+// No audio sync needed - spacebar controls playback from visible center
 
 function captureVisibleSpectrogram() {
     const yAxisFixed = document.getElementById('yAxisFixed');
@@ -251,4 +381,43 @@ function captureVisibleSpectrogram() {
 
 if (zoomInBtn) zoomInBtn.addEventListener('click', zoomIn);
 if (zoomOutBtn) zoomOutBtn.addEventListener('click', zoomOut);
+if (zoomInMaxBtn) zoomInMaxBtn.addEventListener('click', zoomInMax);
+if (zoomOutMaxBtn) zoomOutMaxBtn.addEventListener('click', zoomOutMax);
 if (captureBtn) captureBtn.addEventListener('click', captureVisibleSpectrogram);
+
+// Mouse wheel zoom when hovering over spectrogram
+// Note: spectrogramContainer is already declared in script.js
+if (spectrogramContainer) {
+    spectrogramContainer.addEventListener('wheel', handleWheelZoom, { passive: false });
+}
+
+function handleWheelZoom(e) {
+    if (!window.audioDuration) return;
+
+    // Only zoom when Ctrl is held down
+    if (!e.ctrlKey) return;
+
+    e.preventDefault(); // Prevent page scroll
+
+    initializeZoom();
+
+    // Get mouse position relative to container
+    const containerRect = spectrogramContainer.getBoundingClientRect();
+    const mouseX = e.clientX - containerRect.left;
+    const containerWidth = spectrogramContainer.clientWidth;
+
+
+    // Proportional zoom: change by small percentage of current visible time
+    // Very gentle zoom: 2% per scroll tick
+    const zoomAmount = window.visibleSeconds * 0.02;
+
+    if (e.deltaY > 0) {
+        // Scroll down = zoom in (decrease visible time)
+        window.visibleSeconds = Math.max(window.visibleSeconds - zoomAmount, 1);
+    } else {
+        // Scroll up = zoom out (increase visible time)
+        window.visibleSeconds = Math.min(window.visibleSeconds + zoomAmount, window.audioDuration);
+    }
+
+    applyZoomAtPoint(mouseX);
+}

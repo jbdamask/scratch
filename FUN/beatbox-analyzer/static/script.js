@@ -9,7 +9,9 @@ const playbackCursor = document.getElementById('playbackCursor');
 const spectrogramImage = document.getElementById('spectrogramImage');
 const spectrogramContainer = document.querySelector('.spectrogram-container');
 
-let audioDuration = 0;
+// Make these global so chat.js can access them
+window.audioDuration = 0;
+window.isPlaying = false;
 let spectrogramWidth = 0;
 
 uploadBox.addEventListener('click', () => {
@@ -96,12 +98,20 @@ function displayResults(data) {
     document.getElementById('sampleRate').textContent = `${data.sample_rate} Hz`;
     document.getElementById('samples').textContent = data.samples.toLocaleString();
 
-    audioDuration = data.duration;
+    window.audioDuration = data.duration;
 
     spectrogramImage.src = data.spectrogram;
     spectrogramImage.onload = () => {
         spectrogramWidth = spectrogramImage.offsetWidth;
         createYAxisLabels(data.sample_rate);
+        // Reset zoom when new audio is loaded (visible in chat.js)
+        if (window.visibleSeconds !== undefined) {
+            window.visibleSeconds = null;
+        }
+        // Store the base width for zoom calculations
+        if (window.baseSpectrogramWidth !== undefined) {
+            window.baseSpectrogramWidth = spectrogramImage.offsetWidth;
+        }
     };
 
     audioPlayer.src = data.audio_url;
@@ -138,35 +148,130 @@ window.addEventListener('resize', () => {
     if (container) {
         spectrogramWidth = spectrogramImage.offsetWidth;
     }
+    if (window.isPlaying) {
+        positionCursor();
+    }
+});
+
+window.addEventListener('scroll', () => {
+    if (window.isPlaying) {
+        positionCursor();
+    }
 });
 
 function setupAudioSync() {
-    audioPlayer.addEventListener('timeupdate', updateCursorPosition);
-    audioPlayer.addEventListener('play', showCursor);
-    audioPlayer.addEventListener('pause', hideCursor);
-    audioPlayer.addEventListener('ended', hideCursor);
-    audioPlayer.addEventListener('seeked', updateCursorPosition);
+    console.log('setupAudioSync called');
+    audioPlayer.addEventListener('timeupdate', updateSpectrogramScroll);
+    audioPlayer.addEventListener('play', () => {
+        window.isPlaying = true;
+        playbackCursor.classList.add('active');
+        positionCursor();
+    });
+    audioPlayer.addEventListener('pause', () => {
+        window.isPlaying = false;
+        playbackCursor.classList.remove('active');
+    });
+    audioPlayer.addEventListener('ended', () => {
+        window.isPlaying = false;
+        playbackCursor.classList.remove('active');
+    });
+
+    // Click on spectrogram to seek
+    spectrogramContainer.addEventListener('click', handleSpectrogramClick);
+    console.log('Click listener attached to spectrogram container');
 }
 
-function updateCursorPosition() {
-    if (audioDuration > 0 && spectrogramWidth > 0 && spectrogramContainer) {
-        const currentTime = audioPlayer.currentTime;
-        const progress = currentTime / audioDuration;
-        const cursorPosition = progress * spectrogramWidth;
+function handleSpectrogramClick(e) {
+    console.log('=== CLICK DETECTED ===');
+    console.log('window.audioDuration:', window.audioDuration);
+    console.log('spectrogramImage:', spectrogramImage);
 
-        playbackCursor.style.left = `${cursorPosition}px`;
-
-        const containerWidth = spectrogramContainer.offsetWidth;
-        const centerOffset = containerWidth / 2;
-
-        spectrogramContainer.scrollLeft = cursorPosition - centerOffset;
+    if (!window.audioDuration || !spectrogramImage) {
+        console.log('Missing window.audioDuration or spectrogramImage, aborting');
+        return;
     }
+
+    // Get click position relative to the image
+    const containerRect = spectrogramContainer.getBoundingClientRect();
+    const clickX = e.clientX - containerRect.left + spectrogramContainer.scrollLeft;
+
+    // Calculate time based on click position
+    const imgWidth = spectrogramImage.offsetWidth;
+    const clickTime = (clickX / imgWidth) * window.audioDuration;
+
+    console.log(`Click position: clientX=${e.clientX}, containerLeft=${containerRect.left}, scrollLeft=${spectrogramContainer.scrollLeft}`);
+    console.log(`Calculated: clickX=${clickX}, imgWidth=${imgWidth}, clickTime=${clickTime}`);
+
+    // Check audio state
+    console.log('Audio state BEFORE seek:');
+    console.log('  readyState:', audioPlayer.readyState);
+    console.log('  duration:', audioPlayer.duration);
+    console.log('  currentTime:', audioPlayer.currentTime);
+
+    // Seek to that time
+    const oldTime = audioPlayer.currentTime;
+    audioPlayer.currentTime = clickTime;
+
+    console.log('Audio state AFTER seek:');
+    console.log('  currentTime changed from', oldTime, 'to', audioPlayer.currentTime);
+    console.log('  seekable ranges:', audioPlayer.seekable.length > 0 ? `${audioPlayer.seekable.start(0)} - ${audioPlayer.seekable.end(0)}` : 'none');
+
+    // Scroll so the clicked position is at the center
+    const containerWidth = spectrogramContainer.clientWidth;
+    const centerOffset = containerWidth / 2;
+    spectrogramContainer.scrollLeft = clickX - centerOffset;
+    console.log('Scrolled to:', spectrogramContainer.scrollLeft);
 }
 
-function showCursor() {
-    playbackCursor.classList.add('active');
+function positionCursor() {
+    // Position the cursor at the center of the spectrogram container
+    const containerRect = spectrogramContainer.getBoundingClientRect();
+    const centerX = containerRect.left + (containerRect.width / 2);
+    playbackCursor.style.left = `${centerX}px`;
+    playbackCursor.style.top = `${containerRect.top}px`;
+    playbackCursor.style.height = `${containerRect.height}px`;
 }
 
-function hideCursor() {
-    playbackCursor.classList.remove('active');
+function updateSpectrogramScroll() {
+    if (!window.isPlaying || !window.audioDuration || !spectrogramImage) return;
+
+    const currentTime = audioPlayer.currentTime;
+    const progress = currentTime / window.audioDuration;
+    const imgWidth = spectrogramImage.offsetWidth;
+    const currentPixel = progress * imgWidth;
+
+    // Scroll so the current time pixel is at the center of the container
+    const containerWidth = spectrogramContainer.clientWidth;
+    const centerOffset = containerWidth / 2;
+    spectrogramContainer.scrollLeft = currentPixel - centerOffset;
 }
+
+// Spacebar control: play/pause from center of visible spectrogram
+document.addEventListener('keydown', (e) => {
+    // Only handle spacebar, and ignore if user is typing in an input
+    if (e.code === 'Space' && !['INPUT', 'TEXTAREA'].includes(e.target.tagName)) {
+        e.preventDefault();
+
+        if (!audioPlayer || !spectrogramContainer || !spectrogramImage || !window.audioDuration) {
+            return;
+        }
+
+        // Calculate the time at the center of the visible spectrogram
+        const scrollLeft = spectrogramContainer.scrollLeft;
+        const containerWidth = spectrogramContainer.clientWidth;
+        const centerPosition = scrollLeft + (containerWidth / 2);
+
+        const imgWidth = spectrogramImage.offsetWidth;
+        const timeAtCenter = (centerPosition / imgWidth) * window.audioDuration;
+
+        console.log(`Spacebar: seeking to ${timeAtCenter.toFixed(2)}s (center of visible area)`);
+
+        // Toggle play/pause
+        if (audioPlayer.paused) {
+            audioPlayer.currentTime = timeAtCenter;
+            audioPlayer.play();
+        } else {
+            audioPlayer.pause();
+        }
+    }
+});

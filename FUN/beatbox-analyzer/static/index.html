@@ -59,17 +59,18 @@
                 </div>
             </div>
 
-            <div class="audio-player-panel">
-                <h3>Audio Player</h3>
-                <audio id="audioPlayer" controls></audio>
+            <div class="audio-player-panel" style="display: none;">
+                <audio id="audioPlayer" preload="metadata"></audio>
             </div>
 
             <div class="spectrogram-panel">
                 <div class="spectrogram-header">
                     <h3>Frequency Spectrogram</h3>
                     <div class="spectrogram-controls">
+                        <button id="zoomOutMaxBtn" class="control-btn">−−</button>
                         <button id="zoomOutBtn" class="control-btn">−</button>
                         <button id="zoomInBtn" class="control-btn">+</button>
+                        <button id="zoomInMaxBtn" class="control-btn">++</button>
                         <button id="captureBtn" class="capture-btn">Capture View</button>
                     </div>
                 </div>
