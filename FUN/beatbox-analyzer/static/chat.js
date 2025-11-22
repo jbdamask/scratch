@@ -15,11 +15,19 @@ window.baseSpectrogramWidth = null; // Store the natural width when fully zoomed
 // Toggle sidebar collapse
 function toggleSidebar() {
     chatbotContainer.classList.toggle('minimized');
-    // Update button arrow direction
+    const mainContent = document.querySelector('.main-content');
+
+    // Update button arrow direction and adjust main content margin
     if (chatbotContainer.classList.contains('minimized')) {
         minimizeBtn.textContent = '←';
+        if (mainContent) {
+            mainContent.classList.remove('chatbot-expanded');
+        }
     } else {
         minimizeBtn.textContent = '→';
+        if (mainContent) {
+            mainContent.classList.add('chatbot-expanded');
+        }
     }
 }
 
@@ -233,6 +241,24 @@ function applyZoomAtPoint(mouseX) {
         const newMouseInImage = (timeAtMouse / window.audioDuration) * newWidth;
         const newScrollLeft = newMouseInImage - mouseX;
         spectrogramContainer.scrollLeft = Math.max(0, newScrollLeft);
+
+        // Update x-axis to match new width
+        if (window.createXAxisLabels) {
+            window.createXAxisLabels('spectrogramXAxisTrack', newWidth, window.audioDuration);
+        }
+
+        // Also update ZCR x-axis if ZCR image exists
+        const zcrImage = document.getElementById('zcrImage');
+        if (zcrImage && window.createXAxisLabels) {
+            // ZCR image should maintain same zoom
+            const zcrTargetWidth = Math.round((zcrImage.naturalWidth || zcrImage.offsetWidth) * zoomFactor);
+            if (zcrImage.naturalWidth) {
+                zcrImage.style.width = `${zcrTargetWidth}px`;
+                requestAnimationFrame(() => {
+                    window.createXAxisLabels('zcrXAxisTrack', zcrImage.offsetWidth, window.audioDuration);
+                });
+            }
+        }
     });
 }
 
@@ -240,6 +266,7 @@ function applyZoomAtPoint(mouseX) {
 
 function captureVisibleSpectrogram() {
     const yAxisFixed = document.getElementById('yAxisFixed');
+    const xAxisTrack = document.getElementById('spectrogramXAxisTrack');
 
     if (!spectrogramImage || !spectrogramContainer || !yAxisFixed) {
         console.error('Missing elements for capture');
@@ -263,8 +290,9 @@ function captureVisibleSpectrogram() {
     const visibleWidth = spectrogramContainer.clientWidth;
     const visibleHeight = spectrogramContainer.clientHeight;
 
-    // Y-axis width
+    // Y-axis width and X-axis height
     const yAxisWidth = yAxisFixed.offsetWidth;
+    const xAxisHeight = 30; // Height of x-axis
 
     // Calculate the portion of the spectrogram that's visible
     const imgWidth = spectrogramImage.offsetWidth;
@@ -272,9 +300,9 @@ function captureVisibleSpectrogram() {
     const scaleX = spectrogramImage.naturalWidth / imgWidth;
     const scaleY = spectrogramImage.naturalHeight / imgHeight;
 
-    // Set canvas size to include y-axis + visible spectrogram
+    // Set canvas size to include y-axis + visible spectrogram + x-axis
     canvas.width = yAxisWidth + visibleWidth;
-    canvas.height = visibleHeight;
+    canvas.height = visibleHeight + xAxisHeight;
 
     // Fill background
     ctx.fillStyle = '#2d2d2d';
@@ -313,6 +341,39 @@ function captureVisibleSpectrogram() {
         visibleWidth,
         visibleHeight
     );
+
+    // Draw x-axis (time markers)
+    ctx.fillStyle = '#0a0e1a';
+    ctx.fillRect(0, visibleHeight, canvas.width, xAxisHeight);
+
+    // Draw time markers
+    if (xAxisTrack && window.audioDuration) {
+        const timeMarkers = xAxisTrack.querySelectorAll('.time-marker');
+        ctx.fillStyle = '#a3b8cc';
+        ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto"';
+        ctx.textAlign = 'center';
+
+        timeMarkers.forEach(marker => {
+            const markerLeft = parseFloat(marker.style.left);
+            const markerPixel = (markerLeft / 100) * imgWidth;
+
+            // Only draw if marker is in visible range
+            if (markerPixel >= scrollLeft && markerPixel <= scrollLeft + visibleWidth) {
+                const xPos = yAxisWidth + (markerPixel - scrollLeft);
+                const yPos = visibleHeight + 5;
+
+                // Draw tick mark
+                ctx.beginPath();
+                ctx.moveTo(xPos, visibleHeight);
+                ctx.lineTo(xPos, visibleHeight + 8);
+                ctx.strokeStyle = '#a3b8cc';
+                ctx.stroke();
+
+                // Draw time label
+                ctx.fillText(marker.textContent, xPos, yPos + 13);
+            }
+        });
+    }
 
     selectedImageData = canvas.toDataURL('image/png');
     console.log('Captured image data length:', selectedImageData.length);

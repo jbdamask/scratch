@@ -53,15 +53,15 @@ function initializeEQ() {
     previousNode.connect(analyserNode);
     analyserNode.connect(audioContext.destination);
 
-    // Show EQ panel
-    document.getElementById('eqPanel').style.display = 'block';
-
     // Initialize slider event listeners
     initializeSliderListeners();
 
     // Start drawing frequency response
     drawFrequencyResponse();
 }
+
+// Make initializeEQ globally accessible
+window.initializeEQ = initializeEQ;
 
 function initializeSliderListeners() {
     // Frequency sliders
@@ -365,8 +365,9 @@ function calculateTotalMagnitudeResponse(frequency) {
     return totalMagnitude;
 }
 
-// Export the initialization function to be called from script.js
+// Export functions to be called from script.js
 window.initializeEQ = initializeEQ;
+window.drawFrequencyResponse = drawFrequencyResponse;
 
 // Redraw on window resize
 window.addEventListener('resize', () => {

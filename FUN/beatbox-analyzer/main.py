@@ -75,6 +75,49 @@ def generate_spectrogram(audio_path: str) -> str:
     return img_base64
 
 
+def generate_zcr(audio_path: str) -> str:
+    """
+    Generate a Zero-Crossing Rate visualization from an audio file and return as base64 encoded PNG.
+    Higher ZCR = percussive/noisy (snares, hi-hats, fricatives)
+    Lower ZCR = tonal/harmonic (kicks, bass, sustained notes)
+    """
+    y, sr = librosa.load(audio_path, sr=None)
+
+    # Calculate ZCR
+    zcr = librosa.feature.zero_crossing_rate(y, frame_length=2048, hop_length=512)[0]
+
+    # Create time axis
+    duration = len(y) / sr
+    frames = range(len(zcr))
+    time = librosa.frames_to_time(frames, sr=sr, hop_length=512)
+
+    width_per_second = 200
+    fig_width = max(20, duration * width_per_second / 100)
+    fig_height = 8
+
+    fig = plt.figure(figsize=(fig_width, fig_height))
+    fig.patch.set_facecolor('#0a0e1a')
+    ax = fig.add_axes([0, 0, 1, 1])  # No margins, fill entire figure
+
+    # Plot ZCR as filled area
+    ax.fill_between(time, zcr, alpha=0.7, color='#34d399', linewidth=0)
+    ax.plot(time, zcr, color='#2ab57d', linewidth=1.5, alpha=0.9)
+
+    # Style
+    ax.set_xlim([0, duration])
+    ax.set_ylim([0, max(zcr) * 1.1])
+    ax.set_facecolor('#0a0e1a')
+    ax.axis('off')
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=120, bbox_inches='tight', pad_inches=0, facecolor='#0a0e1a')
+    buf.seek(0)
+    plt.close(fig)
+
+    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+    return img_base64
+
+
 @app.post("/api/upload")
 async def upload_audio(file: UploadFile = File(...)):
     """
@@ -99,6 +142,7 @@ async def upload_audio(file: UploadFile = File(...)):
             f.write(contents)
 
         spectrogram_base64 = generate_spectrogram(str(file_path))
+        zcr_base64 = generate_zcr(str(file_path))
 
         duration = librosa.get_duration(path=str(file_path))
         y, sr = librosa.load(str(file_path), sr=None)
@@ -108,6 +152,7 @@ async def upload_audio(file: UploadFile = File(...)):
             "filename": file.filename,
             "audio_url": f"/audio/{unique_filename}",
             "spectrogram": f"data:image/png;base64,{spectrogram_base64}",
+            "zcr": f"data:image/png;base64,{zcr_base64}",
             "duration": round(duration, 2),
             "sample_rate": sr,
             "samples": len(y)
