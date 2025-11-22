@@ -118,6 +118,13 @@ function displayResults(data) {
 
     setupAudioSync();
 
+    // Initialize EQ after audio is loaded
+    audioPlayer.addEventListener('loadedmetadata', () => {
+        if (window.initializeEQ) {
+            window.initializeEQ();
+        }
+    }, { once: true });
+
     results.classList.add('show');
 }
 

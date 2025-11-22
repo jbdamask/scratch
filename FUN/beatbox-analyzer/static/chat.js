@@ -12,76 +12,22 @@ let selectedImageData = null;
 window.visibleSeconds = null; // Will be set to full duration initially
 window.baseSpectrogramWidth = null; // Store the natural width when fully zoomed out
 
-// Make chatbot draggable
-let dragState = {
-    active: false,
-    hasMoved: false,
-    startX: 0,
-    startY: 0,
-    chatbotX: 0,
-    chatbotY: 0
-};
-
-function onDragMove(e) {
-    const deltaX = e.clientX - dragState.startX;
-    const deltaY = e.clientY - dragState.startY;
-
-    // Check if we've moved enough to be considered a drag (5px threshold)
-    if (!dragState.hasMoved && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
-        dragState.hasMoved = true;
-        chatbotHeader.style.cursor = 'grabbing';
-        // Convert from right/bottom to left/top positioning
-        chatbotContainer.style.right = 'auto';
-        chatbotContainer.style.bottom = 'auto';
-        chatbotContainer.style.left = `${dragState.chatbotX}px`;
-        chatbotContainer.style.top = `${dragState.chatbotY}px`;
-    }
-
-    if (dragState.hasMoved) {
-        const newX = dragState.chatbotX + deltaX;
-        const newY = dragState.chatbotY + deltaY;
-
-        chatbotContainer.style.left = `${newX}px`;
-        chatbotContainer.style.top = `${newY}px`;
+// Toggle sidebar collapse
+function toggleSidebar() {
+    chatbotContainer.classList.toggle('minimized');
+    // Update button arrow direction
+    if (chatbotContainer.classList.contains('minimized')) {
+        minimizeBtn.textContent = '←';
+    } else {
+        minimizeBtn.textContent = '→';
     }
 }
 
-function onDragEnd(e) {
-    document.removeEventListener('mousemove', onDragMove);
-    document.removeEventListener('mouseup', onDragEnd);
-
-    chatbotHeader.style.cursor = 'grab';
-    dragState.active = false;
-}
-
-chatbotHeader.addEventListener('mousedown', (e) => {
-    if (e.target === minimizeBtn || e.button !== 0) return;
-
-    dragState.active = true;
-    dragState.hasMoved = false;
-    dragState.startX = e.clientX;
-    dragState.startY = e.clientY;
-
-    const rect = chatbotContainer.getBoundingClientRect();
-    dragState.chatbotX = rect.left;
-    dragState.chatbotY = rect.top;
-
-    document.addEventListener('mousemove', onDragMove);
-    document.addEventListener('mouseup', onDragEnd);
-
-    e.preventDefault();
-});
-
-chatbotHeader.addEventListener('click', (e) => {
-    // Only toggle if we didn't drag and didn't click the minimize button
-    if (e.target !== minimizeBtn && !dragState.hasMoved) {
-        chatbotContainer.classList.toggle('minimized');
-    }
-});
+chatbotHeader.addEventListener('click', toggleSidebar);
 
 minimizeBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    chatbotContainer.classList.toggle('minimized');
+    toggleSidebar();
 });
 
 sendBtn.addEventListener('click', sendMessage);
@@ -371,8 +317,10 @@ function captureVisibleSpectrogram() {
     selectedImageData = canvas.toDataURL('image/png');
     console.log('Captured image data length:', selectedImageData.length);
 
-    // Open chatbot
-    chatbotContainer.classList.remove('minimized');
+    // Open chatbot if collapsed
+    if (chatbotContainer.classList.contains('minimized')) {
+        toggleSidebar();
+    }
 
     // Set the default message and automatically send
     chatInput.value = "What's going on here?";
