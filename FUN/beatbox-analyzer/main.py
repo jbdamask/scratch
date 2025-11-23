@@ -56,6 +56,8 @@ def generate_spectrogram(audio_path: str) -> str:
     tile_duration = 60  # seconds
     num_tiles = int(np.ceil(duration / tile_duration))
 
+    print(f"Duration: {duration}s, creating {num_tiles} tiles")
+
     dpi = 120
     fig_height = 14
     width_per_second = 200
@@ -96,8 +98,16 @@ def generate_spectrogram(audio_path: str) -> str:
         buf.seek(0)
         plt.close(fig)
 
-        # Load as PIL image
+        # Load as PIL image and ensure exact width
         tile_img = Image.open(buf)
+
+        # Calculate expected width for this tile duration
+        expected_width = int(tile_dur * width_per_second / 100 * dpi)
+
+        # Resize if there's any discrepancy (due to matplotlib rounding)
+        if tile_img.width != expected_width:
+            tile_img = tile_img.resize((expected_width, tile_img.height), Image.Resampling.LANCZOS)
+
         tiles.append(tile_img)
 
     # Stitch tiles horizontally
@@ -116,6 +126,12 @@ def generate_spectrogram(audio_path: str) -> str:
         for tile in tiles:
             final_img.paste(tile, (x_offset, 0))
             x_offset += tile.width
+
+    # Ensure final image width exactly matches expected width for the duration
+    expected_final_width = int(duration * width_per_second / 100 * dpi)
+    if final_img.width != expected_final_width:
+        print(f"Resizing final image from {final_img.width}px to {expected_final_width}px")
+        final_img = final_img.resize((expected_final_width, final_img.height), Image.Resampling.LANCZOS)
 
     # Convert final image to base64
     final_buf = io.BytesIO()
