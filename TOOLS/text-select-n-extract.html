@@ -8,7 +8,6 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.400.0/lucide.min.css" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
     <style>
-        /* Volino Theme Colors */
         :root {
             --background: 248 250 252;
             --foreground: 51 65 85;
@@ -194,22 +193,198 @@
             color: rgb(var(--muted-foreground));
         }
 
-        .markdown-content h1, .markdown-content h2, .markdown-content h3,
-        .markdown-content h4, .markdown-content h5, .markdown-content h6 {
+        /* Comprehensive Markdown Styles */
+        .markdown-content {
+            max-width: 900px;
+        }
+
+        .markdown-content h1 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            line-height: 1.2;
             color: rgb(var(--card-foreground));
+            border-bottom: 2px solid rgb(var(--border));
+            padding-bottom: 0.5rem;
+        }
+
+        .markdown-content h2 {
+            font-size: 1.875rem;
+            font-weight: 600;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            line-height: 1.3;
+            color: rgb(var(--card-foreground));
+            border-bottom: 1px solid rgb(var(--border));
+            padding-bottom: 0.375rem;
+        }
+
+        .markdown-content h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+            color: rgb(var(--card-foreground));
+        }
+
+        .markdown-content h4 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            color: rgb(var(--card-foreground));
+        }
+
+        .markdown-content h5 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            color: rgb(var(--card-foreground));
+        }
+
+        .markdown-content h6 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            color: rgb(var(--muted-foreground));
+        }
+
+        .markdown-content p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        .markdown-content a {
+            color: rgb(var(--primary));
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .markdown-content a:hover {
+            text-decoration: underline;
+        }
+
+        .markdown-content strong {
+            font-weight: 600;
+            color: rgb(var(--card-foreground));
+        }
+
+        .markdown-content em {
+            font-style: italic;
         }
 
         .markdown-content code {
             background-color: rgb(var(--muted));
             border-radius: 0.25rem;
+            padding: 0.125rem 0.375rem;
+            font-size: 0.875em;
+            font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+            color: rgb(239 68 68);
         }
 
         .markdown-content pre {
             background-color: rgb(var(--muted));
-            border-radius: 0.375rem;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+            border: 1px solid rgb(var(--border));
         }
 
-        /* Custom file input styling */
+        .markdown-content pre code {
+            background-color: transparent;
+            padding: 0;
+            border-radius: 0;
+            color: rgb(var(--foreground));
+            font-size: 0.875rem;
+        }
+
+        .markdown-content ul, .markdown-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+
+        .markdown-content ul {
+            list-style-type: disc;
+        }
+
+        .markdown-content ol {
+            list-style-type: decimal;
+        }
+
+        .markdown-content li {
+            margin-bottom: 0.5rem;
+            line-height: 1.7;
+        }
+
+        .markdown-content li > ul, .markdown-content li > ol {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .markdown-content blockquote {
+            border-left: 4px solid rgb(var(--primary));
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: rgb(var(--muted-foreground));
+            font-style: italic;
+        }
+
+        .markdown-content blockquote p {
+            margin-bottom: 0.5rem;
+        }
+
+        .markdown-content hr {
+            border: none;
+            border-top: 2px solid rgb(var(--border));
+            margin: 2rem 0;
+        }
+
+        .markdown-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        .markdown-content table th {
+            background-color: rgb(var(--muted));
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid rgb(var(--border));
+        }
+
+        .markdown-content table td {
+            padding: 0.75rem;
+            border: 1px solid rgb(var(--border));
+        }
+
+        .markdown-content table tr:nth-child(even) {
+            background-color: rgb(var(--muted) / 0.3);
+        }
+
+        .markdown-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.375rem;
+            margin: 1rem 0;
+        }
+
+        .markdown-content :first-child {
+            margin-top: 0;
+        }
+
+        .markdown-content :last-child {
+            margin-bottom: 0;
+        }
+
         .file-input {
             color: rgb(var(--muted-foreground));
         }
@@ -230,11 +405,102 @@
             background-color: rgb(var(--accent));
             color: rgb(var(--accent-foreground));
         }
+
+        /* Enhanced PDF Styles */
+        .pdf-page {
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid rgb(var(--border));
+        }
+
+        .pdf-page:last-child {
+            border-bottom: none;
+        }
+
+        .pdf-page-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, rgb(59 130 246 / 0.1) 0%, rgb(14 165 233 / 0.05) 100%);
+            border-left: 4px solid rgb(var(--primary));
+            border-radius: 0.375rem;
+        }
+
+        .pdf-page-number {
+            font-weight: 700;
+            font-size: 1.125rem;
+            color: rgb(var(--primary));
+            min-width: 80px;
+        }
+
+        .pdf-page-content {
+            line-height: 1.8;
+            font-size: 0.9375rem;
+            color: rgb(30 41 59);
+            text-align: justify;
+            hyphens: auto;
+        }
+
+        .pdf-page-content p {
+            margin-bottom: 1rem;
+        }
+
+        .pdf-page-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Better paragraph detection */
+        .pdf-paragraph {
+            margin-bottom: 1rem;
+            line-height: 1.8;
+        }
+
+        .pdf-paragraph.indented {
+            text-indent: 2em;
+        }
+
+        /* Heading-like text (all caps or larger) */
+        .pdf-heading {
+            font-weight: 600;
+            font-size: 1.1em;
+            color: rgb(var(--card-foreground));
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.4;
+        }
+
+        /* List-like items */
+        .pdf-list-item {
+            margin-left: 1.5rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+
+        .pdf-list-item::before {
+            content: '•';
+            position: absolute;
+            left: -1rem;
+            color: rgb(var(--primary));
+            font-weight: bold;
+        }
+
+        /* Better spacing for numbered items */
+        .pdf-numbered-item {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Emphasis detection */
+        .pdf-emphasis {
+            font-weight: 500;
+            color: rgb(15 23 42);
+        }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="flex flex-col" style="height: 100vh; margin: 0; overflow: hidden;">
     <!-- Header -->
-    <div class="header px-6 py-4 flex items-center justify-between">
+    <div class="header px-6 py-4 flex items-center justify-between flex-shrink-0">
         <div class="flex items-center gap-3">
             <div class="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold">
                 <i data-lucide="file-text" class="w-5 h-5"></i>
@@ -253,8 +519,8 @@
     <!-- Main Container -->
     <div class="flex flex-1 p-4 gap-1 overflow-hidden" id="mainContainer">
         <!-- Left Panel -->
-        <div class="volino-card flex flex-col min-w-0" id="leftPanel" style="flex: 1;">
-            <div class="panel-header px-4 py-3 flex items-center gap-2">
+        <div class="volino-card flex flex-col" id="leftPanel" style="flex: 1; height: 100%; overflow: hidden;">
+            <div class="panel-header px-4 py-3 flex items-center gap-2 flex-shrink-0">
                 <i data-lucide="book-open" class="w-4 h-4"></i>
                 Document Viewer
             </div>
@@ -268,13 +534,13 @@
         </div>
 
         <!-- Splitter -->
-        <div class="splitter w-1.5 cursor-col-resize relative" id="splitter">
+        <div class="splitter w-1.5 cursor-col-resize relative flex-shrink-0" id="splitter">
             <div class="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-0.5 h-8 rounded-full splitter::before"></div>
         </div>
 
         <!-- Right Panel -->
-        <div class="volino-card flex flex-col w-80 min-w-0" id="rightPanel">
-            <div class="panel-header px-4 py-3 flex items-center gap-2">
+        <div class="volino-card flex flex-col" id="rightPanel" style="width: 320px; height: 100%; overflow: hidden;">
+            <div class="panel-header px-4 py-3 flex items-center gap-2 flex-shrink-0">
                 <i data-lucide="clipboard-list" class="w-4 h-4"></i>
                 Extracted Text
             </div>
@@ -306,7 +572,6 @@
             }
 
             initializeIcons() {
-                // Initialize Lucide icons
                 lucide.createIcons();
             }
 
@@ -343,12 +608,11 @@
                     if (!isResizing) return;
 
                     const deltaX = e.clientX - startX;
-                    const containerWidth = mainContainer.offsetWidth - 6; // subtract splitter width
+                    const containerWidth = mainContainer.offsetWidth - 6;
 
                     const newLeftWidth = startLeftWidth + deltaX;
                     const newRightWidth = startRightWidth - deltaX;
 
-                    // Enforce minimum widths
                     if (newLeftWidth >= 200 && newRightWidth >= 200) {
                         leftPanel.style.flex = 'none';
                         leftPanel.style.width = `${newLeftWidth}px`;
@@ -413,23 +677,162 @@
                         try {
                             const typedArray = new Uint8Array(e.target.result);
                             const pdf = await pdfjsLib.getDocument(typedArray).promise;
-                            let fullText = '';
+                            let fullHtml = '';
 
                             for (let i = 1; i <= pdf.numPages; i++) {
                                 const page = await pdf.getPage(i);
                                 const textContent = await page.getTextContent();
-                                const pageText = textContent.items.map(item => item.str).join(' ');
-                                fullText += `<h3 class="text-lg font-semibold mt-6 mb-3 text-blue-600">Page ${i}</h3><p class="mb-4">${pageText}</p>`;
+
+                                // Enhanced text extraction with positioning info
+                                const pageHtml = this.formatPdfPage(i, textContent);
+                                fullHtml += pageHtml;
                             }
 
-                            resolve(fullText);
+                            resolve(fullHtml);
                         } catch (error) {
-                            reject(new Error('Failed to parse PDF'));
+                            reject(new Error('Failed to parse PDF: ' + error.message));
                         }
                     };
                     reader.onerror = () => reject(new Error('Failed to read PDF file'));
                     reader.readAsArrayBuffer(file);
                 });
+            }
+
+            formatPdfPage(pageNum, textContent) {
+                // Group text items by their vertical position to detect lines
+                const lines = [];
+                let currentLine = [];
+                let lastY = null;
+                const yThreshold = 5; // Pixels difference to consider same line
+
+                textContent.items.forEach((item, index) => {
+                    const y = item.transform[5];
+
+                    if (lastY === null || Math.abs(y - lastY) < yThreshold) {
+                        // Same line
+                        currentLine.push(item);
+                    } else {
+                        // New line
+                        if (currentLine.length > 0) {
+                            lines.push(currentLine);
+                        }
+                        currentLine = [item];
+                    }
+                    lastY = y;
+                });
+
+                if (currentLine.length > 0) {
+                    lines.push(currentLine);
+                }
+
+                // Sort lines by Y position (top to bottom)
+                lines.sort((a, b) => b[0].transform[5] - a[0].transform[5]);
+
+                // Build paragraphs from lines
+                const paragraphs = [];
+                let currentParagraph = [];
+
+                lines.forEach((line, lineIndex) => {
+                    const lineText = line.map(item => item.str).join('').trim();
+
+                    if (lineText.length === 0) {
+                        // Empty line indicates paragraph break
+                        if (currentParagraph.length > 0) {
+                            paragraphs.push({
+                                text: currentParagraph.join(' '),
+                                type: this.detectTextType(currentParagraph[0])
+                            });
+                            currentParagraph = [];
+                        }
+                    } else {
+                        currentParagraph.push(lineText);
+
+                        // Check if line ends with sentence-ending punctuation
+                        const endsWithPunctuation = /[.!?]$/.test(lineText);
+                        const nextLineExists = lineIndex < lines.length - 1;
+
+                        if (endsWithPunctuation && nextLineExists) {
+                            const nextLine = lines[lineIndex + 1];
+                            const nextLineText = nextLine.map(item => item.str).join('').trim();
+
+                            // If next line starts with capital or is far away, end paragraph
+                            const nextStartsWithCap = /^[A-Z0-9]/.test(nextLineText);
+                            if (nextStartsWithCap || !nextLineExists) {
+                                paragraphs.push({
+                                    text: currentParagraph.join(' '),
+                                    type: this.detectTextType(currentParagraph[0])
+                                });
+                                currentParagraph = [];
+                            }
+                        }
+                    }
+                });
+
+                // Add remaining paragraph
+                if (currentParagraph.length > 0) {
+                    paragraphs.push({
+                        text: currentParagraph.join(' '),
+                        type: this.detectTextType(currentParagraph[0])
+                    });
+                }
+
+                // Generate HTML
+                let pageHtml = `
+                    <div class="pdf-page">
+                        <div class="pdf-page-header">
+                            <i data-lucide="file-text" class="w-5 h-5 text-blue-600"></i>
+                            <span class="pdf-page-number">Page ${pageNum}</span>
+                        </div>
+                        <div class="pdf-page-content">
+                `;
+
+                paragraphs.forEach(para => {
+                    const text = this.escapeHtml(para.text);
+
+                    if (para.type === 'heading') {
+                        pageHtml += `<div class="pdf-heading">${text}</div>`;
+                    } else if (para.type === 'list') {
+                        pageHtml += `<div class="pdf-list-item">${text}</div>`;
+                    } else if (para.type === 'numbered') {
+                        pageHtml += `<div class="pdf-numbered-item">${text}</div>`;
+                    } else {
+                        pageHtml += `<p class="pdf-paragraph">${text}</p>`;
+                    }
+                });
+
+                pageHtml += `
+                        </div>
+                    </div>
+                `;
+
+                return pageHtml;
+            }
+
+            detectTextType(text) {
+                if (!text) return 'normal';
+
+                // Detect headings (all caps, or starts with numbers like "1.", "1.1")
+                if (text === text.toUpperCase() && text.length < 100) {
+                    return 'heading';
+                }
+
+                // Detect numbered items
+                if (/^\d+[\.)]\s/.test(text)) {
+                    return 'numbered';
+                }
+
+                // Detect list items (starts with bullet points or dashes)
+                if (/^[•\-–—*]\s/.test(text)) {
+                    return 'list';
+                }
+
+                return 'normal';
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
             }
 
             handleKeyPress(event) {
@@ -471,7 +874,7 @@
                         }
                     }, 1000);
                 } catch (e) {
-                    // If surrounding fails (e.g., selection spans multiple elements), just continue
+                    // Selection spans multiple elements - that's okay
                 }
             }
 
@@ -512,11 +915,11 @@
             renderExtractedTexts() {
                 if (this.selectedTexts.length === 0) {
                     this.extractedText.innerHTML = `
-                        <div class="p-8 text-center empty-state">
-                            <i data-lucide="mouse-pointer-click" class="w-12 h-12 mb-4 text-gray-300 mx-auto"></i>
-                            <p class="font-medium mb-2">No text extracted yet</p>
-                            <p class="text-sm">Select text in the document and press <kbd class="px-2 py-1 bg-gray-100 rounded text-xs font-mono">spacebar</kbd> to extract it.</p>
-                        </div>
+                    <div class="p-8 text-center empty-state">
+                        <i data-lucide="mouse-pointer-click" class="w-12 h-12 mb-4 text-gray-300 mx-auto"></i>
+                        <p class="font-medium mb-2">No text extracted yet</p>
+                        <p class="text-sm">Select text in the document and press <kbd class="px-2 py-1 bg-gray-100 rounded text-xs font-mono">spacebar</kbd> to extract it.</p>
+                    </div>
                     `;
                     this.initializeIcons();
                 } else {
