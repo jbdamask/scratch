@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webpage to Markdown Converter</title>
     <style>
+        /* Webapp Dark Theme - Extracted from THEMES/webapp-dark */
+        :root {
+            --background: #0a0e1a;
+            --foreground: #a3b8cc;
+            --primary: #34d399;
+            --primary-foreground: #0f172a;
+            --secondary: #1e293b;
+            --secondary-foreground: #e2e8f0;
+            --muted: #334155;
+            --muted-foreground: #64748b;
+            --border: #334155;
+            --input: #334155;
+            --card: #1e293b;
+            --card-foreground: #e2e8f0;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,24 +28,26 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
             height: 100vh;
             display: flex;
             flex-direction: column;
-            background-color: #f5f5f5;
+            background-color: var(--background);
+            color: var(--foreground);
         }
 
         .header {
-            background: #fff;
+            background: var(--card);
             padding: 20px;
-            border-bottom: 1px solid #ddd;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-bottom: 1px solid var(--border);
         }
 
         .header h1 {
             margin-bottom: 15px;
-            color: #333;
+            color: var(--primary);
             font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 0.05em;
         }
 
         .controls {
@@ -47,41 +65,49 @@
 
         .input-group label {
             font-size: 12px;
-            color: #666;
+            color: var(--muted-foreground);
             font-weight: 500;
         }
 
         input[type="text"], input[type="url"] {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 12px 16px;
+            border: 1px solid var(--input);
+            border-radius: 6px;
             font-size: 14px;
             min-width: 300px;
+            background: var(--background);
+            color: var(--foreground);
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            transition: all 0.2s;
         }
 
         input[type="text"]:focus, input[type="url"]:focus {
             outline: none;
-            border-color: #007AFF;
-            box-shadow: 0 0 0 2px rgba(0,122,255,0.2);
+            border-color: var(--primary);
+            background: var(--secondary);
         }
 
         button {
-            padding: 8px 16px;
-            background: #007AFF;
-            color: white;
-            border: none;
-            border-radius: 4px;
+            padding: 12px 16px;
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            border-radius: 6px;
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+            transition: all 0.2s;
         }
 
-        button:hover {
-            background: #0056CC;
+        button:hover:not(:disabled) {
+            background: var(--primary);
+            color: var(--primary-foreground);
         }
 
         button:disabled {
-            background: #ccc;
+            color: var(--muted-foreground);
+            border-color: var(--muted);
             cursor: not-allowed;
         }
 
@@ -95,19 +121,24 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            background: white;
-            border: 1px solid #ddd;
+            background: var(--card);
+            border: 1px solid var(--border);
             margin: 10px 5px;
             border-radius: 8px;
             overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        .pane:hover {
+            border-color: var(--primary);
         }
 
         .pane-header {
-            background: #f8f9fa;
+            background: var(--secondary);
             padding: 10px 15px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border);
             font-weight: 600;
-            color: #333;
+            color: var(--primary);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -128,35 +159,40 @@
         .markdown-content {
             padding: 20px;
             line-height: 1.6;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 14px;
-            background: #fafafa;
+            background: var(--background);
+            color: var(--foreground);
         }
 
         .markdown-content h1 {
-            border-bottom: 2px solid #eee;
+            border-bottom: 2px solid var(--border);
             padding-bottom: 10px;
             margin-bottom: 16px;
             font-size: 2em;
+            color: var(--primary);
         }
 
         .markdown-content h2 {
-            border-bottom: 1px solid #eee;
+            border-bottom: 1px solid var(--border);
             padding-bottom: 8px;
             margin-bottom: 14px;
             margin-top: 24px;
             font-size: 1.5em;
+            color: var(--primary);
         }
 
         .markdown-content h3 {
             margin-bottom: 12px;
             margin-top: 20px;
             font-size: 1.25em;
+            color: var(--secondary-foreground);
         }
 
         .markdown-content h4, .markdown-content h5, .markdown-content h6 {
             margin-bottom: 10px;
             margin-top: 16px;
+            color: var(--secondary-foreground);
         }
 
         .markdown-content p {
@@ -164,27 +200,29 @@
         }
 
         .markdown-content blockquote {
-            border-left: 4px solid #ddd;
+            border-left: 4px solid var(--primary);
             padding-left: 16px;
             margin-left: 0;
             margin-bottom: 16px;
-            color: #666;
+            color: var(--muted-foreground);
         }
 
         .markdown-content code {
-            background: #f1f3f4;
+            background: var(--secondary);
             padding: 2px 4px;
             border-radius: 3px;
-            font-family: 'Monaco', 'Consolas', monospace;
+            font-family: 'JetBrains Mono', 'Consolas', 'Monaco', monospace;
             font-size: 0.9em;
+            color: var(--primary);
         }
 
         .markdown-content pre {
-            background: #f1f3f4;
+            background: var(--secondary);
             padding: 16px;
             border-radius: 6px;
             overflow-x: auto;
             margin-bottom: 16px;
+            border: 1px solid var(--border);
         }
 
         .markdown-content pre code {
@@ -202,7 +240,7 @@
         }
 
         .markdown-content a {
-            color: #007AFF;
+            color: var(--primary);
             text-decoration: none;
         }
 
@@ -217,14 +255,15 @@
         }
 
         .markdown-content th, .markdown-content td {
-            border: 1px solid #ddd;
+            border: 1px solid var(--border);
             padding: 8px 12px;
             text-align: left;
         }
 
         .markdown-content th {
-            background: #f8f9fa;
+            background: var(--secondary);
             font-weight: 600;
+            color: var(--primary);
         }
 
         .markdown-content img {
@@ -235,7 +274,7 @@
 
         .markdown-content hr {
             border: none;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid var(--border);
             margin: 24px 0;
         }
 
@@ -244,18 +283,21 @@
             align-items: center;
             justify-content: center;
             height: 100%;
-            color: #666;
+            color: var(--muted-foreground);
             font-style: italic;
         }
 
         .copy-button {
             padding: 4px 8px;
             font-size: 12px;
-            background: #6c757d;
+            background: transparent;
+            border: 1px solid var(--primary);
+            color: var(--primary);
         }
 
         .copy-button:hover {
-            background: #545b62;
+            background: var(--primary);
+            color: var(--primary-foreground);
         }
 
         @media (max-width: 768px) {
