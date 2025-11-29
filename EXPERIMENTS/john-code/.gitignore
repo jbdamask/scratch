@@ -1,5 +1,5 @@
 # Binaries
-john
+/john
 *.exe
 *.dll
 *.so
