@@ -1,0 +1,56 @@
+# Binaries
+john
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Build artifacts
+*.o
+*.a
+*.out
+
+# Go
+vendor/
+
+# Sensitive files
+*.pem
+*.key
+*.env
+.env*
+*_secret*
+*_credentials*
+mcp.json
+
+# Config with potential secrets (user should use env vars)
+.config/
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE/Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-*
+
+# Session logs (contain conversation history)
+.john_sessions/
+
+# Test artifacts
+*.test
+*.prof
+coverage.out
+coverage.html
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
