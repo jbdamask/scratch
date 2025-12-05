@@ -1,0 +1,1199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Tutorial - Learn How Chatbots Work</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/11.1.1/marked.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            background: #1a1a2e;
+            color: #eee;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* Left Panel - Chat */
+        .chat-panel {
+            width: 40%;
+            min-width: 300px;
+            display: flex;
+            flex-direction: column;
+            background: #16213e;
+            border-right: 1px solid #0f3460;
+        }
+
+        .chat-header {
+            padding: 20px;
+            background: #0f3460;
+            border-bottom: 1px solid #1a1a2e;
+        }
+
+        .chat-header h1 {
+            font-size: 1.4rem;
+            color: #e94560;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            background: #e94560;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.assistant {
+            align-self: flex-start;
+            background: #0f3460;
+            color: #eee;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message.system {
+            align-self: center;
+            background: transparent;
+            color: #666;
+            font-size: 0.85rem;
+            font-style: italic;
+        }
+
+        /* Markdown styles for chat messages */
+        .message.assistant .markdown-content {
+            line-height: 1.6;
+        }
+
+        .message.assistant .markdown-content p {
+            margin-bottom: 0.75em;
+        }
+
+        .message.assistant .markdown-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .message.assistant .markdown-content h1,
+        .message.assistant .markdown-content h2,
+        .message.assistant .markdown-content h3 {
+            margin-top: 0.5em;
+            margin-bottom: 0.5em;
+            color: #fff;
+        }
+
+        .message.assistant .markdown-content h1 { font-size: 1.3em; }
+        .message.assistant .markdown-content h2 { font-size: 1.15em; }
+        .message.assistant .markdown-content h3 { font-size: 1.05em; }
+
+        .message.assistant .markdown-content ul,
+        .message.assistant .markdown-content ol {
+            margin-left: 1.2em;
+            margin-bottom: 0.75em;
+        }
+
+        .message.assistant .markdown-content li {
+            margin-bottom: 0.3em;
+        }
+
+        .message.assistant .markdown-content code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.15em 0.4em;
+            border-radius: 4px;
+            font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        .message.assistant .markdown-content pre {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 0.75em;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin: 0.5em 0;
+        }
+
+        .message.assistant .markdown-content pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        .message.assistant .markdown-content blockquote {
+            border-left: 3px solid #4ecca3;
+            padding-left: 1em;
+            margin: 0.5em 0;
+            color: #bbb;
+        }
+
+        .message.assistant .markdown-content a {
+            color: #4ecca3;
+            text-decoration: none;
+        }
+
+        .message.assistant .markdown-content a:hover {
+            text-decoration: underline;
+        }
+
+        .message.assistant .markdown-content strong {
+            color: #fff;
+        }
+
+        .message.assistant .markdown-content hr {
+            border: none;
+            border-top: 1px solid #444;
+            margin: 1em 0;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: #0f3460;
+            border-top: 1px solid #1a1a2e;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+        }
+
+        #chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #1a1a2e;
+            border-radius: 8px;
+            background: #16213e;
+            color: #eee;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        #chat-input:focus {
+            border-color: #e94560;
+        }
+
+        #chat-input::placeholder {
+            color: #666;
+        }
+
+        #send-btn {
+            padding: 12px 24px;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        #send-btn:hover {
+            background: #ff6b6b;
+        }
+
+        #send-btn:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+
+        /* Resizer */
+        .resizer {
+            width: 6px;
+            background: #0f3460;
+            cursor: col-resize;
+            transition: background 0.2s;
+        }
+
+        .resizer:hover,
+        .resizer.active {
+            background: #e94560;
+        }
+
+        /* Right Panel - Tutorial */
+        .tutorial-panel {
+            flex: 1;
+            min-width: 400px;
+            display: flex;
+            flex-direction: column;
+            background: #1a1a2e;
+            min-height: 0; /* Important for flex scroll */
+            overflow: hidden;
+        }
+
+        .tutorial-header {
+            padding: 20px;
+            background: #0f3460;
+            border-bottom: 1px solid #16213e;
+        }
+
+        .tutorial-header h2 {
+            font-size: 1.3rem;
+            color: #4ecca3;
+            margin-bottom: 5px;
+        }
+
+        .tutorial-header p {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .tutorial-content {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 0; /* Important for flex scroll */
+        }
+
+        /* Expandable Tutorial Card */
+        .tutorial-card {
+            background: #16213e;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #0f3460;
+            animation: slideIn 0.3s ease;
+            transition: border-color 0.2s;
+            flex-shrink: 0; /* Prevent cards from shrinking */
+        }
+
+        .tutorial-card:hover {
+            border-color: #4ecca3;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .tutorial-card-header {
+            padding: 14px 18px;
+            background: #0f3460;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .tutorial-card-header:hover {
+            background: #133a6a;
+        }
+
+        .tutorial-card-header .icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .tutorial-card-header .icon.user-input { background: #e94560; }
+        .tutorial-card-header .icon.api { background: #4ecca3; }
+        .tutorial-card-header .icon.tool { background: #ffd93d; color: #1a1a2e; }
+        .tutorial-card-header .icon.response { background: #6c5ce7; }
+        .tutorial-card-header .icon.loop { background: #00cec9; }
+        .tutorial-card-header .icon.error { background: #d63031; }
+        .tutorial-card-header .icon.connection { background: #74b9ff; }
+
+        .tutorial-card-header .header-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tutorial-card-header h3 {
+            font-size: 0.95rem;
+            color: #eee;
+            margin-bottom: 2px;
+        }
+
+        .tutorial-card-header .subtitle {
+            font-size: 0.8rem;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .tutorial-card-header .expand-icon {
+            font-size: 1.2rem;
+            color: #666;
+            transition: transform 0.3s;
+        }
+
+        .tutorial-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+
+        .tutorial-card-body {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .tutorial-card.expanded .tutorial-card-body {
+            max-height: 800px;
+            overflow-y: auto;
+        }
+
+        .tutorial-card-body-inner {
+            padding: 18px;
+            border-top: 1px solid #0f3460;
+        }
+
+        /* Concept Box */
+        .concept-box {
+            background: rgba(78, 204, 163, 0.1);
+            border-left: 3px solid #4ecca3;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .concept-box h4 {
+            color: #4ecca3;
+            font-size: 0.85rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .concept-box p {
+            color: #bbb;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Code Section */
+        .code-section {
+            margin-top: 12px;
+        }
+
+        .code-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .code-section-header h5 {
+            color: #888;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .code-section-header .copy-btn {
+            background: transparent;
+            border: 1px solid #444;
+            color: #888;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .code-section-header .copy-btn:hover {
+            border-color: #4ecca3;
+            color: #4ecca3;
+        }
+
+        .tutorial-card-body pre {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 14px;
+            overflow-x: auto;
+            font-size: 0.82rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .tutorial-card-body code {
+            font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+        }
+
+        /* Data Display */
+        .data-display {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 14px;
+            margin-top: 12px;
+        }
+
+        .data-display-label {
+            color: #888;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .data-display pre {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+        }
+
+        /* Key Terms */
+        .key-term {
+            color: #ffd93d;
+            font-weight: 500;
+        }
+
+        /* Card Q&A Section */
+        .card-qa {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px dashed #0f3460;
+        }
+
+        .card-qa-input-wrapper {
+            display: flex;
+            gap: 8px;
+        }
+
+        .card-qa-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #0f3460;
+            border-radius: 6px;
+            background: #0d1117;
+            color: #eee;
+            font-size: 0.85rem;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .card-qa-input:focus {
+            border-color: #4ecca3;
+        }
+
+        .card-qa-input::placeholder {
+            color: #555;
+        }
+
+        .card-qa-btn {
+            padding: 10px 16px;
+            background: #4ecca3;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .card-qa-btn:hover {
+            background: #6fe8bb;
+        }
+
+        .card-qa-btn:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .card-qa-messages {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .card-qa-message {
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+
+        .card-qa-message.user-q {
+            background: rgba(233, 69, 96, 0.2);
+            color: #e94560;
+            align-self: flex-end;
+            max-width: 90%;
+        }
+
+        .card-qa-message.assistant-a {
+            background: rgba(78, 204, 163, 0.15);
+            color: #ccc;
+            border-left: 3px solid #4ecca3;
+        }
+
+        /* Markdown styles for Q&A responses */
+        .card-qa-message.assistant-a .markdown-content {
+            line-height: 1.5;
+        }
+
+        .card-qa-message.assistant-a .markdown-content p {
+            margin-bottom: 0.5em;
+        }
+
+        .card-qa-message.assistant-a .markdown-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .card-qa-message.assistant-a .markdown-content code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.1em 0.3em;
+            border-radius: 3px;
+            font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+            font-size: 0.85em;
+        }
+
+        .card-qa-message.assistant-a .markdown-content pre {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.5em;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 0.4em 0;
+        }
+
+        .card-qa-message.assistant-a .markdown-content pre code {
+            background: transparent;
+            padding: 0;
+        }
+
+        .card-qa-message.assistant-a .markdown-content ul,
+        .card-qa-message.assistant-a .markdown-content ol {
+            margin-left: 1em;
+            margin-bottom: 0.5em;
+        }
+
+        .card-qa-message.assistant-a .markdown-content strong {
+            color: #4ecca3;
+        }
+
+        .card-qa-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 0.85rem;
+            padding: 8px 0;
+        }
+
+        .card-qa-loading .dot {
+            width: 6px;
+            height: 6px;
+            background: #4ecca3;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .card-qa-loading .dot:nth-child(1) { animation-delay: -0.32s; }
+        .card-qa-loading .dot:nth-child(2) { animation-delay: -0.16s; }
+
+        /* Step indicator */
+        .step-badge {
+            background: rgba(233, 69, 96, 0.2);
+            color: #e94560;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-left: 8px;
+        }
+
+        .tutorial-placeholder {
+            text-align: center;
+            padding: 60px 40px;
+            color: #666;
+        }
+
+        .tutorial-placeholder .icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .tutorial-placeholder h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            color: #888;
+        }
+
+        .tutorial-placeholder p {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        /* Sample prompts */
+        .sample-prompts {
+            padding: 15px 20px;
+            background: rgba(78, 204, 163, 0.1);
+            border-top: 1px solid #0f3460;
+        }
+
+        .sample-prompts h4 {
+            font-size: 0.85rem;
+            color: #4ecca3;
+            margin-bottom: 10px;
+        }
+
+        .sample-prompts-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .sample-prompt {
+            padding: 6px 12px;
+            background: #0f3460;
+            border: 1px solid #1a1a2e;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .sample-prompt:hover {
+            background: #16213e;
+            color: #4ecca3;
+            border-color: #4ecca3;
+        }
+
+        /* Loading indicator */
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: #0f3460;
+            border-radius: 8px;
+            color: #888;
+        }
+
+        .loading-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .loading-dots span {
+            width: 8px;
+            height: 8px;
+            background: #4ecca3;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+
+        .loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a2e;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #0f3460;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #16213e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Left Panel - Chat -->
+        <div class="chat-panel" id="chat-panel">
+            <div class="chat-header">
+                <h1>AI Agent Chatbot</h1>
+                <p>Ask me anything - I'll show you how I work!</p>
+            </div>
+
+            <div class="chat-messages" id="chat-messages">
+                <div class="message system">
+                    Welcome! Try asking me about the weather, time, or to calculate something.
+                </div>
+            </div>
+
+            <div class="sample-prompts">
+                <h4>Try these prompts:</h4>
+                <div class="sample-prompts-list">
+                    <span class="sample-prompt" onclick="useSamplePrompt(this)">What time is it?</span>
+                    <span class="sample-prompt" onclick="useSamplePrompt(this)">What's the weather in Paris right now?</span>
+                    <span class="sample-prompt" onclick="useSamplePrompt(this)">Calculate 15 * 7 + 23</span>
+                    <span class="sample-prompt" onclick="useSamplePrompt(this)">What's the latest AI news?</span>
+                    <span class="sample-prompt" onclick="useSamplePrompt(this)">What's sqrt(144)?</span>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <div class="chat-input-wrapper">
+                    <input type="text" id="chat-input" placeholder="Type your message..." autocomplete="off">
+                    <button id="send-btn" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resizer -->
+        <div class="resizer" id="resizer"></div>
+
+        <!-- Right Panel - Tutorial -->
+        <div class="tutorial-panel" id="tutorial-panel">
+            <div class="tutorial-header">
+                <h2>Live Tutorial</h2>
+                <p>Click each step to see details and learn how it works</p>
+            </div>
+
+            <div class="tutorial-content" id="tutorial-content">
+                <div class="tutorial-placeholder">
+                    <div class="icon">🎓</div>
+                    <h3>How This Works</h3>
+                    <p>
+                        When you send a message, this panel will show you exactly what's happening:
+                        API calls, tool invocations, and the actual code that powers the chatbot.
+                        <br><br>
+                        <strong>Click on each step</strong> to expand it and see the code and explanations!
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.IO connection
+        const socket = io();
+
+        // Track loading state
+        let isLoading = false;
+        let stepCounter = 0;
+
+        // Store tutorial step data for Q&A context
+        const tutorialSteps = {};
+
+        // DOM elements
+        const chatMessages = document.getElementById('chat-messages');
+        const tutorialContent = document.getElementById('tutorial-content');
+        const chatInput = document.getElementById('chat-input');
+        const sendBtn = document.getElementById('send-btn');
+
+        // Socket event handlers
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Disconnected from server');
+            addSystemMessage('Connection lost. Please refresh the page.');
+        });
+
+        // Handle tutorial events
+        socket.on('tutorial_event', (data) => {
+            addTutorialCard(data);
+        });
+
+        // Handle chat responses
+        socket.on('chat_response', (data) => {
+            removeLoading();
+            addMessage('assistant', data.message);
+            isLoading = false;
+            sendBtn.disabled = false;
+            chatInput.disabled = false;
+            chatInput.focus();
+        });
+
+        // Handle tutorial Q&A responses
+        socket.on('tutorial_qa_response', (data) => {
+            const cardId = data.card_id;
+            const card = document.getElementById(cardId);
+            if (!card) return;
+
+            const qaMessages = card.querySelector('.card-qa-messages');
+            const qaLoading = card.querySelector('.card-qa-loading');
+            const qaInput = card.querySelector('.card-qa-input');
+            const qaBtn = card.querySelector('.card-qa-btn');
+
+            // Remove loading indicator
+            if (qaLoading) qaLoading.remove();
+
+            // Add the answer with markdown rendering
+            const answerDiv = document.createElement('div');
+            answerDiv.className = 'card-qa-message assistant-a';
+            const markdownDiv = document.createElement('div');
+            markdownDiv.className = 'markdown-content';
+            markdownDiv.innerHTML = marked.parse(data.answer);
+            answerDiv.appendChild(markdownDiv);
+            qaMessages.appendChild(answerDiv);
+
+            // Highlight any code blocks in the answer
+            answerDiv.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+
+            // Re-enable input
+            qaInput.disabled = false;
+            qaBtn.disabled = false;
+            qaInput.focus();
+        });
+
+        // Send message function
+        function sendMessage() {
+            const message = chatInput.value.trim();
+            if (!message || isLoading) return;
+
+            // Clear tutorial panel and reset step counter
+            tutorialContent.innerHTML = '';
+            stepCounter = 0;
+
+            // Add user message to chat
+            addMessage('user', message);
+
+            // Show loading indicator
+            addLoading();
+            isLoading = true;
+            sendBtn.disabled = true;
+            chatInput.disabled = true;
+
+            // Send to server
+            socket.emit('chat_message', { message: message });
+
+            // Clear input
+            chatInput.value = '';
+        }
+
+        // Add message to chat
+        function addMessage(role, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${role}`;
+
+            // Render assistant messages as markdown
+            if (role === 'assistant') {
+                const markdownDiv = document.createElement('div');
+                markdownDiv.className = 'markdown-content';
+                markdownDiv.innerHTML = marked.parse(content);
+                messageDiv.appendChild(markdownDiv);
+
+                // Highlight any code blocks
+                messageDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            } else {
+                messageDiv.textContent = content;
+            }
+
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Add system message
+        function addSystemMessage(content) {
+            addMessage('system', content);
+        }
+
+        // Add loading indicator
+        function addLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'loading';
+            loadingDiv.id = 'loading-indicator';
+            loadingDiv.innerHTML = `
+                <div class="loading-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span>Thinking...</span>
+            `;
+            chatMessages.appendChild(loadingDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Remove loading indicator
+        function removeLoading() {
+            const loading = document.getElementById('loading-indicator');
+            if (loading) loading.remove();
+        }
+
+        // Add expandable tutorial card
+        function addTutorialCard(data) {
+            // Remove placeholder if present
+            const placeholder = tutorialContent.querySelector('.tutorial-placeholder');
+            if (placeholder) placeholder.remove();
+
+            stepCounter++;
+
+            const iconMap = {
+                'user_input': { icon: '📝', class: 'user-input', label: 'Input' },
+                'api_preparation': { icon: '📦', class: 'api', label: 'Prep' },
+                'api_call': { icon: '🌐', class: 'api', label: 'API' },
+                'api_response': { icon: '📨', class: 'response', label: 'Response' },
+                'tool_invocation': { icon: '🔧', class: 'tool', label: 'Tool' },
+                'tool_result': { icon: '✅', class: 'tool', label: 'Result' },
+                'agent_loop': { icon: '🔄', class: 'loop', label: 'Loop' },
+                'final_response': { icon: '💬', class: 'response', label: 'Done' },
+                'error': { icon: '❌', class: 'error', label: 'Error' },
+                'connection': { icon: '🔌', class: 'connection', label: 'Connect' },
+                'max_iterations': { icon: '⚠️', class: 'error', label: 'Limit' }
+            };
+
+            const iconInfo = iconMap[data.type] || { icon: '📌', class: 'api', label: 'Step' };
+            const cardId = `card-${Date.now()}-${stepCounter}`;
+
+            // Store the step data for Q&A context
+            tutorialSteps[cardId] = {
+                stepNumber: stepCounter,
+                type: data.type,
+                title: data.data.title,
+                subtitle: data.data.subtitle,
+                concept: data.data.concept,
+                code: data.data.code,
+                request: data.data.request,
+                response: data.data.response
+            };
+
+            const card = document.createElement('div');
+            card.className = 'tutorial-card';
+            card.id = cardId;
+
+            // Build the card HTML
+            card.innerHTML = `
+                <div class="tutorial-card-header" onclick="toggleCard('${cardId}')">
+                    <div class="icon ${iconInfo.class}">${iconInfo.icon}</div>
+                    <div class="header-content">
+                        <h3>${data.data.title}<span class="step-badge">Step ${stepCounter}</span></h3>
+                        <div class="subtitle">${data.data.subtitle || 'Click to learn more'}</div>
+                    </div>
+                    <div class="expand-icon">▼</div>
+                </div>
+                <div class="tutorial-card-body">
+                    <div class="tutorial-card-body-inner">
+                        ${data.data.concept ? `
+                        <div class="concept-box">
+                            <h4>💡 ${data.data.concept.title}</h4>
+                            <p>${data.data.concept.explanation}</p>
+                        </div>
+                        ` : ''}
+
+                        ${data.data.code ? `
+                        <div class="code-section">
+                            <div class="code-section-header">
+                                <h5>Code</h5>
+                                <button class="copy-btn" onclick="copyCode(this, event)">Copy</button>
+                            </div>
+                            <pre><code class="language-python">${escapeHtml(data.data.code)}</code></pre>
+                        </div>
+                        ` : ''}
+
+                        ${data.data.request ? `
+                        <div class="data-display">
+                            <div class="data-display-label">Request Data</div>
+                            <pre><code class="language-json">${escapeHtml(JSON.stringify(data.data.request, null, 2))}</code></pre>
+                        </div>
+                        ` : ''}
+
+                        ${data.data.response ? `
+                        <div class="data-display">
+                            <div class="data-display-label">Response Data</div>
+                            <pre><code class="language-json">${escapeHtml(JSON.stringify(data.data.response, null, 2))}</code></pre>
+                        </div>
+                        ` : ''}
+
+                        <div class="card-qa">
+                            <div class="card-qa-input-wrapper">
+                                <input type="text" class="card-qa-input" placeholder="Have any questions about this step?"
+                                       onkeypress="handleQaKeypress(event, '${cardId}')">
+                                <button class="card-qa-btn" onclick="askStepQuestion('${cardId}')">Ask</button>
+                            </div>
+                            <div class="card-qa-messages"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            tutorialContent.appendChild(card);
+            tutorialContent.scrollTop = tutorialContent.scrollHeight;
+
+            // Highlight code blocks
+            card.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+
+            // Auto-expand the latest card
+            setTimeout(() => {
+                card.classList.add('expanded');
+            }, 100);
+        }
+
+        // Toggle card expansion
+        function toggleCard(cardId) {
+            const card = document.getElementById(cardId);
+            if (card) {
+                card.classList.toggle('expanded');
+            }
+        }
+
+        // Copy code to clipboard
+        function copyCode(btn, event) {
+            event.stopPropagation();
+            const codeBlock = btn.closest('.code-section').querySelector('code');
+            navigator.clipboard.writeText(codeBlock.textContent).then(() => {
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy', 2000);
+            });
+        }
+
+        // Use sample prompt
+        function useSamplePrompt(element) {
+            chatInput.value = element.textContent;
+            chatInput.focus();
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Enter key to send
+        chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Resizable panels
+        const resizer = document.getElementById('resizer');
+        const chatPanel = document.getElementById('chat-panel');
+        let isResizing = false;
+
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            resizer.classList.add('active');
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', stopResize);
+        });
+
+        function handleMouseMove(e) {
+            if (!isResizing) return;
+
+            const containerWidth = document.querySelector('.container').offsetWidth;
+            const newWidth = (e.clientX / containerWidth) * 100;
+
+            // Constrain between 25% and 75%
+            if (newWidth >= 25 && newWidth <= 75) {
+                chatPanel.style.width = `${newWidth}%`;
+            }
+        }
+
+        function stopResize() {
+            isResizing = false;
+            resizer.classList.remove('active');
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', stopResize);
+        }
+
+        // Handle Q&A keypress (Enter to send)
+        function handleQaKeypress(event, cardId) {
+            if (event.key === 'Enter') {
+                askStepQuestion(cardId);
+            }
+        }
+
+        // Ask a question about a specific step
+        function askStepQuestion(cardId) {
+            const card = document.getElementById(cardId);
+            if (!card) return;
+
+            const qaInput = card.querySelector('.card-qa-input');
+            const qaBtn = card.querySelector('.card-qa-btn');
+            const qaMessages = card.querySelector('.card-qa-messages');
+
+            const question = qaInput.value.trim();
+            if (!question) return;
+
+            // Get the step context
+            const stepData = tutorialSteps[cardId];
+            if (!stepData) return;
+
+            // Disable input while processing
+            qaInput.disabled = true;
+            qaBtn.disabled = true;
+
+            // Add the question to the messages
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'card-qa-message user-q';
+            questionDiv.textContent = question;
+            qaMessages.appendChild(questionDiv);
+
+            // Add loading indicator
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'card-qa-loading';
+            loadingDiv.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div><span>Thinking...</span>';
+            qaMessages.appendChild(loadingDiv);
+
+            // Clear input
+            qaInput.value = '';
+
+            // Send to server
+            socket.emit('tutorial_question', {
+                card_id: cardId,
+                question: question,
+                step_data: stepData
+            });
+        }
+
+        // Focus input on load
+        chatInput.focus();
+    </script>
+</body>
+</html>
