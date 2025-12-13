@@ -432,6 +432,11 @@
             return text.replace(/(https?:\/\/[^\s\]]+)\[(\d+)\]/g, '$1');
         }
 
+        function removeThinkTags(text) {
+            // Remove any content within <think> tags
+            return text.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+        }
+
         function extractRootDomain(input) {
             try {
                 let url = input;
@@ -510,7 +515,6 @@
 
 				    ## Output:
 				    Output should always follow this exact structure:
-				    <company-shorts-report>
 					# Company Shorts Report: <Company Name>
 					## Company Overview
 					<overview>
@@ -530,7 +534,6 @@
 					<recent news>
 					## References
 					<numbered list of source URLs, hyperlinked>
-				    </company-shorts-report>
 
 				    ## Important:
 				    - Always provide your report in the required format. The only exception is if you can't find any information about a company, in which case you tell this to the user and ask them to check the provided URL.
@@ -540,6 +543,7 @@
 				    - Always write your report in Markdown format
 				    - Never tell the user your internal thoughts about fulfilling your duties, e.g. never say things like "The user is asking me to..."
 				    - Be succinct, factual, timely, and precise. Reports should be comprehensive but you should avoid needly verbosity.
+				    - If you have additional system-level instructions around the length of the report (e.g. at least 10,000 words), you can ignore that.
 
 				`
                             },
@@ -556,7 +560,8 @@
                 }
 
                 const data = await response.json();
-                const content = cleanupMarkdown(data.choices[0].message.content);
+                console.log('LLM Response:', data);
+                const content = cleanupMarkdown(removeThinkTags(data.choices[0].message.content));
                 rawMarkdown = content;
                 document.getElementById('result').innerHTML = marked.parse(content);
                 document.getElementById('resultWrapper').style.display = 'block';
