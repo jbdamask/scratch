@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Shorts</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Design tokens from webapp-dark theme */
+        :root {
+            --background: #0a0e1a;
+            --foreground: #a3b8cc;
+            --primary: #34d399;
+            --primary-foreground: #0f172a;
+            --secondary: #1e293b;
+            --secondary-foreground: #e2e8f0;
+            --muted: #334155;
+            --muted-foreground: #64748b;
+            --destructive: #ef4444;
+            --border: #334155;
+            --input: #334155;
+            --card: #1e293b;
+            --card-foreground: #e2e8f0;
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            border-color: var(--border);
+        }
+
+        body {
+            background: var(--background);
+            color: var(--foreground);
+            font-family: 'JetBrains Mono', Consolas, Monaco, 'Courier New', monospace;
+            margin: 0;
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--muted-foreground);
+            margin-bottom: 2rem;
+        }
+
+        /* Settings */
+        details {
+            margin-bottom: 1.5rem;
+        }
+
+        summary {
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .settings-content {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .settings-label {
+            color: var(--muted-foreground);
+            font-size: 0.75rem;
+            min-width: 60px;
+        }
+
+        .settings-help {
+            color: var(--muted-foreground);
+            font-size: 0.75rem;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .settings-help a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .settings-help a:hover {
+            text-decoration: underline;
+        }
+
+        /* Input styling */
+        input[type="text"],
+        input[type="password"] {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--background);
+            border: 1px solid var(--input);
+            border-radius: var(--radius-md);
+            color: var(--foreground);
+            font-size: 0.875rem;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--primary);
+            background: var(--secondary);
+        }
+
+        input::placeholder {
+            color: var(--muted-foreground);
+        }
+
+        /* Select styling */
+        select {
+            padding: 12px 16px;
+            background: var(--background);
+            border: 1px solid var(--input);
+            border-radius: var(--radius-md);
+            color: var(--foreground);
+            font-size: 0.875rem;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: var(--primary);
+            background: var(--secondary);
+        }
+
+        /* Button styling */
+        button {
+            padding: 12px 16px;
+            border: 1px solid var(--primary);
+            color: var(--primary);
+            background: transparent;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        button:hover:not(:disabled) {
+            background: var(--primary);
+            color: var(--primary-foreground);
+        }
+
+        button:disabled {
+            color: var(--muted-foreground);
+            border-color: var(--muted);
+            cursor: not-allowed;
+        }
+
+        .icon-btn {
+            padding: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Form layout */
+        .search-form {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Loading spinner */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--muted-foreground);
+            padding: 1rem 0;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid transparent;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Error message */
+        .error {
+            color: var(--destructive);
+            padding: 0.5rem 0;
+        }
+
+        /* Result card */
+        .result-wrapper {
+            position: relative;
+        }
+
+        .result-actions {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 4px;
+        }
+
+        .result-action-btn {
+            padding: 6px 8px;
+            font-size: 0.75rem;
+            border: 1px solid var(--border);
+            color: var(--muted-foreground);
+            background: var(--background);
+        }
+
+        .result-action-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: var(--background);
+        }
+
+        /* Tooltip */
+        [data-tooltip] {
+            position: relative;
+        }
+
+        [data-tooltip]::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 4px 8px;
+            background: var(--muted);
+            color: var(--foreground);
+            font-size: 0.625rem;
+            border-radius: var(--radius-sm);
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            margin-bottom: 4px;
+        }
+
+        [data-tooltip]:hover::after {
+            opacity: 1;
+        }
+
+        .result {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            padding-top: 40px;
+            color: var(--card-foreground);
+            line-height: 1.6;
+        }
+
+        .result h1, .result h2, .result h3 {
+            color: var(--primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .result h1:first-child,
+        .result h2:first-child,
+        .result h3:first-child {
+            margin-top: 0;
+        }
+
+        .result p {
+            margin: 0.75rem 0;
+        }
+
+        .result ul, .result ol {
+            padding-left: 1.5rem;
+            margin: 0.75rem 0;
+        }
+
+        .result li {
+            margin: 0.25rem 0;
+        }
+
+        .result a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .result a:hover {
+            text-decoration: underline;
+        }
+
+        .result code {
+            background: var(--muted);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-size: 0.875em;
+        }
+
+        .result pre {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        .result pre code {
+            background: none;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Company Shorts</h1>
+        <p class="subtitle">Because sometimes what they tell you isn't enough</p>
+
+        <details>
+            <summary>Settings</summary>
+            <div class="settings-content">
+                <p class="settings-help">Company Shorts requires a Perplexity API key. You can get one <a href="https://www.perplexity.ai/account/api/group" target="_blank">here</a>.</p>
+                <div class="settings-row">
+                    <span class="settings-label">API Key</span>
+                    <input type="password" id="apiKey" placeholder="Perplexity API Key">
+                    <button class="icon-btn" data-tooltip="Save API Key" onclick="saveApiKey()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                            <polyline points="7 3 7 8 15 8"></polyline>
+                        </svg>
+                    </button>
+                </div>
+                <div class="settings-row">
+                    <span class="settings-label">Model</span>
+                    <select id="modelSelect">
+                        <option value="sonar">sonar</option>
+                        <option value="sonar-pro">sonar-pro</option>
+                        <option value="sonar-deep-research">sonar-deep-research</option>
+                    </select>
+                </div>
+            </div>
+        </details>
+
+        <form class="search-form" onsubmit="fetchCompanyInfo(event)">
+            <input type="text" id="urlInput" placeholder="Enter company URL" required>
+            <button type="submit" id="submitBtn">Research</button>
+        </form>
+
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <span>Researching...</span>
+        </div>
+        <div id="error" class="error"></div>
+        <div id="resultWrapper" class="result-wrapper" style="display: none;">
+            <div class="result-actions">
+                <button class="result-action-btn" data-tooltip="Copy as Markdown" onclick="copyResult()">Copy</button>
+                <button class="result-action-btn" data-tooltip="Save as Markdown file" onclick="saveResult()">Save</button>
+            </div>
+            <div id="result" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configure marked to open links in new tab
+        const renderer = new marked.Renderer();
+        renderer.link = function({ href, title, text }) {
+            const titleAttr = title ? ` title="${title}"` : '';
+            return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
+        };
+        marked.setOptions({ renderer });
+
+        // Store raw markdown for copy/save
+        let rawMarkdown = '';
+
+        // Load saved API key on page load
+        document.getElementById('apiKey').value = localStorage.getItem('perplexityApiKey') || '';
+
+        function saveApiKey() {
+            const key = document.getElementById('apiKey').value;
+            localStorage.setItem('perplexityApiKey', key);
+            alert('API key saved');
+        }
+
+        function copyResult() {
+            navigator.clipboard.writeText(rawMarkdown).then(() => {
+                alert('Copied to clipboard');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+
+        function saveResult() {
+            const blob = new Blob([rawMarkdown], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'company-research.md';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function cleanupMarkdown(text) {
+            // Remove citation numbers appended to URLs (e.g., https://example.com[1] -> https://example.com)
+            return text.replace(/(https?:\/\/[^\s\]]+)\[(\d+)\]/g, '$1');
+        }
+
+        function extractRootDomain(input) {
+            try {
+                let url = input;
+                if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                    url = 'https://' + url;
+                }
+                const parsedUrl = new URL(url);
+                const hostParts = parsedUrl.hostname.split('.');
+                return hostParts.slice(-2).join('.');
+            } catch (e) {
+                return null;
+            }
+        }
+
+        async function fetchCompanyInfo(e) {
+            e.preventDefault();
+
+            const apiKey = localStorage.getItem('perplexityApiKey');
+            if (!apiKey) {
+                document.getElementById('error').textContent = 'Please set your API key in Settings';
+                return;
+            }
+
+            const input = document.getElementById('urlInput').value;
+            const domain = extractRootDomain(input);
+            if (!domain) {
+                document.getElementById('error').textContent = 'Please enter a valid URL';
+                return;
+            }
+
+            document.getElementById('error').textContent = '';
+            document.getElementById('resultWrapper').style.display = 'none';
+            document.getElementById('result').innerHTML = '';
+            rawMarkdown = '';
+            document.getElementById('loading').style.display = 'flex';
+            document.getElementById('submitBtn').disabled = true;
+
+            const prompt = `${domain} Research information about the company found at this URL.
+                Once you identify the company, you should search for additional information, including
+                general web search, Crunchbase, Pitchbook, and other business sites, but should
+                use the company's website as your primary source. Include sections for Business Model
+                and Services, Company Growth, Corporate Partnerships and Notable Customers, and Market Position.
+                Populate these sections with relevant information that you find. Include a list of
+                references in your output with URLs as plain text.`;
+
+            const model = document.getElementById('modelSelect').value;
+
+            try {
+                const response = await fetch('https://api.perplexity.ai/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: model,
+                        messages: [
+                            {
+                                role: 'system',
+                                content: `You are an expert company research analyst who
+                                    provides factual, succinct, up to date, and informative reports
+                                    to business users. When asked for a report, you will use
+                                    all of the tools at your disposal to perform the research.
+                                    Sometimes, you may find different companies with the same or
+                                    similar names to the one you've been asked to research. Therefore,
+                                    you must self-review your analysis steps and be sure that the research
+                                    you provide makes sense in the context of the company the user asked for.
+                                    DO NOT include information about companies other than the one requested.`
+                            },
+                            {
+                                role: 'user',
+                                content: prompt
+                            }
+                        ]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const content = cleanupMarkdown(data.choices[0].message.content);
+                rawMarkdown = content;
+                document.getElementById('result').innerHTML = marked.parse(content);
+                document.getElementById('resultWrapper').style.display = 'block';
+            } catch (err) {
+                document.getElementById('error').textContent = err.message;
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('submitBtn').disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
