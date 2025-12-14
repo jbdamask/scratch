@@ -358,12 +358,134 @@
             color: var(--muted-foreground);
             margin-top: 0.5rem;
         }
+
+        /* Header with help button */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .header-content {
+            flex: 1;
+        }
+
+        .help-btn {
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+        }
+
+        .help-btn:hover {
+            background: transparent;
+        }
+
+        /* Modal styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-title {
+            color: var(--primary);
+            font-size: 1.25rem;
+            margin: 0;
+        }
+
+        .modal-close {
+            padding: 4px 8px;
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+
+        .modal-body {
+            color: var(--card-foreground);
+            line-height: 1.6;
+        }
+
+        .modal-body h3 {
+            color: var(--primary);
+            font-size: 1rem;
+            margin: 1.25rem 0 0.5rem 0;
+        }
+
+        .modal-body p {
+            margin: 0.5rem 0;
+        }
+
+        .modal-body ul, .modal-body ol {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .modal-body li {
+            margin: 0.25rem 0;
+        }
+
+        .modal-body code {
+            background: var(--muted);
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            font-size: 0.875em;
+        }
+
+        .modal-body a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .modal-body a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Company Shorts</h1>
-        <p class="subtitle">Because sometimes what they tell you isn't enough</p>
+        <div class="header">
+            <div class="header-content">
+                <h1>Company Shorts</h1>
+                <p class="subtitle">Because sometimes what they tell you isn't enough</p>
+            </div>
+            <button class="icon-btn help-btn" data-tooltip="What is this about?" onclick="openHelpModal()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="var(--primary)">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+                </svg>
+            </button>
+        </div>
 
         <details>
             <summary>Settings</summary>
@@ -414,6 +536,56 @@
         </div>
     </div>
 
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal-overlay" onclick="closeHelpModal(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h2 class="modal-title">About Company Shorts</h2>
+                <button class="icon-btn modal-close" onclick="closeHelpModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p>A single-page web tool that generates research summaries about companies using the Perplexity AI API.</p>
+
+                <h3>Purpose</h3>
+                <p>Enter a company URL and get a detailed research report including:</p>
+                <ul>
+                    <li>Business Model and Services</li>
+                    <li>Company Growth</li>
+                    <li>Corporate Partnerships and Notable Customers</li>
+                    <li>Market Position</li>
+                    <li>References</li>
+                </ul>
+
+                <h3>Setup</h3>
+                <ol>
+                    <li>Click <strong>Settings</strong> to expand the configuration panel</li>
+                    <li>Enter your Perplexity API key and click the save icon</li>
+                    <li>Select your preferred report type:
+                        <ul>
+                            <li><strong>Short</strong> - Fast, basic research</li>
+                            <li><strong>Comprehensive</strong> - Most detailed analysis</li>
+                        </ul>
+                    </li>
+                </ol>
+
+                <h3>Getting a Perplexity API Key</h3>
+                <ol>
+                    <li>Go to <a href="https://www.perplexity.ai/account/api/group" target="_blank">perplexity.ai/account/api</a></li>
+                    <li>Create an API key</li>
+                    <li>Copy and paste it into the Settings panel</li>
+                </ol>
+
+                <h3>Usage</h3>
+                <ol>
+                    <li>Enter a company URL (e.g., <code>anthropic.com</code>)</li>
+                    <li>Click <strong>Research</strong></li>
+                    <li>Wait for the report to generate</li>
+                    <li>Use <strong>Copy</strong> or <strong>Save</strong> to export the report</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Configure marked to open links in new tab
         const renderer = new marked.Renderer();
@@ -433,6 +605,16 @@
             const key = document.getElementById('apiKey').value;
             localStorage.setItem('perplexityApiKey', key);
             alert('API key saved');
+        }
+
+        function openHelpModal() {
+            document.getElementById('helpModal').classList.add('active');
+        }
+
+        function closeHelpModal(event) {
+            if (!event || event.target === event.currentTarget) {
+                document.getElementById('helpModal').classList.remove('active');
+            }
         }
 
         function copyResult() {
