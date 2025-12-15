@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mermaid Diagram Renderer</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0e1a;
+            --fg-primary: #a3b8cc;
+            --accent: #34d399;
+            --surface: #1e293b;
+            --muted: #334155;
+            --error: #ef4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background-color: var(--bg-primary);
+            color: var(--fg-primary);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: var(--accent);
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h1::before {
+            content: '>';
+            opacity: 0.6;
+        }
+
+        .main-grid {
+            display: flex;
+            gap: 0;
+            min-height: calc(100vh - 8rem);
+        }
+
+        .main-grid > .panel:first-child {
+            flex: 0 0 50%;
+            min-width: 300px;
+            max-width: calc(100% - 320px);
+        }
+
+        .main-grid > .panel:last-child {
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .resize-handle {
+            width: 12px;
+            background: transparent;
+            cursor: col-resize;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        .resize-handle::before {
+            content: '';
+            width: 4px;
+            height: 48px;
+            background-color: var(--muted);
+            border-radius: 2px;
+            transition: all 0.2s ease;
+        }
+
+        .resize-handle:hover::before,
+        .resize-handle.dragging::before {
+            background-color: var(--accent);
+            height: 64px;
+        }
+
+        .resize-handle.dragging {
+            cursor: col-resize;
+        }
+
+        .resize-handle.hidden {
+            display: none;
+        }
+
+        body.resizing {
+            cursor: col-resize;
+            user-select: none;
+        }
+
+        body.resizing * {
+            cursor: col-resize !important;
+        }
+
+        @media (max-width: 900px) {
+            .main-grid {
+                flex-direction: column;
+            }
+
+            .main-grid > .panel:first-child {
+                flex: none;
+                width: 100% !important;
+                max-width: 100%;
+                min-height: 300px;
+            }
+
+            .main-grid > .panel:last-child {
+                flex: 1;
+                min-height: 300px;
+            }
+
+            .resize-handle {
+                width: 100%;
+                height: 12px;
+                cursor: row-resize;
+            }
+
+            .resize-handle::before {
+                width: 48px;
+                height: 4px;
+            }
+
+            .resize-handle:hover::before,
+            .resize-handle.dragging::before {
+                width: 64px;
+                height: 4px;
+            }
+
+            body.resizing,
+            body.resizing * {
+                cursor: row-resize !important;
+            }
+        }
+
+        .panel {
+            background-color: var(--surface);
+            border: 1px solid var(--muted);
+            border-radius: 8px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            transition: border-color 0.2s ease, flex 0.3s ease, min-width 0.3s ease, width 0.3s ease, padding 0.3s ease;
+            overflow: hidden;
+        }
+
+        .panel:hover {
+            border-color: var(--accent);
+        }
+
+        .panel.collapsed {
+            flex: 0 0 auto !important;
+            min-width: auto !important;
+            width: auto !important;
+            padding: 1.25rem 0.75rem;
+        }
+
+        .panel.collapsed .panel-content {
+            display: none;
+        }
+
+        .panel.collapsed .panel-header {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .panel.collapsed .panel-title {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+        }
+
+        .panel.collapsed .button-group {
+            flex-direction: column;
+        }
+
+        .panel.collapsed .btn-collapse {
+            order: -1;
+        }
+
+        .panel.collapsed .panel-actions {
+            display: none;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--muted);
+        }
+
+        .panel-title-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--fg-primary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn-collapse {
+            background: transparent;
+            border: 1px solid var(--muted);
+            color: var(--fg-primary);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-collapse:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-collapse .icon {
+            transition: transform 0.2s ease;
+        }
+
+        .panel.collapsed .btn-collapse .icon {
+            transform: rotate(180deg);
+        }
+
+        @media (max-width: 900px) {
+            .panel.collapsed {
+                min-height: auto !important;
+                height: auto !important;
+                padding: 0.75rem 1.25rem;
+            }
+
+            .panel.collapsed .panel-header {
+                flex-direction: row;
+            }
+
+            .panel.collapsed .panel-title {
+                writing-mode: horizontal-tb;
+                transform: none;
+            }
+
+            .panel.collapsed .button-group {
+                flex-direction: row;
+            }
+
+            .panel.collapsed .btn-collapse .icon {
+                transform: rotate(90deg);
+            }
+
+            .panel:not(.collapsed) .btn-collapse .icon {
+                transform: rotate(-90deg);
+            }
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .panel-content {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+
+        button {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .btn-primary {
+            background-color: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-ghost {
+            background-color: transparent;
+            border: 1px solid var(--muted);
+            color: var(--fg-primary);
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--fg-primary);
+        }
+
+        textarea {
+            flex: 1;
+            width: 100%;
+            min-height: 200px;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--muted);
+            border-radius: 4px;
+            color: var(--fg-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            padding: 1rem;
+            resize: none;
+            line-height: 1.6;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        textarea::placeholder {
+            color: #64748b;
+        }
+
+        .output-area {
+            flex: 1;
+            background-color: #f8fafc;
+            border: 1px solid var(--muted);
+            border-radius: 4px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            min-height: 200px;
+            position: relative;
+        }
+
+        .diagram-container {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f8fafc;
+        }
+
+        .diagram-container:active {
+            cursor: grabbing;
+        }
+
+        .diagram-container.dragging {
+            cursor: grabbing;
+        }
+
+        .diagram-wrapper {
+            transform-origin: center center;
+            transition: transform 0.1s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .diagram-wrapper.no-transition {
+            transition: none;
+        }
+
+        .diagram-wrapper svg {
+            max-width: none;
+            height: auto;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 0.25rem;
+            align-items: center;
+        }
+
+        .btn-zoom {
+            background: transparent;
+            border: 1px solid var(--muted);
+            color: var(--fg-primary);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            line-height: 1;
+            min-width: 1.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-zoom:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .zoom-level {
+            font-size: 0.7rem;
+            color: var(--fg-primary);
+            min-width: 3rem;
+            text-align: center;
+        }
+
+        .placeholder-text {
+            color: #94a3b8;
+            font-size: 0.875rem;
+            text-align: center;
+        }
+
+        .error-message {
+            color: var(--error);
+            font-size: 0.8rem;
+            padding: 0.75rem;
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error);
+            border-radius: 4px;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--muted);
+            border-radius: 4px;
+            padding: 1rem;
+            text-align: center;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: var(--accent);
+            background-color: rgba(52, 211, 153, 0.05);
+        }
+
+        .upload-zone input {
+            display: none;
+        }
+
+        .upload-text {
+            font-size: 0.8rem;
+            color: var(--fg-primary);
+        }
+
+        .upload-text span {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+
+        /* Mermaid theme overrides for dark mode */
+        .mermaid {
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Mermaid Renderer</h1>
+
+        <div class="main-grid">
+            <div class="panel" id="inputPanel">
+                <div class="panel-header">
+                    <span class="panel-title">Input</span>
+                    <div class="button-group">
+                        <span class="panel-actions">
+                            <button class="btn-ghost" onclick="loadExample()">Example</button>
+                            <button class="btn-ghost" onclick="clearInput()">Clear</button>
+                        </span>
+                        <button class="btn-collapse" onclick="togglePanel('inputPanel')" title="Collapse panel">
+                            <span class="icon">&laquo;</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-content">
+                    <div class="upload-zone" id="uploadZone">
+                        <input type="file" id="fileInput" accept=".mmd,.mermaid,.txt,.md">
+                        <p class="upload-text">Drop a file here or <span>browse</span></p>
+                    </div>
+
+                    <textarea
+                        id="mermaidInput"
+                        placeholder="Paste your Mermaid syntax here...
+
+Example:
+graph TD
+    A[Start] --> B{Decision}
+    B -->|Yes| C[OK]
+    B -->|No| D[Cancel]"
+                        spellcheck="false"
+                    ></textarea>
+                </div>
+            </div>
+
+            <div class="resize-handle" id="resizeHandle"></div>
+
+            <div class="panel" id="outputPanel">
+                <div class="panel-header">
+                    <span class="panel-title">Output</span>
+                    <div class="button-group">
+                        <span class="panel-actions">
+                            <div class="zoom-controls">
+                                <button class="btn-zoom" onclick="zoomOut()" title="Zoom out">-</button>
+                                <span class="zoom-level" id="zoomLevel">100%</span>
+                                <button class="btn-zoom" onclick="zoomIn()" title="Zoom in">+</button>
+                                <button class="btn-zoom" onclick="fitToView()" title="Fit to view">Fit</button>
+                            </div>
+                            <button class="btn-ghost" onclick="downloadSVG()">Download SVG</button>
+                        </span>
+                        <button class="btn-collapse" onclick="togglePanel('outputPanel')" title="Collapse panel">
+                            <span class="icon">&raquo;</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="panel-content">
+                    <div class="output-area" id="outputArea">
+                        <div class="diagram-container" id="diagramContainer">
+                            <div class="diagram-wrapper" id="diagramWrapper">
+                                <p class="placeholder-text">Your diagram will appear here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Mermaid with light theme for viewer
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'base',
+            themeVariables: {
+                darkMode: false,
+                background: '#f8fafc',
+                primaryColor: '#e2e8f0',
+                primaryTextColor: '#1e293b',
+                primaryBorderColor: '#34d399',
+                lineColor: '#34d399',
+                secondaryColor: '#f1f5f9',
+                tertiaryColor: '#e2e8f0',
+                edgeLabelBackground: '#f8fafc',
+                nodeTextColor: '#1e293b',
+                clusterBkg: '#f1f5f9',
+                clusterBorder: '#34d399',
+                titleColor: '#1e293b'
+            },
+            flowchart: {
+                htmlLabels: true,
+                curve: 'basis'
+            },
+            securityLevel: 'loose'
+        });
+
+        const input = document.getElementById('mermaidInput');
+        const output = document.getElementById('outputArea');
+        const diagramContainer = document.getElementById('diagramContainer');
+        const diagramWrapper = document.getElementById('diagramWrapper');
+        const zoomLevelDisplay = document.getElementById('zoomLevel');
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const resizeHandle = document.getElementById('resizeHandle');
+        const mainGrid = document.querySelector('.main-grid');
+        const inputPanel = mainGrid.querySelector('.panel:first-child');
+
+        // Zoom and pan state
+        let scale = 1;
+        let panX = 0;
+        let panY = 0;
+        let isPanning = false;
+        let panStartX = 0;
+        let panStartY = 0;
+        const minScale = 0.1;
+        const maxScale = 5;
+        const scaleStep = 0.25;
+
+        function updateTransform() {
+            diagramWrapper.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
+            zoomLevelDisplay.textContent = Math.round(scale * 100) + '%';
+        }
+
+        function zoomIn() {
+            scale = Math.min(maxScale, scale + scaleStep);
+            updateTransform();
+        }
+
+        function zoomOut() {
+            scale = Math.max(minScale, scale - scaleStep);
+            updateTransform();
+        }
+
+        function resetView() {
+            scale = 1;
+            panX = 0;
+            panY = 0;
+            updateTransform();
+        }
+
+        function fitToView() {
+            const svg = diagramWrapper.querySelector('svg');
+            if (!svg) return;
+
+            // Get container dimensions
+            const containerRect = diagramContainer.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const containerHeight = containerRect.height;
+
+            // Get SVG dimensions
+            const svgRect = svg.getBoundingClientRect();
+            // Calculate original dimensions (before any scaling)
+            const originalWidth = svgRect.width / scale;
+            const originalHeight = svgRect.height / scale;
+
+            // Calculate scale to fit with some padding
+            const padding = 40;
+            const scaleX = (containerWidth - padding) / originalWidth;
+            const scaleY = (containerHeight - padding) / originalHeight;
+
+            // Use the smaller scale to ensure it fits both dimensions
+            scale = Math.min(scaleX, scaleY, maxScale);
+            scale = Math.max(scale, minScale);
+
+            // Center the diagram
+            panX = 0;
+            panY = 0;
+
+            updateTransform();
+        }
+
+        // Pan functionality - mouse
+        diagramContainer.addEventListener('mousedown', (e) => {
+            if (e.button !== 0) return; // Only left mouse button
+            isPanning = true;
+            panStartX = e.clientX - panX;
+            panStartY = e.clientY - panY;
+            diagramContainer.classList.add('dragging');
+            diagramWrapper.classList.add('no-transition');
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            panX = e.clientX - panStartX;
+            panY = e.clientY - panStartY;
+            updateTransform();
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isPanning) {
+                isPanning = false;
+                diagramContainer.classList.remove('dragging');
+                diagramWrapper.classList.remove('no-transition');
+            }
+        });
+
+        // Pan functionality - touch
+        diagramContainer.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                isPanning = true;
+                const touch = e.touches[0];
+                panStartX = touch.clientX - panX;
+                panStartY = touch.clientY - panY;
+                diagramContainer.classList.add('dragging');
+                diagramWrapper.classList.add('no-transition');
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isPanning || e.touches.length !== 1) return;
+            const touch = e.touches[0];
+            panX = touch.clientX - panStartX;
+            panY = touch.clientY - panStartY;
+            updateTransform();
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => {
+            if (isPanning) {
+                isPanning = false;
+                diagramContainer.classList.remove('dragging');
+                diagramWrapper.classList.remove('no-transition');
+            }
+        });
+
+        // Mouse wheel zoom
+        diagramContainer.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -scaleStep : scaleStep;
+            const newScale = Math.max(minScale, Math.min(maxScale, scale + delta));
+
+            // Zoom toward mouse position
+            const rect = diagramContainer.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left - rect.width / 2;
+            const mouseY = e.clientY - rect.top - rect.height / 2;
+
+            const scaleChange = newScale / scale;
+            panX = mouseX - (mouseX - panX) * scaleChange;
+            panY = mouseY - (mouseY - panY) * scaleChange;
+
+            scale = newScale;
+            updateTransform();
+        }, { passive: false });
+
+        // Resize functionality
+        let isResizing = false;
+        let startX, startY, startWidth, startHeight;
+
+        function isVerticalLayout() {
+            return window.innerWidth <= 900;
+        }
+
+        resizeHandle.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            resizeHandle.classList.add('dragging');
+            document.body.classList.add('resizing');
+
+            if (isVerticalLayout()) {
+                startY = e.clientY;
+                startHeight = inputPanel.offsetHeight;
+            } else {
+                startX = e.clientX;
+                startWidth = inputPanel.offsetWidth;
+            }
+
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            if (isVerticalLayout()) {
+                const deltaY = e.clientY - startY;
+                const newHeight = startHeight + deltaY;
+                const minHeight = 200;
+                const maxHeight = window.innerHeight - 300;
+
+                if (newHeight >= minHeight && newHeight <= maxHeight) {
+                    inputPanel.style.height = newHeight + 'px';
+                }
+            } else {
+                const deltaX = e.clientX - startX;
+                const newWidth = startWidth + deltaX;
+                const containerWidth = mainGrid.offsetWidth;
+                const minWidth = 300;
+                const maxWidth = containerWidth - 320;
+
+                if (newWidth >= minWidth && newWidth <= maxWidth) {
+                    inputPanel.style.flex = `0 0 ${newWidth}px`;
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                resizeHandle.classList.remove('dragging');
+                document.body.classList.remove('resizing');
+            }
+        });
+
+        // Touch support for mobile
+        resizeHandle.addEventListener('touchstart', (e) => {
+            isResizing = true;
+            resizeHandle.classList.add('dragging');
+            document.body.classList.add('resizing');
+
+            const touch = e.touches[0];
+            if (isVerticalLayout()) {
+                startY = touch.clientY;
+                startHeight = inputPanel.offsetHeight;
+            } else {
+                startX = touch.clientX;
+                startWidth = inputPanel.offsetWidth;
+            }
+
+            e.preventDefault();
+        }, { passive: false });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isResizing) return;
+
+            const touch = e.touches[0];
+            if (isVerticalLayout()) {
+                const deltaY = touch.clientY - startY;
+                const newHeight = startHeight + deltaY;
+                const minHeight = 200;
+                const maxHeight = window.innerHeight - 300;
+
+                if (newHeight >= minHeight && newHeight <= maxHeight) {
+                    inputPanel.style.height = newHeight + 'px';
+                }
+            } else {
+                const deltaX = touch.clientX - startX;
+                const newWidth = startWidth + deltaX;
+                const containerWidth = mainGrid.offsetWidth;
+                const minWidth = 300;
+                const maxWidth = containerWidth - 320;
+
+                if (newWidth >= minWidth && newWidth <= maxWidth) {
+                    inputPanel.style.flex = `0 0 ${newWidth}px`;
+                }
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => {
+            if (isResizing) {
+                isResizing = false;
+                resizeHandle.classList.remove('dragging');
+                document.body.classList.remove('resizing');
+            }
+        });
+
+        // Collapse functionality
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            const isCollapsed = panel.classList.toggle('collapsed');
+            const inputPanelEl = document.getElementById('inputPanel');
+            const outputPanelEl = document.getElementById('outputPanel');
+
+            // Update the collapse button icon
+            const icon = panel.querySelector('.btn-collapse .icon');
+            if (panelId === 'inputPanel') {
+                icon.innerHTML = isCollapsed ? '&raquo;' : '&laquo;';
+            } else {
+                icon.innerHTML = isCollapsed ? '&laquo;' : '&raquo;';
+            }
+
+            // Reset inline styles when uncollapsing
+            if (!isCollapsed) {
+                if (!isVerticalLayout()) {
+                    if (panelId === 'inputPanel') {
+                        panel.style.flex = '';
+                    }
+                } else {
+                    panel.style.height = '';
+                }
+            }
+
+            // Hide resize handle if either panel is collapsed
+            const anyCollapsed = inputPanelEl.classList.contains('collapsed') ||
+                                 outputPanelEl.classList.contains('collapsed');
+            resizeHandle.classList.toggle('hidden', anyCollapsed);
+        }
+
+        // Debounce function for auto-render
+        let renderTimeout;
+        input.addEventListener('input', () => {
+            clearTimeout(renderTimeout);
+            renderTimeout = setTimeout(renderDiagram, 500);
+        });
+
+        // File upload handling
+        uploadZone.addEventListener('click', () => fileInput.click());
+
+        uploadZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadZone.classList.add('dragover');
+        });
+
+        uploadZone.addEventListener('dragleave', () => {
+            uploadZone.classList.remove('dragover');
+        });
+
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) readFile(file);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) readFile(file);
+        });
+
+        function readFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                input.value = e.target.result;
+                renderDiagram();
+            };
+            reader.readAsText(file);
+        }
+
+        async function renderDiagram() {
+            const code = input.value.trim();
+
+            if (!code) {
+                diagramWrapper.innerHTML = '<p class="placeholder-text">Your diagram will appear here</p>';
+                resetView();
+                return;
+            }
+
+            try {
+                // Validate the syntax first
+                await mermaid.parse(code);
+
+                // Generate unique ID for this render
+                const id = 'mermaid-' + Date.now();
+
+                // Render the diagram
+                const { svg } = await mermaid.render(id, code);
+                diagramWrapper.innerHTML = svg;
+                resetView();
+            } catch (error) {
+                diagramWrapper.innerHTML = `<div class="error-message">
+                    <strong>Syntax Error:</strong><br>
+                    ${error.message || 'Invalid Mermaid syntax'}
+                </div>`;
+            }
+        }
+
+        function clearInput() {
+            input.value = '';
+            diagramWrapper.innerHTML = '<p class="placeholder-text">Your diagram will appear here</p>';
+            resetView();
+        }
+
+        function loadExample() {
+            input.value = `flowchart TD
+    A[User Request] --> B{Authentication}
+    B -->|Valid| C[Process Request]
+    B -->|Invalid| D[Return 401]
+    C --> E{Authorization}
+    E -->|Allowed| F[Execute Action]
+    E -->|Denied| G[Return 403]
+    F --> H[Return Response]
+
+    style A fill:#d1fae5,stroke:#34d399,color:#1e293b
+    style H fill:#d1fae5,stroke:#34d399,color:#1e293b`;
+            renderDiagram();
+        }
+
+        function downloadSVG() {
+            const svg = diagramWrapper.querySelector('svg');
+            if (!svg) {
+                alert('No diagram to download. Please render a diagram first.');
+                return;
+            }
+
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const blob = new Blob([svgData], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'mermaid-diagram.svg';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
