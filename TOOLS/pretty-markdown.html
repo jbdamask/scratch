@@ -6,6 +6,7 @@
     <title>Pretty Markdown</title>
     <script src="https://cdn.jsdelivr.net/npm/marked@9.1.2/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -267,6 +268,62 @@
             margin: 15px 0;
             text-align: center;
         }
+
+        .frontmatter-box {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-left: 4px solid #6c757d;
+            border-radius: 4px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .frontmatter-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .frontmatter-content {
+            display: grid;
+            gap: 8px;
+        }
+
+        .frontmatter-item {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .frontmatter-key {
+            font-weight: 600;
+            color: #495057;
+            min-width: 100px;
+            font-size: 13px;
+        }
+
+        .frontmatter-value {
+            color: #212529;
+            font-size: 13px;
+            line-height: 1.5;
+            flex: 1;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .frontmatter-value code {
+            background-color: #fff;
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 12px;
+            border: 1px solid #dee2e6;
+        }
     </style>
 </head>
 <body>
@@ -427,10 +484,158 @@
             reader.readAsText(file);
         }
 
+        // Parse YAML front matter from markdown content
+        function parseFrontMatter(content) {
+            // Remove BOM if present and normalize line endings
+            let normalizedContent = content.replace(/^\uFEFF/, '');
+            normalizedContent = normalizedContent.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+            // Check if content starts with ---
+            if (!normalizedContent.trimStart().startsWith('---')) {
+                return { frontMatter: null, bodyContent: content };
+            }
+
+            // Find the closing --- delimiter
+            // Look for a line that is just --- (with optional whitespace)
+            const lines = normalizedContent.split('\n');
+            let startIndex = -1;
+            let endIndex = -1;
+
+            for (let i = 0; i < lines.length; i++) {
+                const trimmedLine = lines[i].trim();
+                if (trimmedLine === '---') {
+                    if (startIndex === -1) {
+                        startIndex = i;
+                    } else {
+                        endIndex = i;
+                        break;
+                    }
+                }
+            }
+
+            if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+                const yamlLines = lines.slice(startIndex + 1, endIndex);
+                const yamlContent = yamlLines.join('\n').trim();
+                const bodyLines = lines.slice(endIndex + 1);
+                const bodyContent = bodyLines.join('\n');
+
+                // First try js-yaml parser
+                try {
+                    const frontMatter = jsyaml.load(yamlContent);
+                    console.log('Parsed front matter with js-yaml:', frontMatter);
+                    return { frontMatter, bodyContent };
+                } catch (e) {
+                    console.warn('js-yaml failed, trying manual parser:', e.message);
+                }
+
+                // Fallback: manually parse simple key: value pairs
+                // This handles cases where values contain colons that confuse YAML
+                try {
+                    const frontMatter = {};
+                    for (const line of yamlLines) {
+                        // Match key at start of line, followed by colon and space
+                        const match = line.match(/^([a-zA-Z_][a-zA-Z0-9_-]*)\s*:\s*(.*)$/);
+                        if (match) {
+                            const key = match[1];
+                            let value = match[2];
+
+                            // Try to parse the value as JSON (for arrays, objects, etc.)
+                            if (value.startsWith('[') || value.startsWith('{')) {
+                                try {
+                                    value = JSON.parse(value);
+                                } catch (jsonErr) {
+                                    // Keep as string
+                                }
+                            } else if (value === 'true') {
+                                value = true;
+                            } else if (value === 'false') {
+                                value = false;
+                            } else if (value === 'null') {
+                                value = null;
+                            } else if (!isNaN(value) && value.trim() !== '') {
+                                value = Number(value);
+                            }
+
+                            frontMatter[key] = value;
+                        }
+                    }
+
+                    if (Object.keys(frontMatter).length > 0) {
+                        console.log('Parsed front matter with manual parser:', frontMatter);
+                        return { frontMatter, bodyContent };
+                    }
+                } catch (manualErr) {
+                    console.error('Manual parser also failed:', manualErr);
+                }
+
+                return { frontMatter: null, bodyContent: content };
+            }
+
+            console.log('No valid front matter delimiters found');
+            return { frontMatter: null, bodyContent: content };
+        }
+
+        // Render front matter as HTML
+        function renderFrontMatter(frontMatter) {
+            if (!frontMatter || Object.keys(frontMatter).length === 0) {
+                return '';
+            }
+
+            const escapeHtml = (str) => {
+                if (typeof str !== 'string') {
+                    str = String(str);
+                }
+                return str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            };
+
+            const formatValue = (value) => {
+                if (value === null || value === undefined) {
+                    return '<em>null</em>';
+                }
+                if (typeof value === 'boolean') {
+                    return `<code>${value}</code>`;
+                }
+                if (typeof value === 'number') {
+                    return `<code>${value}</code>`;
+                }
+                if (Array.isArray(value)) {
+                    return value.map(v => escapeHtml(v)).join(', ');
+                }
+                if (typeof value === 'object') {
+                    return `<code>${escapeHtml(JSON.stringify(value, null, 2))}</code>`;
+                }
+                return escapeHtml(value);
+            };
+
+            const items = Object.entries(frontMatter)
+                .map(([key, value]) => `
+                    <div class="frontmatter-item">
+                        <span class="frontmatter-key">${escapeHtml(key)}:</span>
+                        <span class="frontmatter-value">${formatValue(value)}</span>
+                    </div>
+                `).join('');
+
+            return `
+                <div class="frontmatter-box">
+                    <div class="frontmatter-title">Document Metadata</div>
+                    <div class="frontmatter-content">
+                        ${items}
+                    </div>
+                </div>
+            `;
+        }
+
         function updatePreview() {
             const markdownContent = editor.value || currentContent;
-            const html = marked.parse(markdownContent);
-            previewPanel.innerHTML = `<div class="markdown-content">${html}</div>`;
+            const { frontMatter, bodyContent } = parseFrontMatter(markdownContent);
+            const frontMatterHtml = renderFrontMatter(frontMatter);
+            const html = marked.parse(bodyContent);
+            previewPanel.innerHTML = `${frontMatterHtml}<div class="markdown-content">${html}</div>`;
             
             // Render Mermaid diagrams if any exist
             const mermaidElements = previewPanel.querySelectorAll('code.language-mermaid');
@@ -502,7 +707,9 @@
 
         // Helper function to render Mermaid diagrams and create print-ready HTML
         async function renderMermaidForPrint(markdownContent) {
-            const html = marked.parse(markdownContent);
+            const { frontMatter, bodyContent } = parseFrontMatter(markdownContent);
+            const frontMatterHtml = renderFrontMatter(frontMatter);
+            const html = frontMatterHtml + marked.parse(bodyContent);
 
             // Create a temporary container to parse the HTML
             const tempContainer = document.createElement('div');
@@ -598,6 +805,54 @@
                         .mermaid-wrapper {
                             margin: 15px 0;
                             text-align: center;
+                        }
+                        .frontmatter-box {
+                            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                            border: 1px solid #dee2e6;
+                            border-left: 4px solid #6c757d;
+                            border-radius: 4px;
+                            padding: 16px 20px;
+                            margin-bottom: 24px;
+                        }
+                        .frontmatter-title {
+                            font-size: 11px;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            color: #6c757d;
+                            margin-bottom: 12px;
+                            padding-bottom: 8px;
+                            border-bottom: 1px solid #dee2e6;
+                        }
+                        .frontmatter-content {
+                            display: grid;
+                            gap: 8px;
+                        }
+                        .frontmatter-item {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 8px;
+                        }
+                        .frontmatter-key {
+                            font-weight: 600;
+                            color: #495057;
+                            min-width: 100px;
+                            font-size: 13px;
+                        }
+                        .frontmatter-value {
+                            color: #212529;
+                            font-size: 13px;
+                            line-height: 1.5;
+                            flex: 1;
+                            white-space: pre-wrap;
+                            word-break: break-word;
+                        }
+                        .frontmatter-value code {
+                            background-color: #fff;
+                            padding: 1px 4px;
+                            border-radius: 3px;
+                            font-size: 12px;
+                            border: 1px solid #dee2e6;
                         }
                         @media print {
                             body {
@@ -709,6 +964,54 @@
                         .mermaid-wrapper {
                             margin: 15px 0;
                             text-align: center;
+                        }
+                        .frontmatter-box {
+                            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                            border: 1px solid #dee2e6;
+                            border-left: 4px solid #6c757d;
+                            border-radius: 4px;
+                            padding: 16px 20px;
+                            margin-bottom: 24px;
+                        }
+                        .frontmatter-title {
+                            font-size: 11px;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                            color: #6c757d;
+                            margin-bottom: 12px;
+                            padding-bottom: 8px;
+                            border-bottom: 1px solid #dee2e6;
+                        }
+                        .frontmatter-content {
+                            display: grid;
+                            gap: 8px;
+                        }
+                        .frontmatter-item {
+                            display: flex;
+                            flex-wrap: wrap;
+                            gap: 8px;
+                        }
+                        .frontmatter-key {
+                            font-weight: 600;
+                            color: #495057;
+                            min-width: 100px;
+                            font-size: 13px;
+                        }
+                        .frontmatter-value {
+                            color: #212529;
+                            font-size: 13px;
+                            line-height: 1.5;
+                            flex: 1;
+                            white-space: pre-wrap;
+                            word-break: break-word;
+                        }
+                        .frontmatter-value code {
+                            background-color: #fff;
+                            padding: 1px 4px;
+                            border-radius: 3px;
+                            font-size: 12px;
+                            border: 1px solid #dee2e6;
                         }
                         @media print {
                             body {
