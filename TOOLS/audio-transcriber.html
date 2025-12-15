@@ -306,6 +306,13 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
+        // Use CORS proxy when not on localhost
+        const getOpenAIUrl = () => {
+            const isLocal = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
+            const url = 'https://api.openai.com/v1/audio/transcriptions';
+            return isLocal ? url : 'https://corsproxy.io/?' + encodeURIComponent(url);
+        };
+
         function AudioTranscriber() {
             const [apiKey, setApiKey] = useState('');
             const [file, setFile] = useState(null);
@@ -774,14 +781,14 @@
                     formData.append('file', chunks[i], `chunk_${i}.wav`);
                     formData.append('model', 'whisper-1');
                     
-                    const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+                    const response = await fetch(getOpenAIUrl(), {
                         method: 'POST',
                         headers: {
                             'Authorization': `Bearer ${apiKey}`,
                         },
                         body: formData
                     });
-                    
+
                     if (!response.ok) {
                         const errorData = await response.json();
                         throw new Error(`Chunk ${i + 1} failed: ${errorData.error?.message || 'Transcription failed'}`);
@@ -859,7 +866,7 @@
                         formData.append('file', audioFile);
                         formData.append('model', 'whisper-1');
 
-                        const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+                        const response = await fetch(getOpenAIUrl(), {
                             method: 'POST',
                             headers: {
                                 'Authorization': `Bearer ${apiKey}`,
