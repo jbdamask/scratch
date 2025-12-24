@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Search } from 'lucide-react'
+import ShareButton from './react-component-amroja-share-button';
 
 interface Project {
   name: string
@@ -878,6 +879,7 @@ function App() {
                   >
                     Export Clear Text
                   </button>
+                  <ShareButton />
                   <label style={{
                     display: 'flex',
                     alignItems: 'center',

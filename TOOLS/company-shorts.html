@@ -539,6 +539,7 @@
             <div class="result-actions">
                 <button class="result-action-btn" data-tooltip="Copy as Markdown" onclick="copyResult()">Copy</button>
                 <button class="result-action-btn" data-tooltip="Save as Markdown file" onclick="saveResult()">Save</button>
+            	<button class="result-action-btn" onclick="ShareIt.share()">Share</button>
             </div>
             <div id="result" class="result"></div>
             <div id="costDisplay" class="cost-display"></div>
@@ -596,13 +597,54 @@
     </div>
 
     <script>
-        // Configure marked to open links in new tab
+        // Configure marked to open links in new tab and add IDs to headings
         const renderer = new marked.Renderer();
         renderer.link = function({ href, title, text }) {
             const titleAttr = title ? ` title="${title}"` : '';
+            // Keep anchor links on same page, open external links in new tab
+            if (href.startsWith('#')) {
+                return `<a href="${href}"${titleAttr}>${text}</a>`;
+            }
             return `<a href="${href}"${titleAttr} target="_blank" rel="noopener noreferrer">${text}</a>`;
         };
+        renderer.heading = function({ text, depth }) {
+            const slug = text.toLowerCase().replace(/[^\w]+/g, '-').replace(/(^-|-$)/g, '');
+            return `<h${depth} id="${slug}">${text}</h${depth}>`;
+        };
         marked.setOptions({ renderer });
+
+        // Generate table of contents from markdown
+        function generateTOC(markdown) {
+            const lines = markdown.split('\n');
+            const tocEntries = [];
+            let foundFirstH1 = false;
+
+            for (const line of lines) {
+                const h1Match = line.match(/^# (.+)/);
+                const h2Match = line.match(/^## (.+)/);
+
+                if (h1Match && !foundFirstH1) {
+                    foundFirstH1 = true;
+                    continue;
+                }
+
+                if (h2Match && foundFirstH1) {
+                    const text = h2Match[1];
+                    const slug = text.toLowerCase().replace(/[^\w]+/g, '-').replace(/(^-|-$)/g, '');
+                    tocEntries.push(`- [${text}](#${slug})`);
+                }
+            }
+
+            if (tocEntries.length === 0) return markdown;
+
+            const toc = `\n**Table of Contents**\n\n${tocEntries.join('\n')}\n\n---\n`;
+
+            // Insert TOC after the first H1
+            const h1Index = markdown.indexOf('\n', markdown.indexOf('# '));
+            if (h1Index === -1) return markdown;
+
+            return markdown.slice(0, h1Index) + '\n' + toc + markdown.slice(h1Index + 1);
+        }
 
         // Store raw markdown for copy/save
         let rawMarkdown = '';
@@ -781,8 +823,9 @@
                 const data = await response.json();
                 console.log('LLM Response:', data);
                 const content = cleanupMarkdown(removeThinkTags(data.choices[0].message.content));
-                rawMarkdown = content;
-                document.getElementById('result').innerHTML = marked.parse(content);
+                const contentWithTOC = generateTOC(content);
+                rawMarkdown = contentWithTOC;
+                document.getElementById('result').innerHTML = marked.parse(contentWithTOC);
                 const totalCost = data.usage?.cost?.total_cost;
                 document.getElementById('costDisplay').textContent = totalCost !== undefined
                     ? `Cost: $${totalCost.toFixed(3)}`
@@ -796,5 +839,6 @@
             }
         }
     </script>
+  <script src="https://amroja-shared-web-pages.s3.amazonaws.com/share.js"></script>
 </body>
 </html>
