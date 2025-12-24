@@ -821,7 +821,7 @@
                 }
 
                 const data = await response.json();
-                console.log('LLM Response:', data);
+                // console.log('LLM Response:', data);
                 const content = cleanupMarkdown(removeThinkTags(data.choices[0].message.content));
                 const contentWithTOC = generateTOC(content);
                 rawMarkdown = contentWithTOC;
