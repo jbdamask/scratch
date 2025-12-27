@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel, field_validator
 import anthropic
-from gitingest import ingest
+from gitingest import ingest_async
 
 app = FastAPI(title="GitAid", description="GitHub Repository Diagram Generator")
 
@@ -124,8 +124,8 @@ async def analyze_repository(request: RepoRequest):
     3. Returns generated Mermaid diagrams
     """
     try:
-        # Use gitingest to fetch repository content
-        summary, tree, content = ingest(
+        # Use gitingest to fetch repository content (async version)
+        summary, tree, content = await ingest_async(
             request.repo_url,
             token=request.github_token
         )
