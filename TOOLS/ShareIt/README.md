@@ -187,6 +187,9 @@ python3 -m http.server 3000
 ### Helper Scripts
 
 ```bash
+# Add an allowed origin (updates both Lambda URL CORS and environment variable)
+./aws/scripts/add-allowed-origin.sh <lambda-name> <region> <origin> [aws-profile]
+
 # Update your IP for localhost testing (run when your IP changes)
 ./aws/scripts/update-shareit-ip.sh <lambda-name> <region>
 
@@ -196,6 +199,21 @@ python3 -m http.server 3000
 # Update S3 CORS configuration
 ./aws/scripts/update-s3-cors.sh <bucket-name> <region>
 ```
+
+#### Adding Allowed Origins
+
+To allow a new origin (e.g., a new localhost port or production domain) without redeploying CloudFormation:
+
+```bash
+./aws/scripts/add-allowed-origin.sh my-shareit-lambda us-east-1 http://localhost:5173
+
+# With AWS profile
+./aws/scripts/add-allowed-origin.sh my-shareit-lambda us-east-1 https://myapp.com my-aws-profile
+```
+
+This script updates both:
+- Lambda Function URL CORS configuration (for preflight requests)
+- `ALLOWED_ORIGINS` environment variable (for runtime validation)
 
 ## Testing
 
@@ -256,9 +274,9 @@ Go to your repository Settings > Secrets and variables > Actions > Variables:
 ## Troubleshooting
 
 ### "CORS error" in browser console
-- Ensure your origin is in the `AllowOrigins` list in `aws/shareit.yaml`
-- Redeploy the CloudFormation stack after editing
-- For localhost, ensure your IP is in `AllowedIPs`
+- Run `./aws/scripts/add-allowed-origin.sh <lambda-name> <region> <origin>` to add your origin
+- Alternatively, add your origin to `AllowOrigins` in `aws/shareit.yaml` and redeploy the stack
+- For localhost, also ensure your IP is in `AllowedIPs`
 
 ### "Forbidden" or "INVALID_ORIGIN" error
 - Check that `AllowedOrigins` parameter includes your domain
