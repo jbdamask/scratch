@@ -1,0 +1,218 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: ShareIt - S3 bucket and Lambda for sharing web pages as static HTML files
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Name for the S3 bucket (must be globally unique)
+    AllowedPattern: ^[a-z0-9][a-z0-9.-]*[a-z0-9]$
+    ConstraintDescription: Bucket name must be lowercase, can contain dots and hyphens
+
+  LambdaFunctionName:
+    Type: String
+    Description: Name for the Lambda function
+
+  LambdaRoleName:
+    Type: String
+    Description: Name for the Lambda IAM role
+
+  AllowedOrigins:
+    Type: String
+    Description: Comma-separated list of allowed production origins (e.g., https://example.com)
+
+  AllowedIPs:
+    Type: String
+    Description: Comma-separated list of IPs allowed to use localhost origins
+
+  PresignExpiry:
+    Type: Number
+    Default: 20
+    Description: Presigned URL expiry in seconds
+
+  # Note: AllowedOrigins is used for both Lambda URL CORS and runtime validation.
+  # Include all origins (production and localhost) in the AllowedOrigins parameter.
+
+Resources:
+  # ─────────────────────────────────────────────────────────────────
+  # S3 Bucket for shared HTML files
+  # ─────────────────────────────────────────────────────────────────
+
+  ShareItBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: error.html
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders:
+              - '*'
+            AllowedMethods:
+              - GET
+              - HEAD
+              - PUT
+            AllowedOrigins:
+              - '*'
+            MaxAge: 3600
+      Tags:
+        - Key: Purpose
+          Value: ShareItStaticWebHosting
+
+  ShareItBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ShareItBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub '${ShareItBucket.Arn}/*'
+
+  # ─────────────────────────────────────────────────────────────────
+  # Lambda Function and IAM Role
+  # ─────────────────────────────────────────────────────────────────
+
+  ShareItLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref LambdaRoleName
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ShareItS3Access
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                Resource: !Sub '${ShareItBucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - s3:ListBucket
+                Resource: !GetAtt ShareItBucket.Arn
+        - PolicyName: ShareItCloudWatchLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${LambdaFunctionName}:*'
+
+  ShareItLambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref LambdaFunctionName
+      Runtime: python3.12
+      Handler: index.handler
+      Role: !GetAtt ShareItLambdaRole.Arn
+      Timeout: 10
+      MemorySize: 128
+      ReservedConcurrentExecutions: 100
+      Environment:
+        Variables:
+          S3_BUCKET: !Ref BucketName
+          ALLOWED_ORIGINS: !Ref AllowedOrigins
+          ALLOWED_IPS: !Ref AllowedIPs
+          WEBSITE_ENDPOINT: !GetAtt ShareItBucket.WebsiteURL
+          PRESIGN_EXPIRY: !Ref PresignExpiry
+      Code:
+        ZipFile: |
+          import json,os,re,time,logging,boto3
+          from botocore.exceptions import ClientError
+          logger=logging.getLogger();logger.setLevel(logging.INFO);s3=boto3.client('s3')
+          BUCKET=os.environ.get('S3_BUCKET');ALLOWED_ORIGINS=[o.strip() for o in os.environ.get('ALLOWED_ORIGINS','').split(',') if o.strip()]
+          ALLOWED_IPS=[i.strip() for i in os.environ.get('ALLOWED_IPS','').split(',') if i.strip()];ENDPOINT=os.environ.get('WEBSITE_ENDPOINT')
+          FN_RE=re.compile(r'^[a-zA-Z0-9_-]{1,100}$')
+          def handler(event,ctx):
+            if event.get('requestContext',{}).get('http',{}).get('method')=='OPTIONS':return resp(200,{},'*')
+            hdrs=event.get('headers',{});origin=hdrs.get('origin','');ip=event.get('requestContext',{}).get('http',{}).get('sourceIp','')
+            if not ok_origin(origin,ip):log('upload_rejected',origin,ip,reason='INVALID_ORIGIN');return resp(403,{'error':'Forbidden','code':'INVALID_ORIGIN'},origin)
+            try:body=json.loads(event.get('body','{}'));fn=body.get('filename','')
+            except:return resp(400,{'error':'Invalid JSON','code':'INVALID_REQUEST'},origin)
+            if not fn or not FN_RE.match(fn):return resp(400,{'error':'Invalid filename','code':'INVALID_FILENAME'},origin)
+            key=f'{fn}.html';coll=False
+            if exists(key):coll=True;key=f'{fn}-{int(time.time())}.html'
+            try:url=s3.generate_presigned_url('put_object',Params={'Bucket':BUCKET,'Key':key,'ContentType':'text/html'},ExpiresIn=int(os.environ.get('PRESIGN_EXPIRY',20)))
+            except ClientError as e:logger.error(f'S3:{e}');return resp(500,{'error':'S3 error','code':'S3_ERROR'},origin)
+            log('upload_authorized',origin,ip,filename=key,collision=coll);return resp(200,{'presignedUrl':url,'finalFilename':key,'publicUrl':f'{ENDPOINT}/{key}'},origin)
+          def ok_origin(o,ip):
+            if not o:return False
+            if o in ALLOWED_ORIGINS:return True
+            if o.startswith('http://localhost') or o.startswith('http://127.0.0.1'):return ip in ALLOWED_IPS
+            return False
+          def exists(k):
+            try:s3.head_object(Bucket=BUCKET,Key=k);return True
+            except ClientError as e:return False if e.response['Error']['Code']=='404' else None
+          def log(evt,origin,ip,**kw):d={'ts':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'event':evt,'origin':origin,'ip':ip};d.update({k:v for k,v in kw.items() if v is not None});logger.info(json.dumps(d))
+          def resp(code,body,origin=None):return{'statusCode':code,'headers':{'Content-Type':'application/json'},'body':json.dumps(body)}
+
+  # ─────────────────────────────────────────────────────────────────
+  # Lambda Function URL
+  # ─────────────────────────────────────────────────────────────────
+
+  ShareItLambdaUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      AuthType: NONE
+      TargetFunctionArn: !GetAtt ShareItLambdaFunction.Arn
+      Cors:
+        AllowCredentials: false
+        AllowHeaders:
+          - Content-Type
+        AllowMethods:
+          - POST
+        AllowOrigins: !Split [",", !Ref AllowedOrigins]
+
+  ShareItLambdaUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref ShareItLambdaFunction
+      Action: lambda:InvokeFunctionUrl
+      Principal: '*'
+      FunctionUrlAuthType: NONE
+
+Outputs:
+  # S3 Bucket
+  BucketName:
+    Description: Name of the S3 bucket
+    Value: !Ref ShareItBucket
+
+  BucketArn:
+    Description: ARN of the S3 bucket
+    Value: !GetAtt ShareItBucket.Arn
+
+  BucketWebsiteUrl:
+    Description: S3 static website URL for shared content
+    Value: !GetAtt ShareItBucket.WebsiteURL
+
+  # Lambda
+  LambdaFunctionName:
+    Description: Name of the Lambda function
+    Value: !Ref ShareItLambdaFunction
+
+  LambdaFunctionArn:
+    Description: ARN of the Lambda function
+    Value: !GetAtt ShareItLambdaFunction.Arn
+
+  LambdaFunctionUrl:
+    Description: Function URL for the ShareIt Lambda
+    Value: !GetAtt ShareItLambdaUrl.FunctionUrl

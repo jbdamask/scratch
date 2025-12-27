@@ -1,0 +1,25 @@
+{
+  "name": "shareit-client",
+  "version": "1.0.0",
+  "description": "ShareIt static HTML sharing client library",
+  "main": "share.js",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0",
+    "jsdom": "^24.0.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "share.js"
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+# Production dependencies (boto3 included in Lambda runtime)
+# boto3
+
+# Test dependencies
+pytest>=7.4.0
+moto>=4.2.0
