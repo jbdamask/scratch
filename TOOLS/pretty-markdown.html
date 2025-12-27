@@ -433,7 +433,7 @@
         const saveBtnPreview = document.getElementById('saveBtnPreview');
         const copyBtnPreview = document.getElementById('copyBtnPreview');
         const pdfBtnPreview = document.getElementById('pdfBtnPreview');
-
+        const shareBtnPreview = document.getElementById('shareBtnPreview');
         uploadArea.addEventListener('click', () => {
             fileInput.click();
         });
@@ -479,6 +479,7 @@
                 copyBtnPreview.disabled = false;
                 saveBtnPreview.disabled = false;
                 pdfBtnPreview.disabled = false;
+                shareBtnPreview.disabled = false;
             };
 
             reader.readAsText(file);
@@ -665,6 +666,7 @@
             copyBtnPreview.disabled = !hasContent;
             saveBtnPreview.disabled = !hasContent;
             pdfBtnPreview.disabled = !hasContent;
+            shareBtnPreview.disabled = !hasContent;
         }
 
         // Update preview when editor content changes
