@@ -530,6 +530,101 @@
             border-color: var(--accent);
         }
 
+        .panel.collapsed {
+            flex: 0 0 auto !important;
+            min-width: auto !important;
+            width: auto !important;
+            padding: 1.25rem 0.75rem;
+        }
+
+        .panel.collapsed .panel-content {
+            display: none;
+        }
+
+        .panel.collapsed .panel-header {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .panel.collapsed .panel-title {
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+        }
+
+        .panel.collapsed .button-group {
+            flex-direction: column;
+        }
+
+        .panel.collapsed .btn-collapse {
+            order: -1;
+        }
+
+        .panel.collapsed .panel-actions {
+            display: none;
+        }
+
+        .btn-collapse {
+            background: transparent;
+            border: 1px solid var(--muted);
+            color: var(--fg-primary);
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-collapse:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .btn-collapse .icon {
+            transition: transform 0.2s ease;
+        }
+
+        .panel.collapsed .btn-collapse .icon {
+            transform: rotate(180deg);
+        }
+
+        @media (max-width: 900px) {
+            .panel.collapsed {
+                min-height: auto !important;
+                height: auto !important;
+                padding: 0.75rem 1.25rem;
+            }
+
+            .panel.collapsed .panel-header {
+                flex-direction: row;
+            }
+
+            .panel.collapsed .panel-title {
+                writing-mode: horizontal-tb;
+                transform: none;
+            }
+
+            .panel.collapsed .button-group {
+                flex-direction: row;
+            }
+
+            .panel.collapsed .btn-collapse .icon {
+                transform: rotate(90deg);
+            }
+
+            .panel:not(.collapsed) .btn-collapse .icon {
+                transform: rotate(-90deg);
+            }
+        }
+
+        .resize-handle.hidden {
+            display: none;
+        }
+
         .panel-header {
             display: flex;
             justify-content: space-between;
@@ -788,7 +883,12 @@
                     <div class="panel-header">
                         <span class="panel-title">Mermaid Code</span>
                         <div class="button-group">
-                            <button class="btn-ghost" id="copyCodeBtn">Copy Code</button>
+                            <span class="panel-actions">
+                                <button class="btn-ghost" id="copyCodeBtn">Copy Code</button>
+                            </span>
+                            <button class="btn-collapse" onclick="togglePanel('inputPanel')" title="Collapse panel">
+                                <span class="icon">&laquo;</span>
+                            </button>
                         </div>
                     </div>
                     <div class="panel-content">
@@ -802,13 +902,18 @@
                     <div class="panel-header">
                         <span class="panel-title">Preview</span>
                         <div class="button-group">
-                            <div class="zoom-controls">
-                                <button class="btn-zoom" id="zoomOutBtn" title="Zoom out">-</button>
-                                <span class="zoom-level" id="zoomLevel">100%</span>
-                                <button class="btn-zoom" id="zoomInBtn" title="Zoom in">+</button>
-                                <button class="btn-zoom" id="fitBtn" title="Fit to view">Fit</button>
-                            </div>
-                            <button class="btn-ghost" id="downloadSvgBtn">Download SVG</button>
+                            <span class="panel-actions">
+                                <div class="zoom-controls">
+                                    <button class="btn-zoom" id="zoomOutBtn" title="Zoom out">-</button>
+                                    <span class="zoom-level" id="zoomLevel">100%</span>
+                                    <button class="btn-zoom" id="zoomInBtn" title="Zoom in">+</button>
+                                    <button class="btn-zoom" id="fitBtn" title="Fit to view">Fit</button>
+                                </div>
+                                <button class="btn-ghost" id="downloadSvgBtn">Download SVG</button>
+                            </span>
+                            <button class="btn-collapse" onclick="togglePanel('outputPanel')" title="Collapse panel">
+                                <span class="icon">&raquo;</span>
+                            </button>
                         </div>
                     </div>
                     <div class="panel-content">
@@ -901,6 +1006,38 @@
         const minScale = 0.1;
         const maxScale = 5;
         const scaleStep = 0.25;
+
+        // Collapse functionality
+        function togglePanel(panelId) {
+            const panel = document.getElementById(panelId);
+            const isCollapsed = panel.classList.toggle('collapsed');
+            const inputPanelEl = document.getElementById('inputPanel');
+            const outputPanelEl = document.getElementById('outputPanel');
+
+            // Update the collapse button icon
+            const icon = panel.querySelector('.btn-collapse .icon');
+            if (panelId === 'inputPanel') {
+                icon.innerHTML = isCollapsed ? '&raquo;' : '&laquo;';
+            } else {
+                icon.innerHTML = isCollapsed ? '&laquo;' : '&raquo;';
+            }
+
+            // Reset inline styles when uncollapsing
+            if (!isCollapsed) {
+                if (!isVerticalLayout()) {
+                    if (panelId === 'inputPanel') {
+                        panel.style.flex = '';
+                    }
+                } else {
+                    panel.style.height = '';
+                }
+            }
+
+            // Hide resize handle if either panel is collapsed
+            const anyCollapsed = inputPanelEl.classList.contains('collapsed') ||
+                                 outputPanelEl.classList.contains('collapsed');
+            resizeHandle.classList.toggle('hidden', anyCollapsed);
+        }
 
         // GitHub URL validation
         function validateGitHubUrl(url) {
