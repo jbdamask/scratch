@@ -153,8 +153,8 @@ def count_tokens(text: str) -> int:
 
 def parse_file_count_from_summary(summary: str) -> int:
     """Extract file count from gitingest summary."""
-    # Summary typically contains "Analyzed X files"
-    match = re.search(r'(\d+)\s*files?', summary, re.IGNORECASE)
+    # Summary format is "Files analyzed: 37"
+    match = re.search(r'Files analyzed:\s*(\d+)', summary, re.IGNORECASE)
     return int(match.group(1)) if match else 0
 
 
