@@ -15,12 +15,45 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel, field_validator
 import anthropic
+import tiktoken
 from gitingest import ingest
 
 app = FastAPI(title="GitAid", description="GitHub Repository Diagram Generator")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Claude Opus 4.5 pricing (per million tokens)
+PRICING = {
+    "input": 15.00,   # $15 per 1M input tokens
+    "output": 75.00,  # $75 per 1M output tokens
+}
+ESTIMATED_OUTPUT_TOKENS = 4000  # Estimate for 3-6 diagrams with descriptions
+
+
+class EstimateRequest(BaseModel):
+    """Request model for cost estimation."""
+    repo_url: str
+    github_token: Optional[str] = None
+
+    @field_validator('repo_url')
+    @classmethod
+    def validate_github_url(cls, v: str) -> str:
+        pattern = r'^https?://github\.com/[\w.-]+/[\w.-]+/?.*$'
+        if not re.match(pattern, v):
+            raise ValueError('Invalid GitHub repository URL')
+        return v.rstrip('/')
+
+
+class EstimateResponse(BaseModel):
+    """Response model for cost estimation."""
+    input_tokens: int
+    estimated_output_tokens: int
+    input_cost: float
+    output_cost: float
+    total_cost: float
+    file_count: int
+    repo_size_kb: float
 
 
 class RepoRequest(BaseModel):
@@ -108,10 +141,81 @@ def truncate_content(content: str, max_tokens: int = 150000) -> str:
     return content
 
 
+def count_tokens(text: str) -> int:
+    """Count tokens using tiktoken (cl100k_base encoding, used by Claude)."""
+    try:
+        encoding = tiktoken.get_encoding("cl100k_base")
+        return len(encoding.encode(text))
+    except Exception:
+        # Fallback: rough estimate of 4 chars per token
+        return len(text) // 4
+
+
+def parse_file_count_from_summary(summary: str) -> int:
+    """Extract file count from gitingest summary."""
+    # Summary typically contains "Analyzed X files"
+    match = re.search(r'(\d+)\s*files?', summary, re.IGNORECASE)
+    return int(match.group(1)) if match else 0
+
+
 @app.get("/", response_class=HTMLResponse)
 async def root():
     """Serve the main HTML page."""
     return FileResponse("static/index.html")
+
+
+@app.post("/api/estimate", response_model=EstimateResponse)
+async def estimate_cost(request: EstimateRequest):
+    """
+    Estimate the cost of analyzing a repository.
+
+    Fetches the repository content and calculates token count and estimated cost.
+    """
+    try:
+        # Use gitingest to fetch repository content
+        summary, tree, content = await asyncio.to_thread(
+            ingest,
+            request.repo_url,
+            token=request.github_token
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Failed to fetch repository: {str(e)}"
+        )
+
+    # Truncate content if too large
+    content = truncate_content(content)
+    tree = truncate_content(tree, max_tokens=10000)
+
+    # Build the full prompt to count tokens
+    prompt = DIAGRAM_GENERATION_PROMPT.format(
+        tree=tree,
+        content=content,
+        summary=summary
+    )
+
+    # Count input tokens
+    input_tokens = count_tokens(prompt)
+
+    # Calculate costs
+    input_cost = (input_tokens / 1_000_000) * PRICING["input"]
+    output_cost = (ESTIMATED_OUTPUT_TOKENS / 1_000_000) * PRICING["output"]
+    total_cost = input_cost + output_cost
+
+    # Get file count and size
+    file_count = parse_file_count_from_summary(summary)
+    repo_size_kb = len(content.encode('utf-8')) / 1024
+
+    return EstimateResponse(
+        input_tokens=input_tokens,
+        estimated_output_tokens=ESTIMATED_OUTPUT_TOKENS,
+        input_cost=round(input_cost, 4),
+        output_cost=round(output_cost, 4),
+        total_cost=round(total_cost, 4),
+        file_count=file_count,
+        repo_size_kb=round(repo_size_kb, 2)
+    )
 
 
 @app.post("/api/analyze", response_model=DiagramResponse)

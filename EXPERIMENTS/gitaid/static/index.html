@@ -906,6 +906,132 @@
         .api-key-hint a {
             color: var(--accent);
         }
+
+        /* Cost Confirmation Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(10, 14, 26, 0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background-color: var(--surface);
+            border: 1px solid var(--muted);
+            border-radius: 8px;
+            padding: 1.5rem;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--muted);
+        }
+
+        .modal-title {
+            color: var(--accent);
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: var(--fg-primary);
+        }
+
+        .modal-body {
+            margin-bottom: 1.5rem;
+        }
+
+        .cost-breakdown {
+            background-color: var(--bg-primary);
+            border: 1px solid var(--muted);
+            border-radius: 4px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .cost-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            font-size: 0.85rem;
+        }
+
+        .cost-row.total {
+            border-top: 1px solid var(--muted);
+            margin-top: 0.5rem;
+            padding-top: 1rem;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .cost-label {
+            color: var(--fg-primary);
+        }
+
+        .cost-value {
+            color: var(--fg-primary);
+        }
+
+        .cost-note {
+            font-size: 0.75rem;
+            color: var(--muted);
+            margin-top: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+        }
+
+        .btn-cancel {
+            background-color: transparent;
+            border: 1px solid var(--muted);
+            color: var(--fg-primary);
+        }
+
+        .btn-cancel:hover {
+            border-color: var(--error);
+            color: var(--error);
+        }
+
+        .btn-confirm {
+            background-color: var(--accent);
+            border: 1px solid var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-confirm:hover {
+            background-color: transparent;
+            color: var(--accent);
+        }
     </style>
 </head>
 <body>
@@ -1064,8 +1190,58 @@
     <!-- Loading Overlay -->
     <div class="loading-overlay" id="loadingOverlay">
         <div class="loading-spinner"></div>
-        <div class="loading-text">Analyzing repository...</div>
-        <div class="loading-subtext">This may take a minute for larger repositories</div>
+        <div class="loading-text" id="loadingText">Analyzing repository...</div>
+        <div class="loading-subtext" id="loadingSubtext">This may take a minute for larger repositories</div>
+    </div>
+
+    <!-- Cost Confirmation Modal -->
+    <div class="modal-overlay" id="costModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Cost Estimate</span>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="cost-breakdown">
+                    <div class="cost-row">
+                        <span class="cost-label">Repository size</span>
+                        <span class="cost-value" id="repoSize">-</span>
+                    </div>
+                    <div class="cost-row">
+                        <span class="cost-label">Files analyzed</span>
+                        <span class="cost-value" id="fileCount">-</span>
+                    </div>
+                    <div class="cost-row">
+                        <span class="cost-label">Input tokens</span>
+                        <span class="cost-value" id="inputTokens">-</span>
+                    </div>
+                    <div class="cost-row">
+                        <span class="cost-label">Est. output tokens</span>
+                        <span class="cost-value" id="outputTokens">-</span>
+                    </div>
+                    <div class="cost-row">
+                        <span class="cost-label">Input cost</span>
+                        <span class="cost-value" id="inputCost">-</span>
+                    </div>
+                    <div class="cost-row">
+                        <span class="cost-label">Output cost</span>
+                        <span class="cost-value" id="outputCost">-</span>
+                    </div>
+                    <div class="cost-row total">
+                        <span class="cost-label">Estimated Total</span>
+                        <span class="cost-value" id="totalCost">-</span>
+                    </div>
+                </div>
+                <p class="cost-note">
+                    This estimate uses Claude Opus 4.5 pricing ($15/1M input, $75/1M output tokens).
+                    Actual cost may vary slightly based on response length.
+                </p>
+            </div>
+            <div class="modal-actions">
+                <button class="btn-cancel" id="cancelAnalysis">Cancel</button>
+                <button class="btn-confirm" id="confirmAnalysis">Proceed with Analysis</button>
+            </div>
+        </div>
     </div>
 
     <!-- Copy Notification -->
@@ -1252,12 +1428,99 @@
             updateAnalyzeButton();
         });
 
-        // Analyze repository
+        // Cost Modal Elements
+        const costModal = document.getElementById('costModal');
+        const modalClose = document.getElementById('modalClose');
+        const cancelAnalysis = document.getElementById('cancelAnalysis');
+        const confirmAnalysis = document.getElementById('confirmAnalysis');
+        const loadingText = document.getElementById('loadingText');
+        const loadingSubtext = document.getElementById('loadingSubtext');
+
+        // Store current repo URL for analysis after confirmation
+        let pendingRepoUrl = '';
+
+        // Format number with commas
+        function formatNumber(num) {
+            return num.toLocaleString();
+        }
+
+        // Format cost as currency
+        function formatCost(cost) {
+            return '$' + cost.toFixed(4);
+        }
+
+        // Show cost modal with estimate data
+        function showCostModal(estimate) {
+            document.getElementById('repoSize').textContent = estimate.repo_size_kb.toFixed(1) + ' KB';
+            document.getElementById('fileCount').textContent = formatNumber(estimate.file_count) + ' files';
+            document.getElementById('inputTokens').textContent = formatNumber(estimate.input_tokens);
+            document.getElementById('outputTokens').textContent = '~' + formatNumber(estimate.estimated_output_tokens);
+            document.getElementById('inputCost').textContent = formatCost(estimate.input_cost);
+            document.getElementById('outputCost').textContent = formatCost(estimate.output_cost);
+            document.getElementById('totalCost').textContent = formatCost(estimate.total_cost);
+            costModal.classList.add('active');
+        }
+
+        // Hide cost modal
+        function hideCostModal() {
+            costModal.classList.remove('active');
+        }
+
+        // Modal event handlers
+        modalClose.addEventListener('click', hideCostModal);
+        cancelAnalysis.addEventListener('click', hideCostModal);
+        costModal.addEventListener('click', (e) => {
+            if (e.target === costModal) hideCostModal();
+        });
+
+        // Analyze repository - Step 1: Get estimate
         analyzeBtn.addEventListener('click', async () => {
             const url = repoUrlInput.value.trim();
             const apiKey = getStoredApiKey();
             if (!validateGitHubUrl(url) || !apiKey) return;
 
+            pendingRepoUrl = url;
+
+            // Show loading for estimate
+            loadingText.textContent = 'Fetching repository...';
+            loadingSubtext.textContent = 'Calculating cost estimate';
+            loadingOverlay.classList.add('active');
+
+            try {
+                const response = await fetch('/api/estimate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ repo_url: url })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to fetch repository');
+                }
+
+                const estimate = await response.json();
+                loadingOverlay.classList.remove('active');
+
+                // Show cost confirmation modal
+                showCostModal(estimate);
+            } catch (error) {
+                loadingOverlay.classList.remove('active');
+                alert('Error: ' + error.message);
+            }
+        });
+
+        // Confirm analysis - Step 2: Actually analyze
+        confirmAnalysis.addEventListener('click', async () => {
+            const apiKey = getStoredApiKey();
+            if (!pendingRepoUrl || !apiKey) return;
+
+            hideCostModal();
+
+            // Show loading for analysis
+            loadingText.textContent = 'Analyzing repository...';
+            loadingSubtext.textContent = 'This may take a minute for larger repositories';
             loadingOverlay.classList.add('active');
 
             try {
@@ -1266,7 +1529,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ repo_url: url, api_key: apiKey })
+                    body: JSON.stringify({ repo_url: pendingRepoUrl, api_key: apiKey })
                 });
 
                 if (!response.ok) {
@@ -1284,6 +1547,7 @@
                 alert('Error: ' + error.message);
             } finally {
                 loadingOverlay.classList.remove('active');
+                pendingRepoUrl = '';
             }
         });
 
