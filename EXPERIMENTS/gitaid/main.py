@@ -26,6 +26,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class RepoRequest(BaseModel):
     """Request model for repository analysis."""
     repo_url: str
+    api_key: str
     github_token: Optional[str] = None
 
     @field_validator('repo_url')
@@ -149,8 +150,8 @@ async def analyze_repository(request: RepoRequest):
     )
 
     try:
-        # Initialize Anthropic client
-        client = anthropic.Anthropic()
+        # Initialize Anthropic client with user-provided API key
+        client = anthropic.Anthropic(api_key=request.api_key)
 
         # Call Claude to analyze and generate diagrams
         message = client.messages.create(

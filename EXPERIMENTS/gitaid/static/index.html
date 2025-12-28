@@ -807,6 +807,105 @@
         .input-view.hidden {
             display: none;
         }
+
+        /* API Key Section */
+        .api-key-section {
+            background-color: var(--surface);
+            border: 1px solid var(--muted);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            margin-bottom: 1rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .api-key-section:hover {
+            border-color: var(--accent);
+        }
+
+        .api-key-section.collapsed .api-key-content {
+            display: none;
+        }
+
+        .api-key-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .api-key-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--fg-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .api-key-status {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            text-transform: none;
+            letter-spacing: normal;
+        }
+
+        .api-key-status.set {
+            background-color: rgba(52, 211, 153, 0.1);
+            color: var(--accent);
+        }
+
+        .api-key-status.not-set {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+
+        .api-key-toggle {
+            font-size: 0.75rem;
+            color: var(--muted);
+            transition: transform 0.2s ease;
+        }
+
+        .api-key-section.collapsed .api-key-toggle {
+            transform: rotate(-90deg);
+        }
+
+        .api-key-content {
+            margin-top: 1rem;
+        }
+
+        .api-key-input-wrapper {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .api-key-input {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            background-color: var(--bg-primary);
+            border: 1px solid var(--muted);
+            border-radius: 4px;
+            color: var(--fg-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+        }
+
+        .api-key-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .api-key-hint {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 0.5rem;
+        }
+
+        .api-key-hint a {
+            color: var(--accent);
+        }
     </style>
 </head>
 <body>
@@ -816,6 +915,33 @@
 
         <!-- Input View -->
         <div class="input-view" id="inputView">
+            <div class="api-key-section" id="apiKeySection">
+                <div class="api-key-header" onclick="toggleApiKeySection()">
+                    <div class="api-key-title">
+                        Anthropic API Key
+                        <span class="api-key-status not-set" id="apiKeyStatus">Not Set</span>
+                    </div>
+                    <span class="api-key-toggle">▼</span>
+                </div>
+                <div class="api-key-content">
+                    <div class="api-key-input-wrapper">
+                        <input
+                            type="password"
+                            id="apiKeyInput"
+                            class="api-key-input"
+                            placeholder="sk-ant-api03-..."
+                            spellcheck="false"
+                        >
+                        <button class="btn-ghost" id="saveApiKeyBtn">Save</button>
+                        <button class="btn-ghost" id="clearApiKeyBtn">Clear</button>
+                    </div>
+                    <p class="api-key-hint">
+                        Your API key is stored locally in your browser and never sent to our server.
+                        Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>
+                    </p>
+                </div>
+            </div>
+
             <div class="input-section">
                 <div class="input-group">
                     <div class="input-wrapper">
@@ -976,6 +1102,53 @@
         let diagrams = [];
         let currentDiagramIndex = -1;
 
+        // API Key Management
+        const API_KEY_STORAGE_KEY = 'gitaid_anthropic_api_key';
+        const apiKeySection = document.getElementById('apiKeySection');
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        const apiKeyStatus = document.getElementById('apiKeyStatus');
+        const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+        const clearApiKeyBtn = document.getElementById('clearApiKeyBtn');
+
+        function getStoredApiKey() {
+            return localStorage.getItem(API_KEY_STORAGE_KEY) || '';
+        }
+
+        function updateApiKeyStatus() {
+            const hasKey = !!getStoredApiKey();
+            apiKeyStatus.textContent = hasKey ? 'Configured' : 'Not Set';
+            apiKeyStatus.className = 'api-key-status ' + (hasKey ? 'set' : 'not-set');
+            // Collapse section if key is set
+            if (hasKey) {
+                apiKeySection.classList.add('collapsed');
+            }
+            updateAnalyzeButton();
+        }
+
+        function toggleApiKeySection() {
+            apiKeySection.classList.toggle('collapsed');
+        }
+
+        saveApiKeyBtn.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem(API_KEY_STORAGE_KEY, key);
+                apiKeyInput.value = '';
+                updateApiKeyStatus();
+                showCopyNotification('API key saved!');
+            }
+        });
+
+        clearApiKeyBtn.addEventListener('click', () => {
+            localStorage.removeItem(API_KEY_STORAGE_KEY);
+            apiKeyInput.value = '';
+            updateApiKeyStatus();
+            apiKeySection.classList.remove('collapsed');
+        });
+
+        // Initialize API key status on load
+        updateApiKeyStatus();
+
         // DOM Elements
         const repoUrlInput = document.getElementById('repoUrl');
         const validationMessage = document.getElementById('validationMessage');
@@ -1050,33 +1223,40 @@
             return pattern.test(url);
         }
 
+        function updateAnalyzeButton() {
+            const url = repoUrlInput.value.trim();
+            const hasApiKey = !!getStoredApiKey();
+            const hasValidUrl = validateGitHubUrl(url);
+            analyzeBtn.disabled = !(hasApiKey && hasValidUrl);
+        }
+
         repoUrlInput.addEventListener('input', () => {
             const url = repoUrlInput.value.trim();
             if (!url) {
                 validationMessage.textContent = '';
                 validationMessage.className = 'validation-message';
                 repoUrlInput.classList.remove('error');
-                analyzeBtn.disabled = true;
+                updateAnalyzeButton();
                 return;
             }
 
             if (validateGitHubUrl(url)) {
-                validationMessage.textContent = 'Valid GitHub URL';
-                validationMessage.className = 'validation-message success';
+                validationMessage.textContent = getStoredApiKey() ? 'Valid GitHub URL' : 'Valid URL - API key required';
+                validationMessage.className = 'validation-message ' + (getStoredApiKey() ? 'success' : 'error');
                 repoUrlInput.classList.remove('error');
-                analyzeBtn.disabled = false;
             } else {
                 validationMessage.textContent = 'Invalid GitHub URL. Expected: https://github.com/owner/repo';
                 validationMessage.className = 'validation-message error';
                 repoUrlInput.classList.add('error');
-                analyzeBtn.disabled = true;
             }
+            updateAnalyzeButton();
         });
 
         // Analyze repository
         analyzeBtn.addEventListener('click', async () => {
             const url = repoUrlInput.value.trim();
-            if (!validateGitHubUrl(url)) return;
+            const apiKey = getStoredApiKey();
+            if (!validateGitHubUrl(url) || !apiKey) return;
 
             loadingOverlay.classList.add('active');
 
@@ -1086,7 +1266,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ repo_url: url })
+                    body: JSON.stringify({ repo_url: url, api_key: apiKey })
                 });
 
                 if (!response.ok) {
@@ -1221,7 +1401,8 @@
             URL.revokeObjectURL(url);
         });
 
-        function showCopyNotification() {
+        function showCopyNotification(message = 'Copied to clipboard!') {
+            copyNotification.textContent = message;
             copyNotification.classList.add('show');
             setTimeout(() => {
                 copyNotification.classList.remove('show');
