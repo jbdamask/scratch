@@ -1146,10 +1146,7 @@
             apiKeySection.classList.remove('collapsed');
         });
 
-        // Initialize API key status on load
-        updateApiKeyStatus();
-
-        // DOM Elements
+        // DOM Elements (must be defined before updateApiKeyStatus is called)
         const repoUrlInput = document.getElementById('repoUrl');
         const validationMessage = document.getElementById('validationMessage');
         const analyzeBtn = document.getElementById('analyzeBtn');
@@ -1229,6 +1226,9 @@
             const hasValidUrl = validateGitHubUrl(url);
             analyzeBtn.disabled = !(hasApiKey && hasValidUrl);
         }
+
+        // Initialize API key status on load (must be after updateAnalyzeButton is defined)
+        updateApiKeyStatus();
 
         repoUrlInput.addEventListener('input', () => {
             const url = repoUrlInput.value.trim();
