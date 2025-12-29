@@ -254,7 +254,7 @@ async def analyze_repository(request: RepoRequest):
         # Call Claude to analyze and generate diagrams
         message = client.messages.create(
             model="claude-opus-4-5",
-            max_tokens=8192,
+            max_tokens=16384,
             messages=[
                 {"role": "user", "content": prompt}
             ]
