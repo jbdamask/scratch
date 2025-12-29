@@ -220,13 +220,19 @@ IMPORTANT: Use proper Mermaid syntax. For flowcharts use 'flowchart TD' or 'flow
 For class diagrams use 'classDiagram'. For sequence diagrams use 'sequenceDiagram'.
 Ensure node IDs don't have spaces - use underscores or camelCase.
 
-CLICKABLE LINKS: Make diagram elements clickable by adding Mermaid click directives that link to the source code.
+CLICKABLE LINKS: Add clickable links to diagram elements that link to the source code on GitHub.
 The repository base URL is: {repo_url}
-Use this format for click directives:
-- For flowcharts: click NodeID "{repo_url}/blob/main/path/to/file.py" _blank
-- For class diagrams: click ClassName href "{repo_url}/blob/main/path/to/file.py" _blank
+
+Click directive support varies by diagram type:
+- FLOWCHARTS: Use `click NodeID "{repo_url}/blob/main/path/to/file.py" _blank` after node definitions
+- CLASS DIAGRAMS: Use `click ClassName href "{repo_url}/blob/main/path/to/file.py" _blank`
+- SEQUENCE DIAGRAMS: Use `link ActorName: View Code @ {repo_url}/blob/main/path/to/file.py` (creates popup menu on actor)
+- ER DIAGRAMS, PIE CHARTS: No click support - do not add click directives
+- STATE DIAGRAMS: Limited support - only add if essential
+
 Add line numbers when possible using #L123 suffix (e.g., "{repo_url}/blob/main/src/models.py#L15")
 Only add click directives for nodes that correspond to actual files, classes, or functions in the codebase.
+Prioritize flowcharts and class diagrams when clickable navigation would be most useful.
 
 REPOSITORY CONTENT:
 <tree>
