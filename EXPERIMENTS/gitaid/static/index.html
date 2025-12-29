@@ -1065,13 +1065,14 @@
                         Your API key is stored locally in your browser and never sent to our server.
                         Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>
                     </p>
-                    <div class="model-selector" style="margin-top: 1rem;">
-                        <label class="input-label" for="modelSelect">Model</label>
-                        <select id="modelSelect" class="url-input" style="width: auto; min-width: 200px;">
-                            <!-- Options populated by JavaScript -->
-                        </select>
-                        <p class="api-key-hint" id="modelPricing" style="margin-top: 0.25rem;"></p>
-                    </div>
+                </div>
+                <!-- Model selector always visible -->
+                <div class="model-selector" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--muted);">
+                    <label class="input-label" for="modelSelect">Model</label>
+                    <select id="modelSelect" class="url-input" style="width: auto; min-width: 200px;">
+                        <!-- Options populated by JavaScript -->
+                    </select>
+                    <p class="api-key-hint" id="modelPricing" style="margin-top: 0.25rem;"></p>
                 </div>
             </div>
 
