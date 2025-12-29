@@ -220,6 +220,14 @@ IMPORTANT: Use proper Mermaid syntax. For flowcharts use 'flowchart TD' or 'flow
 For class diagrams use 'classDiagram'. For sequence diagrams use 'sequenceDiagram'.
 Ensure node IDs don't have spaces - use underscores or camelCase.
 
+CLICKABLE LINKS: Make diagram elements clickable by adding Mermaid click directives that link to the source code.
+The repository base URL is: {repo_url}
+Use this format for click directives:
+- For flowcharts: click NodeID "{repo_url}/blob/main/path/to/file.py" _blank
+- For class diagrams: click ClassName href "{repo_url}/blob/main/path/to/file.py" _blank
+Add line numbers when possible using #L123 suffix (e.g., "{repo_url}/blob/main/src/models.py#L15")
+Only add click directives for nodes that correspond to actual files, classes, or functions in the codebase.
+
 REPOSITORY CONTENT:
 <tree>
 {tree}
@@ -237,7 +245,7 @@ Respond with a JSON object in this exact format:
             "title": "Diagram Title",
             "description": "What this diagram shows and why it's useful",
             "type": "flowchart|classDiagram|sequenceDiagram|erDiagram|stateDiagram|pie|gantt",
-            "mermaid": "flowchart TD\\n    A[Start] --> B[End]"
+            "mermaid": "flowchart TD\\n    A[Start] --> B[End]\\n    click A \\"https://github.com/owner/repo/blob/main/file.py#L10\\" _blank"
         }}
     ]
 }}
@@ -333,7 +341,8 @@ async def estimate_cost(request: EstimateRequest):
     # Build the full prompt to count tokens
     prompt = DIAGRAM_GENERATION_PROMPT.format(
         tree=tree,
-        content=content
+        content=content,
+        repo_url=request.repo_url
     )
 
     # Count input tokens
@@ -403,7 +412,8 @@ async def analyze_repository(request: RepoRequest):
     # Create prompt with repository content
     prompt = DIAGRAM_GENERATION_PROMPT.format(
         tree=tree,
-        content=content
+        content=content,
+        repo_url=request.repo_url
     )
 
     try:
