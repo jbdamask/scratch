@@ -205,12 +205,22 @@ Respond with a JSON object in this exact format:
 Only output the JSON, no other text or markdown code blocks."""
 
 
-def truncate_content(content: str, max_tokens: int = 150000) -> str:
-    """Truncate content to fit within token limits (rough estimate: 4 chars per token)."""
-    max_chars = max_tokens * 4
-    if len(content) > max_chars:
-        return content[:max_chars] + "\n\n[... content truncated for length ...]"
-    return content
+def truncate_content(content: str, max_tokens: int = 140000) -> str:
+    """Truncate content to fit within token limits using accurate token counting."""
+    try:
+        encoding = tiktoken.get_encoding("cl100k_base")
+        tokens = encoding.encode(content)
+        if len(tokens) > max_tokens:
+            # Truncate tokens and decode back to string
+            truncated_tokens = tokens[:max_tokens]
+            return encoding.decode(truncated_tokens) + "\n\n[... content truncated for length ...]"
+        return content
+    except Exception:
+        # Fallback: conservative estimate of 2.5 chars per token for code
+        max_chars = int(max_tokens * 2.5)
+        if len(content) > max_chars:
+            return content[:max_chars] + "\n\n[... content truncated for length ...]"
+        return content
 
 
 def count_tokens(text: str) -> int:
@@ -259,7 +269,7 @@ async def estimate_cost(request: EstimateRequest):
 
     # Truncate content if too large
     content = truncate_content(content)
-    tree = truncate_content(tree, max_tokens=10000)
+    tree = truncate_content(tree, max_tokens=8000)
 
     # Build the full prompt to count tokens
     prompt = DIAGRAM_GENERATION_PROMPT.format(
@@ -317,7 +327,7 @@ async def analyze_repository(request: RepoRequest):
 
     # Truncate content if too large
     content = truncate_content(content)
-    tree = truncate_content(tree, max_tokens=10000)
+    tree = truncate_content(tree, max_tokens=8000)
 
     # Create prompt with repository content
     prompt = DIAGRAM_GENERATION_PROMPT.format(
