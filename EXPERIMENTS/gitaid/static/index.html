@@ -1065,6 +1065,13 @@
                         Your API key is stored locally in your browser and never sent to our server.
                         Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com</a>
                     </p>
+                    <div class="model-selector" style="margin-top: 1rem;">
+                        <label class="input-label" for="modelSelect">Model</label>
+                        <select id="modelSelect" class="url-input" style="width: auto; min-width: 200px;">
+                            <!-- Options populated by JavaScript -->
+                        </select>
+                        <p class="api-key-hint" id="modelPricing" style="margin-top: 0.25rem;"></p>
+                    </div>
                 </div>
             </div>
 
@@ -1232,8 +1239,8 @@
                         <span class="cost-value" id="totalCost">-</span>
                     </div>
                 </div>
-                <p class="cost-note">
-                    This estimate uses Claude Opus 4.5 pricing ($15/1M input, $75/1M output tokens).
+                <div class="cost-warning" id="costWarning" style="display: none; background-color: rgba(245, 158, 11, 0.1); border: 1px solid var(--warning); border-radius: 4px; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.8rem; color: var(--warning);"></div>
+                <p class="cost-note" id="costNote">
                     Actual cost may vary slightly based on response length.
                 </p>
             </div>
@@ -1278,17 +1285,78 @@
         let diagrams = [];
         let currentDiagramIndex = -1;
 
-        // API Key Management
+        // API Key and Model Management
         const API_KEY_STORAGE_KEY = 'gitaid_anthropic_api_key';
+        const MODEL_STORAGE_KEY = 'gitaid_selected_model';
         const apiKeySection = document.getElementById('apiKeySection');
         const apiKeyInput = document.getElementById('apiKeyInput');
         const apiKeyStatus = document.getElementById('apiKeyStatus');
         const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
         const clearApiKeyBtn = document.getElementById('clearApiKeyBtn');
+        const modelSelect = document.getElementById('modelSelect');
+        const modelPricing = document.getElementById('modelPricing');
+
+        // Model configurations (populated from API)
+        let modelConfigs = [];
+        let defaultModel = '';
 
         function getStoredApiKey() {
             return localStorage.getItem(API_KEY_STORAGE_KEY) || '';
         }
+
+        function getSelectedModel() {
+            return localStorage.getItem(MODEL_STORAGE_KEY) || defaultModel;
+        }
+
+        function setSelectedModel(modelId) {
+            localStorage.setItem(MODEL_STORAGE_KEY, modelId);
+            updateModelPricing();
+        }
+
+        function updateModelPricing() {
+            const modelId = modelSelect.value;
+            const model = modelConfigs.find(m => m.id === modelId);
+            if (model) {
+                modelPricing.textContent = `$${model.input_price}/1M input, $${model.output_price}/1M output tokens`;
+            }
+        }
+
+        // Fetch available models from API
+        async function loadModels() {
+            try {
+                const response = await fetch('/api/models');
+                const data = await response.json();
+                modelConfigs = data.models;
+                defaultModel = data.default;
+
+                // Populate dropdown
+                modelSelect.innerHTML = '';
+                modelConfigs.forEach(model => {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.name;
+                    modelSelect.appendChild(option);
+                });
+
+                // Set selected model
+                const stored = getSelectedModel();
+                if (stored && modelConfigs.some(m => m.id === stored)) {
+                    modelSelect.value = stored;
+                } else {
+                    modelSelect.value = defaultModel;
+                }
+                updateModelPricing();
+            } catch (error) {
+                console.error('Failed to load models:', error);
+            }
+        }
+
+        modelSelect.addEventListener('change', () => {
+            setSelectedModel(modelSelect.value);
+        });
+
+        // Load models on startup
+        loadModels();
 
         function updateApiKeyStatus() {
             const hasKey = !!getStoredApiKey();
@@ -1458,6 +1526,23 @@
             document.getElementById('inputCost').textContent = formatCost(estimate.input_cost);
             document.getElementById('outputCost').textContent = formatCost(estimate.output_cost);
             document.getElementById('totalCost').textContent = formatCost(estimate.total_cost);
+
+            // Update cost note with model info
+            const model = modelConfigs.find(m => m.id === modelSelect.value);
+            const costNote = document.getElementById('costNote');
+            if (model) {
+                costNote.textContent = `Using ${estimate.model_name} ($${model.input_price}/1M input, $${model.output_price}/1M output). Actual cost may vary based on response length.`;
+            }
+
+            // Show warning if exceeds limit
+            const costWarning = document.getElementById('costWarning');
+            if (estimate.warning) {
+                costWarning.textContent = estimate.warning;
+                costWarning.style.display = 'block';
+            } else {
+                costWarning.style.display = 'none';
+            }
+
             costModal.classList.add('active');
         }
 
@@ -1492,7 +1577,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ repo_url: url })
+                    body: JSON.stringify({ repo_url: url, model: modelSelect.value })
                 });
 
                 if (!response.ok) {
@@ -1529,7 +1614,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ repo_url: pendingRepoUrl, api_key: apiKey })
+                    body: JSON.stringify({ repo_url: pendingRepoUrl, api_key: apiKey, model: modelSelect.value })
                 });
 
                 if (!response.ok) {
