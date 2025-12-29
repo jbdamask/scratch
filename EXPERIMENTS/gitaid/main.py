@@ -30,6 +30,82 @@ PRICING = {
 }
 ESTIMATED_OUTPUT_TOKENS = 4000  # Estimate for 3-6 diagrams with descriptions
 
+# Default exclusions - files that don't help LLM understand code architecture
+DEFAULT_EXCLUDE_PATTERNS = {
+    # Tests
+    "tests/**",
+    "test/**",
+    "__tests__/**",
+    "**/*_test.py",
+    "**/*_test.go",
+    "**/test_*.py",
+    "**/*.test.js",
+    "**/*.test.ts",
+    "**/*.spec.js",
+    "**/*.spec.ts",
+    # Documentation and text files
+    "docs/**",
+    "doc/**",
+    "**/*.md",
+    "LICENSE*",
+    "CHANGELOG*",
+    "HISTORY*",
+    # Lock files and dependencies
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml",
+    "Cargo.lock",
+    "poetry.lock",
+    "Pipfile.lock",
+    "composer.lock",
+    "Gemfile.lock",
+    "go.sum",
+    # Build artifacts and generated files
+    "dist/**",
+    "build/**",
+    "out/**",
+    "target/**",
+    "node_modules/**",
+    "__pycache__/**",
+    "*.pyc",
+    ".next/**",
+    ".nuxt/**",
+    "vendor/**",
+    # IDE and editor files
+    ".idea/**",
+    ".vscode/**",
+    "*.swp",
+    "*.swo",
+    ".DS_Store",
+    # CI/CD (usually not needed for architecture)
+    ".github/**",
+    ".gitlab-ci.yml",
+    ".circleci/**",
+    ".travis.yml",
+    # Assets and media
+    "**/*.png",
+    "**/*.jpg",
+    "**/*.jpeg",
+    "**/*.gif",
+    "**/*.ico",
+    "**/*.svg",
+    "**/*.woff",
+    "**/*.woff2",
+    "**/*.ttf",
+    "**/*.eot",
+    "**/*.mp3",
+    "**/*.mp4",
+    "**/*.webp",
+    "**/*.pdf",
+    # Minified files
+    "**/*.min.js",
+    "**/*.min.css",
+    # Misc
+    ".git/**",
+    ".env*",
+    "*.log",
+}
+
 
 class EstimateRequest(BaseModel):
     """Request model for cost estimation."""
@@ -172,7 +248,8 @@ async def estimate_cost(request: EstimateRequest):
         summary, tree, content = await asyncio.to_thread(
             ingest,
             request.repo_url,
-            token=request.github_token
+            token=request.github_token,
+            exclude_patterns=DEFAULT_EXCLUDE_PATTERNS
         )
     except Exception as e:
         raise HTTPException(
@@ -229,7 +306,8 @@ async def analyze_repository(request: RepoRequest):
         summary, tree, content = await asyncio.to_thread(
             ingest,
             request.repo_url,
-            token=request.github_token
+            token=request.github_token,
+            exclude_patterns=DEFAULT_EXCLUDE_PATTERNS
         )
     except Exception as e:
         raise HTTPException(
