@@ -113,10 +113,6 @@ REPOSITORY CONTENT:
 {content}
 </content>
 
-<summary>
-{summary}
-</summary>
-
 Respond with a JSON object in this exact format:
 {{
     "repo_summary": "A 2-3 sentence summary of what this repository does",
@@ -191,8 +187,7 @@ async def estimate_cost(request: EstimateRequest):
     # Build the full prompt to count tokens
     prompt = DIAGRAM_GENERATION_PROMPT.format(
         tree=tree,
-        content=content,
-        summary=summary
+        content=content
     )
 
     # Count input tokens
@@ -249,8 +244,7 @@ async def analyze_repository(request: RepoRequest):
     # Create prompt with repository content
     prompt = DIAGRAM_GENERATION_PROMPT.format(
         tree=tree,
-        content=content,
-        summary=summary
+        content=content
     )
 
     try:
