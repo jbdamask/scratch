@@ -227,7 +227,7 @@ BE COMPREHENSIVE WITH LINKS - link ALL possible nodes that can be mapped to code
 
 Click directive support varies by diagram type (include tooltips describing what the code does):
 - FLOWCHARTS: Use `click NodeID "{repo_url}/blob/main/path/to/file.py" "Brief description of what this code does" _blank`
-- CLASS DIAGRAMS: Use `click ClassName href "{repo_url}/blob/main/path/to/file.py" "Brief description of this class" _blank`
+- CLASS DIAGRAMS: Use `click ClassName href "{repo_url}/blob/main/path/to/file.py" "Brief description of this class"`
 - SEQUENCE DIAGRAMS: Use `link ActorName: View Code @ {repo_url}/blob/main/path/to/file.py` (creates popup menu on actor)
 - ER DIAGRAMS, PIE CHARTS: No click support - do not add click directives
 - STATE DIAGRAMS: Limited support - only add if essential
