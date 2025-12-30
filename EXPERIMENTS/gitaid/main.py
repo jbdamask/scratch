@@ -223,6 +223,8 @@ Ensure node IDs don't have spaces - use underscores or camelCase.
 CLICKABLE LINKS: Add clickable links to diagram elements that link to the source code on GitHub.
 The repository base URL is: {repo_url}
 
+BE COMPREHENSIVE WITH LINKS - link ALL possible nodes that can be mapped to code, not just some. Every class, module, function, or component that exists in the codebase should be linked.
+
 Click directive support varies by diagram type:
 - FLOWCHARTS: Use `click NodeID "{repo_url}/blob/main/path/to/file.py" _blank` after node definitions
 - CLASS DIAGRAMS: Use `click ClassName href "{repo_url}/blob/main/path/to/file.py" _blank`
@@ -231,7 +233,11 @@ Click directive support varies by diagram type:
 - STATE DIAGRAMS: Limited support - only add if essential
 
 Add line numbers when possible using #L123 suffix (e.g., "{repo_url}/blob/main/src/models.py#L15")
-Only add click directives for nodes that correspond to actual files, classes, or functions in the codebase.
+
+STYLING LINKED NODES: Give linked nodes a distinct green outline to indicate they are clickable.
+- For FLOWCHARTS: Add `classDef linked stroke:#34d399,stroke-width:2px` and then `class NodeA,NodeB,NodeC linked` listing all linked node IDs
+- For CLASS DIAGRAMS: Add `style ClassName stroke:#34d399,stroke-width:2px` for each linked class
+
 Prioritize flowcharts and class diagrams when clickable navigation would be most useful.
 
 REPOSITORY CONTENT:
@@ -251,7 +257,7 @@ Respond with a JSON object in this exact format:
             "title": "Diagram Title",
             "description": "What this diagram shows and why it's useful",
             "type": "flowchart|classDiagram|sequenceDiagram|erDiagram|stateDiagram|pie|gantt",
-            "mermaid": "flowchart TD\\n    A[Start] --> B[End]\\n    click A \\"https://github.com/owner/repo/blob/main/file.py#L10\\" _blank"
+            "mermaid": "flowchart TD\\n    A[Module] --> B[Handler]\\n    click A \\"https://github.com/owner/repo/blob/main/module.py\\" _blank\\n    click B \\"https://github.com/owner/repo/blob/main/handler.py#L10\\" _blank\\n    classDef linked stroke:#34d399,stroke-width:2px\\n    class A,B linked"
         }}
     ]
 }}
