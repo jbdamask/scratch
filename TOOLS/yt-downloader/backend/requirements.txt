@@ -1,4 +1,4 @@
 Flask==2.3.3
 Flask-CORS==4.0.0
-yt-dlp>=2025.7.21
+yt-dlp>=2025.12.8
 Werkzeug==2.3.7

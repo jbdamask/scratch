@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitAid - GitHub Repository Diagram Generator</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
     <style>
         :root {
             --bg-primary: #0a0e1a;
@@ -1639,6 +1639,7 @@
 
         // Show carousel view
         function showCarousel() {
+            console.log('[GitAid] showCarousel called, diagrams:', diagrams.length);
             inputView.classList.add('hidden');
             detailView.classList.remove('active');
             carouselSection.classList.add('active');
@@ -1647,6 +1648,7 @@
             carouselGrid.innerHTML = '';
 
             diagrams.forEach((diagram, index) => {
+                console.log(`[GitAid] Creating card ${index}: ${diagram.title}`);
                 const card = document.createElement('div');
                 card.className = 'diagram-card';
                 card.innerHTML = `
@@ -1663,16 +1665,31 @@
                 carouselGrid.appendChild(card);
             });
 
-            // Render preview diagrams
-            mermaid.run({
-                querySelector: '.card-preview .mermaid'
-            });
+            // Render preview diagrams with error handling
+            console.log('[GitAid] Starting mermaid.run for previews');
+            try {
+                mermaid.run({
+                    querySelector: '.card-preview .mermaid',
+                    suppressErrors: true
+                }).then(() => {
+                    console.log('[GitAid] Preview rendering complete');
+                }).catch(err => {
+                    console.error('[GitAid] Preview rendering error:', err);
+                });
+            } catch (err) {
+                console.error('[GitAid] mermaid.run sync error:', err);
+            }
         }
 
         // Show detail view
         async function showDetail(index) {
+            console.log(`[GitAid] showDetail called for index ${index}`);
             currentDiagramIndex = index;
             const diagram = diagrams[index];
+
+            // Log the mermaid code for debugging
+            console.log(`[GitAid] Diagram mermaid code length: ${diagram.mermaid.length}`);
+            console.log(`[GitAid] Diagram code preview:`, diagram.mermaid.substring(0, 200));
 
             carouselSection.classList.remove('active');
             detailView.classList.add('active');
@@ -1690,13 +1707,23 @@
         }
 
         async function renderDiagram(code) {
+            console.log('[GitAid] renderDiagram called');
             try {
+                // Clear previous content first
+                diagramWrapper.innerHTML = '<p class="placeholder-text">Rendering...</p>';
+
+                console.log('[GitAid] Parsing mermaid code...');
                 await mermaid.parse(code);
+
+                console.log('[GitAid] Rendering mermaid diagram...');
                 const id = 'mermaid-detail-' + Date.now();
                 const { svg } = await mermaid.render(id, code);
+
+                console.log(`[GitAid] Render complete, SVG length: ${svg.length}`);
                 diagramWrapper.innerHTML = svg;
                 resetView();
             } catch (error) {
+                console.error('[GitAid] Render error:', error);
                 diagramWrapper.innerHTML = `<div class="error-message">
                     <strong>Render Error:</strong><br>
                     ${error.message || 'Failed to render diagram'}

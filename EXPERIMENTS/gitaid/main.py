@@ -220,6 +220,31 @@ IMPORTANT: Use proper Mermaid syntax. For flowcharts use 'flowchart TD' or 'flow
 For class diagrams use 'classDiagram'. For sequence diagrams use 'sequenceDiagram'.
 Ensure node IDs don't have spaces - use underscores or camelCase.
 
+CLICKABLE LINKS: Add clickable links to diagram elements that link to the source code on GitHub.
+The repository base URL is: {repo_url}
+
+BE COMPREHENSIVE WITH LINKS - link ALL possible nodes that can be mapped to code, not just some. Every class, module, function, or component that exists in the codebase should be linked.
+
+Click directive support varies by diagram type (include tooltips describing what the code does):
+- FLOWCHARTS: Use `click NodeID "{repo_url}/blob/main/path/to/file.py" "Brief description of what this code does" _blank`
+- CLASS DIAGRAMS: Use `click ClassName href "{repo_url}/blob/main/path/to/file.py" "Brief description of this class"`
+- SEQUENCE DIAGRAMS: Use `link ActorName: View Code @ {repo_url}/blob/main/path/to/file.py` (creates popup menu on actor)
+- ER DIAGRAMS, PIE CHARTS: No click support - do not add click directives
+- STATE DIAGRAMS: Limited support - only add if essential
+
+TOOLTIPS: Each click directive should include a 1-2 sentence tooltip describing the purpose of the code. For example:
+- "Handles user authentication and session management"
+- "Main entry point for the FastAPI application"
+- "Database model for user records"
+
+Add line numbers when possible using #L123 suffix (e.g., "{repo_url}/blob/main/src/models.py#L15")
+
+STYLING LINKED NODES: Give linked nodes a distinct blue outline to indicate they are clickable.
+- For FLOWCHARTS: Add `classDef linked stroke:#3b82f6,stroke-width:2px` and then `class NodeA,NodeB,NodeC linked` listing all linked node IDs
+- For CLASS DIAGRAMS: Add `style ClassName stroke:#3b82f6,stroke-width:2px` for each linked class
+
+Prioritize flowcharts and class diagrams when clickable navigation would be most useful.
+
 REPOSITORY CONTENT:
 <tree>
 {tree}
@@ -237,7 +262,7 @@ Respond with a JSON object in this exact format:
             "title": "Diagram Title",
             "description": "What this diagram shows and why it's useful",
             "type": "flowchart|classDiagram|sequenceDiagram|erDiagram|stateDiagram|pie|gantt",
-            "mermaid": "flowchart TD\\n    A[Start] --> B[End]"
+            "mermaid": "flowchart TD\\n    A[Module] --> B[Handler]\\n    click A \\"https://github.com/owner/repo/blob/main/module.py\\" \\"Core module that initializes the application\\" _blank\\n    click B \\"https://github.com/owner/repo/blob/main/handler.py#L10\\" \\"Handles incoming requests and routes them\\" _blank\\n    classDef linked stroke:#3b82f6,stroke-width:2px\\n    class A,B linked"
         }}
     ]
 }}
@@ -333,7 +358,8 @@ async def estimate_cost(request: EstimateRequest):
     # Build the full prompt to count tokens
     prompt = DIAGRAM_GENERATION_PROMPT.format(
         tree=tree,
-        content=content
+        content=content,
+        repo_url=request.repo_url
     )
 
     # Count input tokens
@@ -403,7 +429,8 @@ async def analyze_repository(request: RepoRequest):
     # Create prompt with repository content
     prompt = DIAGRAM_GENERATION_PROMPT.format(
         tree=tree,
-        content=content
+        content=content,
+        repo_url=request.repo_url
     )
 
     try:

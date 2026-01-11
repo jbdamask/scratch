@@ -39,19 +39,21 @@ class YTDownloader:
         try:
             cmd = [
                 'yt-dlp',
+                '--remote-components', 'ejs:github',
+                '--cookies-from-browser', 'chrome',
                 '--get-title',
                 '--get-duration',
                 '--get-filename',
                 '-o', '%(title)s',
                 url
             ]
-            
+
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             lines = result.stdout.strip().split('\n')
-            
+
             title = lines[0] if len(lines) > 0 else 'Unknown'
             return title
-            
+
         except subprocess.CalledProcessError as e:
             raise Exception(f"Failed to get video info: {e.stderr if e.stderr else str(e)}")
     
@@ -69,6 +71,8 @@ class YTDownloader:
                 # Download audio only (mp3)
                 cmd = [
                     'yt-dlp',
+                    '--remote-components', 'ejs:github',
+                    '--cookies-from-browser', 'chrome',
                     '-x', '--audio-format', 'mp3',
                     '-o', os.path.join(download_dir, '%(title)s.%(ext)s'),
                     url
@@ -77,6 +81,8 @@ class YTDownloader:
                 # Download video (best quality mp4)
                 cmd = [
                     'yt-dlp',
+                    '--remote-components', 'ejs:github',
+                    '--cookies-from-browser', 'chrome',
                     '-f', 'best[ext=mp4]',
                     '-o', os.path.join(download_dir, '%(title)s.%(ext)s'),
                     url
