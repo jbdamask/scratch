@@ -59,10 +59,7 @@ export default {
         method: 'POST',
         headers: {
           'Authorization': request.headers.get('Authorization'),
-          // Don't forward Content-Type for FormData - let fetch set it with boundary
-          ...(request.headers.get('Content-Type')?.includes('application/json')
-            ? { 'Content-Type': 'application/json' }
-            : {})
+          'Content-Type': request.headers.get('Content-Type')
         },
         body: request.body
       });
