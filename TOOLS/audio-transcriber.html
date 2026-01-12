@@ -306,11 +306,17 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // Use CORS proxy when not on localhost
+        // ==============================================
+        // CONFIGURATION - Update this after deploying your Cloudflare Worker
+        // ==============================================
+        const OPENAI_PROXY_URL = 'https://openai-proxy.jbdamask.workers.dev';
+        // ==============================================
+
+        // Use proxy when not on localhost
         const getOpenAIUrl = () => {
             const isLocal = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
-            const url = 'https://api.openai.com/v1/audio/transcriptions';
-            return isLocal ? url : 'https://corsproxy.io/?' + encodeURIComponent(url);
+            const path = '/v1/audio/transcriptions';
+            return isLocal ? `https://api.openai.com${path}` : `${OPENAI_PROXY_URL}${path}`;
         };
 
         function AudioTranscriber() {
