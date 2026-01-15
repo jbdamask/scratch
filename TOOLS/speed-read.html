@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speed Reader</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Georgia, 'Times New Roman', serif;
+      background-color: #0a0a0a;
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      padding: 20px;
+    }
+
+    .upload-section {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .upload-section label {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #333;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .upload-section label:hover {
+      background-color: #444;
+    }
+
+    .upload-section input[type="file"] {
+      display: none;
+    }
+
+    .file-name {
+      margin-top: 10px;
+      color: #888;
+      font-size: 14px;
+    }
+
+    .reader-display {
+      position: relative;
+      height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-top: 1px solid #333;
+      border-bottom: 1px solid #333;
+      margin: 20px 0;
+    }
+
+    .guide-line {
+      position: absolute;
+      width: 2px;
+      height: 100%;
+      background-color: #333;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .guide-line::before,
+    .guide-line::after {
+      content: '';
+      position: absolute;
+      left: -4px;
+      width: 10px;
+      height: 10px;
+      border-left: 2px solid #555;
+      border-bottom: 2px solid #555;
+    }
+
+    .guide-line::before {
+      top: 60px;
+      transform: rotate(135deg);
+    }
+
+    .guide-line::after {
+      bottom: 60px;
+      transform: rotate(-45deg);
+    }
+
+    .word-display {
+      font-size: 48px;
+      letter-spacing: 2px;
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      /* left position is set dynamically by JS */
+    }
+
+    .word-display .before-orp {
+      color: #fff;
+    }
+
+    .word-display .orp {
+      color: #c41e3a;
+    }
+
+    .word-display .after-orp {
+      color: #fff;
+    }
+
+    .placeholder-text {
+      color: #555;
+      font-style: italic;
+      font-size: 24px;
+    }
+
+    .word-display.centered {
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .controls {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 20px;
+      background-color: #151515;
+      border-radius: 8px;
+    }
+
+    .control-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .play-controls {
+      display: flex;
+      gap: 10px;
+    }
+
+    .play-controls button {
+      padding: 12px 24px;
+      font-size: 16px;
+      background-color: #333;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      min-width: 100px;
+    }
+
+    .play-controls button:hover {
+      background-color: #444;
+    }
+
+    .play-controls button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .play-controls button.active {
+      background-color: #c41e3a;
+    }
+
+    .speed-control {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .speed-control label {
+      font-size: 14px;
+      color: #888;
+    }
+
+    .speed-control input[type="range"] {
+      width: 200px;
+      accent-color: #c41e3a;
+    }
+
+    .speed-control .wpm-display {
+      font-size: 18px;
+      font-style: italic;
+      color: #888;
+      min-width: 100px;
+      text-align: right;
+    }
+
+    .progress-section {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      width: 100%;
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 4px;
+      background-color: #333;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .progress-bar .progress {
+      height: 100%;
+      background-color: #c41e3a;
+      width: 0%;
+      transition: width 0.1s;
+    }
+
+    .progress-text {
+      font-size: 12px;
+      color: #666;
+      min-width: 120px;
+      text-align: right;
+    }
+
+    .instructions {
+      margin-top: 30px;
+      text-align: center;
+      color: #555;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .keyboard-hint {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="upload-section">
+      <label for="file-input">Choose Text File</label>
+      <input type="file" id="file-input" accept=".txt,.md,.text">
+      <div class="file-name" id="file-name">No file selected</div>
+    </div>
+
+    <div class="reader-display">
+      <div class="guide-line"></div>
+      <div class="word-display centered" id="word-display">
+        <span class="placeholder-text">Upload a text file to begin</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="control-row">
+        <div class="play-controls">
+          <button id="play-btn" disabled>Play</button>
+          <button id="pause-btn" disabled>Pause</button>
+          <button id="reset-btn" disabled>Reset</button>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="speed-control">
+          <label for="speed-slider">Speed:</label>
+          <input type="range" id="speed-slider" min="100" max="1000" value="300" step="10">
+          <span class="wpm-display" id="wpm-display">300 wpm</span>
+        </div>
+      </div>
+
+      <div class="control-row">
+        <div class="progress-section">
+          <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+          </div>
+          <span class="progress-text" id="progress-text">0 / 0 words</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="instructions">
+      Upload a .txt file, adjust your reading speed, and press Play to start speed reading.
+      <div class="keyboard-hint">
+        Keyboard: Space = Play/Pause | Arrow Up/Down = Speed | R = Reset
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State
+    let words = [];
+    let currentIndex = 0;
+    let isPlaying = false;
+    let intervalId = null;
+    let wpm = 300;
+
+    // DOM Elements
+    const fileInput = document.getElementById('file-input');
+    const fileName = document.getElementById('file-name');
+    const wordDisplay = document.getElementById('word-display');
+    const playBtn = document.getElementById('play-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const speedSlider = document.getElementById('speed-slider');
+    const wpmDisplay = document.getElementById('wpm-display');
+    const progress = document.getElementById('progress');
+    const progressText = document.getElementById('progress-text');
+
+    // Calculate Optimal Recognition Point (ORP)
+    // The ORP is typically around 25-30% into the word, biased toward the start
+    function getORPIndex(word) {
+      const len = word.length;
+      if (len <= 1) return 0;
+      if (len <= 3) return 1;
+      if (len <= 5) return 1;
+      if (len <= 9) return 2;
+      if (len <= 13) return 3;
+      return Math.floor(len * 0.25);
+    }
+
+    // Show placeholder text (centered)
+    function showPlaceholder(text) {
+      wordDisplay.innerHTML = `<span class="placeholder-text">${text}</span>`;
+      wordDisplay.classList.add('centered');
+    }
+
+    // Render a word with ORP highlighting, centered on the ORP letter
+    function renderWord(word) {
+      if (!word) {
+        showPlaceholder('-');
+        return;
+      }
+
+      wordDisplay.classList.remove('centered');
+
+      const orpIndex = getORPIndex(word);
+      const before = word.substring(0, orpIndex);
+      const orp = word[orpIndex];
+      const after = word.substring(orpIndex + 1);
+
+      wordDisplay.innerHTML = `<span class="before-orp">${before}</span><span class="orp">${orp}</span><span class="after-orp">${after}</span>`;
+
+      // After rendering, calculate the offset to center the ORP letter on the guide line
+      requestAnimationFrame(() => {
+        const container = wordDisplay.parentElement;
+        const containerCenter = container.offsetWidth / 2;
+
+        const orpElement = wordDisplay.querySelector('.orp');
+        const orpRect = orpElement.getBoundingClientRect();
+        const wordRect = wordDisplay.getBoundingClientRect();
+
+        // Calculate where the center of the ORP letter is relative to the word's left edge
+        const orpCenterInWord = (orpRect.left - wordRect.left) + (orpRect.width / 2);
+
+        // Position the word so the ORP center aligns with the container center
+        const leftPosition = containerCenter - orpCenterInWord;
+        wordDisplay.style.left = `${leftPosition}px`;
+      });
+    }
+
+    // Update progress display
+    function updateProgress() {
+      const pct = words.length > 0 ? (currentIndex / words.length) * 100 : 0;
+      progress.style.width = `${pct}%`;
+      progressText.textContent = `${currentIndex} / ${words.length} words`;
+    }
+
+    // Show next word
+    function showNextWord() {
+      if (currentIndex >= words.length) {
+        pause();
+        return;
+      }
+
+      renderWord(words[currentIndex]);
+      currentIndex++;
+      updateProgress();
+    }
+
+    // Calculate interval from WPM
+    function getIntervalMs() {
+      return 60000 / wpm;
+    }
+
+    // Play
+    function play() {
+      if (words.length === 0 || currentIndex >= words.length) return;
+
+      isPlaying = true;
+      playBtn.classList.add('active');
+      pauseBtn.classList.remove('active');
+
+      // Show first word immediately, then continue
+      showNextWord();
+      intervalId = setInterval(showNextWord, getIntervalMs());
+    }
+
+    // Pause
+    function pause() {
+      isPlaying = false;
+      playBtn.classList.remove('active');
+      pauseBtn.classList.add('active');
+
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    }
+
+    // Reset
+    function reset() {
+      pause();
+      currentIndex = 0;
+      updateProgress();
+      if (words.length > 0) {
+        showPlaceholder('Ready - Press Play');
+      }
+    }
+
+    // Update speed
+    function updateSpeed(newWpm) {
+      wpm = newWpm;
+      wpmDisplay.textContent = `${wpm} wpm`;
+
+      // If playing, restart interval with new speed
+      if (isPlaying) {
+        clearInterval(intervalId);
+        intervalId = setInterval(showNextWord, getIntervalMs());
+      }
+    }
+
+    // Parse text into words
+    function parseText(text) {
+      return text
+        .split(/\s+/)
+        .map(w => w.trim())
+        .filter(w => w.length > 0);
+    }
+
+    // Enable controls
+    function enableControls() {
+      playBtn.disabled = false;
+      pauseBtn.disabled = false;
+      resetBtn.disabled = false;
+    }
+
+    // File input handler
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      fileName.textContent = file.name;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result;
+        words = parseText(text);
+        currentIndex = 0;
+
+        if (words.length > 0) {
+          enableControls();
+          updateProgress();
+          showPlaceholder('Ready - Press Play');
+        } else {
+          showPlaceholder('No words found in file');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    // Button handlers
+    playBtn.addEventListener('click', play);
+    pauseBtn.addEventListener('click', pause);
+    resetBtn.addEventListener('click', reset);
+
+    // Speed slider handler
+    speedSlider.addEventListener('input', (e) => {
+      updateSpeed(parseInt(e.target.value, 10));
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+
+      switch (e.code) {
+        case 'Space':
+          e.preventDefault();
+          if (isPlaying) {
+            pause();
+          } else {
+            play();
+          }
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          const newWpmUp = Math.min(1000, wpm + 25);
+          speedSlider.value = newWpmUp;
+          updateSpeed(newWpmUp);
+          break;
+        case 'ArrowDown':
+          e.preventDefault();
+          const newWpmDown = Math.max(100, wpm - 25);
+          speedSlider.value = newWpmDown;
+          updateSpeed(newWpmDown);
+          break;
+        case 'KeyR':
+          reset();
+          break;
+      }
+    });
+  </script>
+</body>
+</html>
