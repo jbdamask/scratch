@@ -5,6 +5,13 @@ Do not assume today's date, always look it up or ask the user
 - Reusable skills are found under ~/.claude/skills.
 - Project skills are found under <project>/.claude/skills
 
+## Previous chat sessions
+- All Claude Code chats are stored in subdirectories of ~/.claude/projects.
+- Project subdirectories have the same name as the project path itself but with slashes replaced by hyphens. For example, /Users/barry/project1 would be -Users-barry-project1.
+- Chat history is stored in JSONL files within the project's subdirectories.
+- Chats are time-stamped, so you can use time as a map to find things.
+- Chat session JSON-L files are sorted chronologically, so you can tail the last part of the JSON-L file to get back up to speed.
+
 ## Instructions
 ### Python
 - Always use a virtual environment when running or developing with python
