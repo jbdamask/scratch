@@ -317,6 +317,43 @@
             color: var(--text-secondary);
         }
 
+        /* Advanced Search Checkbox */
+        .advanced-search-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .advanced-search-toggle input[type="checkbox"] {
+            display: block;
+            width: 16px;
+            height: 16px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .advanced-search-toggle:hover {
+            color: var(--text-primary);
+        }
+
+        .search-hint {
+            display: none;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-family: 'IBM Plex Mono', monospace;
+            padding: 4px 8px;
+            background: var(--bg-elevated);
+            border-radius: 4px;
+        }
+
+        .search-hint.visible {
+            display: inline-block;
+        }
+
         /* Main Layout */
         .main-content {
             display: flex;
@@ -754,8 +791,13 @@
             <!-- Search Bar (expandable) -->
             <div class="search-bar" id="search-bar">
                 <input type="text" class="search-input" id="search-input" placeholder="Search records...">
+                <label class="advanced-search-toggle">
+                    <input type="checkbox" id="advanced-search-checkbox">
+                    Advanced
+                </label>
                 <button class="btn btn-primary" id="search-btn">Search</button>
                 <div class="search-status" id="search-status"></div>
+                <span class="search-hint" id="search-hint"></span>
                 <div class="mode-toggle">
                     <button class="mode-btn active" id="browse-mode-btn">All</button>
                     <button class="mode-btn" id="search-mode-btn">Results</button>
@@ -825,6 +867,8 @@
         const resultsPanel = document.getElementById('results-panel');
         const collapseResultsBtn = document.getElementById('collapse-results-btn');
         const expandResultsBtn = document.getElementById('expand-results-btn');
+        const advancedSearchCheckbox = document.getElementById('advanced-search-checkbox');
+        const searchHint = document.getElementById('search-hint');
 
         fileInput.addEventListener('change', handleFileUpload);
         prevBtn.addEventListener('click', () => navigate(-1));
@@ -835,6 +879,19 @@
         });
         browseModeBtn.addEventListener('click', () => setMode(false));
         searchModeBtn.addEventListener('click', () => setMode(true));
+
+        // Advanced search toggle
+        advancedSearchCheckbox.addEventListener('change', () => {
+            if (advancedSearchCheckbox.checked) {
+                searchInput.placeholder = 'key:value (e.g., type:user, message.role:assistant)';
+                searchHint.textContent = 'Use key:value pairs, supports nested keys with dots';
+                searchHint.classList.add('visible');
+            } else {
+                searchInput.placeholder = 'Search records...';
+                searchHint.textContent = '';
+                searchHint.classList.remove('visible');
+            }
+        });
 
         // Search toggle
         searchToggleBtn.addEventListener('click', () => {
@@ -1059,9 +1116,20 @@
                 displayText = String(value);
             }
 
-            if (highlightTerm && displayText.toLowerCase().includes(highlightTerm.toLowerCase())) {
+            // Determine what to highlight
+            const highlightTerms = getHighlightTermsForField(fieldName, highlightTerm);
+            const hasMatch = highlightTerms.some(term =>
+                displayText.toLowerCase().includes(term.toLowerCase())
+            );
+
+            if (hasMatch) {
                 row.classList.add('has-match');
-                valueEl.innerHTML = highlightText(displayText, highlightTerm);
+                let html = escapeHtml(displayText);
+                for (const term of highlightTerms) {
+                    const regex = new RegExp(`(${escapeRegex(term)})`, 'gi');
+                    html = html.replace(regex, '<span class="highlight">$1</span>');
+                }
+                valueEl.innerHTML = html;
             } else {
                 valueEl.textContent = displayText;
             }
@@ -1069,6 +1137,33 @@
             row.appendChild(nameEl);
             row.appendChild(valueEl);
             return row;
+        }
+
+        function getHighlightTermsForField(fieldName, searchQuery) {
+            if (!searchQuery) return [];
+
+            const isAdvanced = advancedSearchCheckbox.checked;
+            if (!isAdvanced) {
+                return [searchQuery];
+            }
+
+            const pairs = parseAdvancedQuery(searchQuery);
+            if (pairs.length === 0) {
+                return [searchQuery];
+            }
+
+            // For advanced search, only highlight if this field matches any searched key
+            const terms = [];
+            for (const { key, value } of pairs) {
+                // Check if this field matches the key (exact or ends with the key path)
+                if (fieldName === key ||
+                    fieldName.endsWith('.' + key) ||
+                    fieldName.startsWith(key + '.') ||
+                    key.startsWith(fieldName + '.')) {
+                    terms.push(value);
+                }
+            }
+            return terms;
         }
 
         function highlightText(text, term) {
@@ -1119,15 +1214,20 @@
 
             searchTerm = term;
             matchingIndices = [];
+            const isAdvanced = advancedSearchCheckbox.checked;
 
             for (let i = 0; i < records.length; i++) {
-                if (recordMatchesSearch(records[i], term)) {
+                const matches = isAdvanced
+                    ? recordMatchesAdvancedSearch(records[i], term)
+                    : recordMatchesSearch(records[i], term);
+                if (matches) {
                     matchingIndices.push(i);
                 }
             }
 
             if (matchingIndices.length === 0) {
-                searchStatus.textContent = `No records found containing "${term}"`;
+                const searchType = isAdvanced ? 'matching' : 'containing';
+                searchStatus.textContent = `No records found ${searchType} "${term}"`;
                 searchStatus.className = 'search-status no-results';
                 resultsList.innerHTML = '<div class="empty-state">No matching records</div>';
             } else {
@@ -1139,6 +1239,100 @@
 
             setMode(true);
             displayRecord();
+        }
+
+        function parseAdvancedQuery(query) {
+            // Parse key:value pairs from the query
+            // Supports multiple pairs separated by spaces: "type:user role:assistant"
+            // Also supports quoted values: 'name:"John Doe"'
+            const pairs = [];
+            const regex = /(\S+?):(?:"([^"]+)"|'([^']+)'|(\S+))/g;
+            let match;
+
+            while ((match = regex.exec(query)) !== null) {
+                const key = match[1];
+                const value = match[2] || match[3] || match[4]; // quoted or unquoted value
+                pairs.push({ key, value });
+            }
+
+            return pairs;
+        }
+
+        function recordMatchesAdvancedSearch(record, query) {
+            const pairs = parseAdvancedQuery(query);
+
+            // If no valid key:value pairs found, fall back to regular search
+            if (pairs.length === 0) {
+                return recordMatchesSearch(record, query);
+            }
+
+            // All pairs must match (AND logic)
+            return pairs.every(({ key, value }) => {
+                return matchKeyValue(record, key, value.toLowerCase());
+            });
+        }
+
+        function matchKeyValue(record, key, searchValue) {
+            // Get the value at the specified key path
+            const actualValue = getValueByKey(record, key);
+
+            if (actualValue === undefined) {
+                return false;
+            }
+
+            // Check if the value contains the search value
+            return valueContains(actualValue, searchValue);
+        }
+
+        function getValueByKey(obj, keyPath) {
+            // Support both exact key match and dot notation for nested paths
+            // First try exact key match (including keys with dots in them)
+            if (obj !== null && typeof obj === 'object' && keyPath in obj) {
+                return obj[keyPath];
+            }
+
+            // Then try dot notation for nested paths
+            const keys = keyPath.split('.');
+            let value = obj;
+
+            for (const key of keys) {
+                if (value === null || value === undefined) return undefined;
+                if (typeof value !== 'object') return undefined;
+
+                // Handle array indices like "items.0.name"
+                if (Array.isArray(value)) {
+                    const index = parseInt(key, 10);
+                    if (!isNaN(index)) {
+                        value = value[index];
+                        continue;
+                    }
+                    // Search all array elements for the key
+                    const results = value.map(item => getValueByKey(item, keys.slice(keys.indexOf(key)).join('.'))).filter(v => v !== undefined);
+                    return results.length > 0 ? results : undefined;
+                }
+
+                value = value[key];
+            }
+
+            return value;
+        }
+
+        function valueContains(value, searchTerm) {
+            if (value === null || value === undefined) return false;
+
+            if (typeof value === 'string') {
+                return value.toLowerCase().includes(searchTerm);
+            }
+            if (typeof value === 'number' || typeof value === 'boolean') {
+                return String(value).toLowerCase().includes(searchTerm);
+            }
+            if (Array.isArray(value)) {
+                return value.some(item => valueContains(item, searchTerm));
+            }
+            if (typeof value === 'object') {
+                return Object.values(value).some(v => valueContains(v, searchTerm));
+            }
+            return false;
         }
 
         function renderResultsList() {
@@ -1171,6 +1365,27 @@
         }
 
         function getMatchPreview(record, term) {
+            const isAdvanced = advancedSearchCheckbox.checked;
+
+            if (isAdvanced) {
+                const pairs = parseAdvancedQuery(term);
+                if (pairs.length > 0) {
+                    // Show the first matching key:value pair
+                    for (const { key, value } of pairs) {
+                        const actualValue = getValueByKey(record, key);
+                        if (actualValue !== undefined && valueContains(actualValue, value.toLowerCase())) {
+                            const displayValue = typeof actualValue === 'object'
+                                ? JSON.stringify(actualValue)
+                                : String(actualValue);
+                            const truncated = displayValue.length > 60
+                                ? displayValue.substring(0, 60) + '…'
+                                : displayValue;
+                            return `<span style="color:var(--purple)">${escapeHtml(key)}</span>: ${highlightText(truncated, value)}`;
+                        }
+                    }
+                }
+            }
+
             const matchingText = findMatchingText(record, term.toLowerCase());
             if (!matchingText) return escapeHtml(JSON.stringify(record).substring(0, 100));
 
