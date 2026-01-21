@@ -1,0 +1,277 @@
+{
+  "project": "Qwen3-VL-Interactive-Showcase",
+  "branchName": "ralph/qwen3-vl-showcase",
+  "description": "Interactive web application demonstrating Qwen3-VL-8B-Instruct capabilities for vision-language instruction following",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Project scaffolding with React + TypeScript",
+      "description": "As a developer, I need a React + TypeScript project foundation to build upon.",
+      "acceptanceCriteria": [
+        "Create Vite React + TypeScript project",
+        "Install and configure Tailwind CSS",
+        "Set up basic folder structure (src/components, src/pages, src/utils)",
+        "Add ESLint and Prettier configuration",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "Completed with Vite, Tailwind CSS v4, ESLint, and Prettier"
+    },
+    {
+      "id": "US-002",
+      "title": "App layout shell with header and main content area",
+      "description": "As a user, I want a clean app layout with navigation and content areas.",
+      "acceptanceCriteria": [
+        "Header component with app title 'Qwen3-VL Showcase'",
+        "Main content area with max-width container",
+        "Responsive layout that works on mobile and desktop",
+        "Sidebar placeholder for future session history",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Created Header, Sidebar, and MainLayout components with responsive design using Tailwind CSS"
+    },
+    {
+      "id": "US-003",
+      "title": "Welcome and overview section",
+      "description": "As a user, I want to understand what Qwen3-VL can do when I first visit the app.",
+      "acceptanceCriteria": [
+        "Welcome section with model name and brief description",
+        "List of supported capabilities (visual reasoning, Q&A, instruction following)",
+        "Common use cases section with 3-4 examples",
+        "Visually styled with cards or sections",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Created WelcomeSection, CapabilitiesSection, and UseCasesSection components with styled cards"
+    },
+    {
+      "id": "US-004",
+      "title": "Text prompt input component",
+      "description": "As a user, I want to enter text prompts to send to the model.",
+      "acceptanceCriteria": [
+        "Textarea input for text prompts with placeholder text",
+        "Submit button to send the prompt",
+        "Character count display",
+        "Input state management with React state",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Created TextPromptInput component with textarea, submit button, character count, Ctrl+Enter shortcut, and validation"
+    },
+    {
+      "id": "US-005",
+      "title": "Image upload via file picker",
+      "description": "As a user, I want to upload an image file to send with my prompt.",
+      "acceptanceCriteria": [
+        "File input that accepts image formats (jpg, png, gif, webp)",
+        "Drag and drop zone for images",
+        "Preview thumbnail of uploaded image",
+        "Clear/remove uploaded image button",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "Created ImageUpload component with file picker, drag-and-drop, preview thumbnail, and clear button"
+    },
+    {
+      "id": "US-006",
+      "title": "Image input via URL",
+      "description": "As a user, I want to provide an image URL instead of uploading a file.",
+      "acceptanceCriteria": [
+        "Text input field for image URL",
+        "Toggle between file upload and URL input modes",
+        "URL validation (basic format check)",
+        "Preview of URL image when valid URL entered",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Created unified ImageInput component with tab-style toggle between file upload and URL input modes, URL validation with regex, and image preview with load success/error feedback"
+    },
+    {
+      "id": "US-007",
+      "title": "Combined input preview panel",
+      "description": "As a user, I want to see a preview of my complete input before submitting.",
+      "acceptanceCriteria": [
+        "Preview panel showing text prompt and image together",
+        "Validation messages for missing or invalid inputs",
+        "Visual indication when input is ready to submit",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Created InputPreviewPanel component with 2-column preview of image and text prompt, validation messages, and ready-to-submit badge. Updated TextPromptInput to support controlled mode for state lifting."
+    },
+    {
+      "id": "US-008",
+      "title": "API proxy serverless function",
+      "description": "As a developer, I need a backend proxy to securely call the Qwen3-VL API.",
+      "acceptanceCriteria": [
+        "Create serverless function in api/ folder (Vercel or similar)",
+        "Accept POST requests with text and image data",
+        "Forward requests to Qwen3-VL API endpoint",
+        "Return model response to frontend",
+        "Handle API errors gracefully",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "Created Vercel serverless function at api/generate.ts with POST endpoint accepting text/image data, Qwen API integration, comprehensive error handling, and frontend utility in src/utils/api.ts"
+    },
+    {
+      "id": "US-009",
+      "title": "Response display component",
+      "description": "As a user, I want to see the model's response clearly formatted.",
+      "acceptanceCriteria": [
+        "Response container with distinct visual styling",
+        "Support for markdown rendering in responses",
+        "Copy response to clipboard button",
+        "Clear visual linkage between prompt and response",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Created ResponseDisplay component with react-markdown for rendering, copy-to-clipboard button with visual feedback, prompt/image context header showing linkage between input and response"
+    },
+    {
+      "id": "US-010",
+      "title": "Loading states and error handling UI",
+      "description": "As a user, I want clear feedback when the model is processing or if something goes wrong.",
+      "acceptanceCriteria": [
+        "Loading spinner/skeleton while awaiting response",
+        "Estimated or elapsed time indicator during inference",
+        "Error message component for API failures",
+        "Validation error display for invalid inputs",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "Created LoadingSpinner component with elapsed time, ErrorMessage component for API errors with retry/dismiss, ValidationError component for input validation, integrated with actual API calls in App.tsx"
+    },
+    {
+      "id": "US-011",
+      "title": "Session history sidebar",
+      "description": "As a user, I want to see my conversation history in a sidebar.",
+      "acceptanceCriteria": [
+        "Sidebar component showing list of past exchanges",
+        "Each history item shows truncated prompt preview",
+        "Click history item to view full exchange",
+        "Session state persisted in React context (not localStorage)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Created SessionContext with SessionProvider for state management, HistoryItem component for displaying exchanges with truncated prompt preview and timestamps, updated Sidebar to show history list. Clicking an item displays the full exchange in the main content area."
+    },
+    {
+      "id": "US-012",
+      "title": "Context-aware follow-up prompts",
+      "description": "As a user, I want to ask follow-up questions that reference previous context.",
+      "acceptanceCriteria": [
+        "Follow-up input field after receiving response",
+        "Conversation context passed to API for continuity",
+        "Visual thread showing multi-turn conversation",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Created FollowUpInput component for asking follow-up questions, ConversationThread component for chat-style visual thread, updated API to pass conversationHistory for context continuity, added ConversationTurn type and addFollowUpToExchange to session context"
+    },
+    {
+      "id": "US-013",
+      "title": "Editable prompt history",
+      "description": "As a user, I want to edit and resubmit previous prompts.",
+      "acceptanceCriteria": [
+        "Edit button on history items",
+        "Clicking edit populates input with previous prompt",
+        "Resubmitting creates new exchange (does not modify history)",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "Added pencil icon edit button on HistoryItem, clicking populates prompt input (and URL image if applicable), resubmitting creates a new exchange via existing addExchange flow"
+    },
+    {
+      "id": "US-014",
+      "title": "Code examples panel with Python and JavaScript",
+      "description": "As a developer, I want copy-ready code examples for integrating Qwen3-VL.",
+      "acceptanceCriteria": [
+        "Collapsible code examples panel",
+        "Python example using requests or transformers library",
+        "JavaScript/TypeScript example using fetch",
+        "Syntax highlighting for code blocks",
+        "Copy code button for each example",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Created CodeExamplesPanel component with collapsible panel, Python example using requests library, TypeScript example using fetch API, copy button for each example, and a note about API key security"
+    },
+    {
+      "id": "US-015",
+      "title": "Export conversation transcript",
+      "description": "As a user, I want to export my conversation history for later reference.",
+      "acceptanceCriteria": [
+        "Export button in session history panel",
+        "Export as JSON option with structured data",
+        "Export as plain text option",
+        "File downloads with timestamp in filename",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "Created ExportButton component with dropdown menu for JSON and plain text export options. Export button placed in Sidebar header. Filenames include timestamp (qwen3-vl-conversation-YYYYMMDD-HHMMSS.ext)"
+    },
+    {
+      "id": "US-016",
+      "title": "Preset example prompts",
+      "description": "As a user, I want quick-start examples to try without typing my own prompt.",
+      "acceptanceCriteria": [
+        "Preset prompts section with 4-6 example tasks",
+        "Examples cover: object description, OCR, spatial reasoning, visual Q&A",
+        "Clicking preset populates input fields",
+        "Include sample images for presets",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "Created PresetPrompts component with 6 example tasks covering object description, OCR, spatial reasoning, visual Q&A, chart analysis, and scene understanding. Each preset has a sample image from Unsplash and clicking populates both prompt and image inputs."
+    },
+    {
+      "id": "US-017",
+      "title": "Keyboard navigation and accessibility",
+      "description": "As a user, I want to navigate the app using keyboard only.",
+      "acceptanceCriteria": [
+        "All interactive elements are keyboard focusable",
+        "Tab order follows logical flow",
+        "Enter/Space activates buttons and controls",
+        "Alt text on images and icons",
+        "ARIA labels on interactive components",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Added skip link, Escape key sidebar close, focus-visible global styles, arrow key navigation for dropdown menus, ARIA labels for interactive elements, and prefers-reduced-motion support"
+    }
+  ]
+}

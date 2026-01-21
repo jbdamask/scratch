@@ -1,0 +1,154 @@
+{
+  "project": "Qwen3-VL Backend",
+  "branchName": "ralph/qwen3-vl-ollama-backend",
+  "description": "Local backend server using Ollama to serve vision-language model, replacing the cloud API with local inference",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create backend directory with Python dependencies",
+      "description": "As a developer, I need the backend project structure so I can build the local Ollama server.",
+      "acceptanceCriteria": [
+        "Create backend/ directory in project root",
+        "Create backend/requirements.txt with: fastapi, uvicorn[standard], httpx",
+        "Create empty backend/main.py file",
+        "Create empty backend/ollama_client.py file",
+        "Create empty backend/image_processor.py file",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Implement image processor for base64 decoding",
+      "description": "As a backend service, I need to decode base64 image data URLs so I can pass image bytes to Ollama.",
+      "acceptanceCriteria": [
+        "In backend/image_processor.py: function decode_base64_image(data_url: str) -> bytes",
+        "Extracts image bytes from data URL format: data:image/png;base64,XXX",
+        "Supports image/jpeg, image/png, image/gif, image/webp mime types",
+        "Raises ValueError for invalid data URL format",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Implement image processor for URL fetching",
+      "description": "As a backend service, I need to fetch images from URLs so I can pass them to Ollama.",
+      "acceptanceCriteria": [
+        "In backend/image_processor.py: async function fetch_image_from_url(url: str) -> bytes",
+        "Uses httpx.AsyncClient with 10 second timeout",
+        "Raises Exception with descriptive message for fetch failures (404, timeout, etc.)",
+        "Returns raw image bytes on success",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create Ollama client for vision chat completions",
+      "description": "As a backend service, I need to communicate with Ollama API to get model responses with image understanding.",
+      "acceptanceCriteria": [
+        "In backend/ollama_client.py: async function generate_completion(messages: list, images: list[bytes] | None) -> dict",
+        "Calls Ollama API at http://localhost:11434/api/chat",
+        "Uses model name 'llava' (or 'llava:13b' for better quality)",
+        "Formats messages with images as base64 in Ollama's expected format",
+        "Returns dict with 'content' (response text), 'prompt_eval_count', 'eval_count'",
+        "Raises httpx.ConnectError if Ollama is not running",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Using llava as it's a widely available vision model in Ollama"
+    },
+    {
+      "id": "US-005",
+      "title": "Implement /api/generate endpoint with Pydantic models",
+      "description": "As a frontend application, I need the POST /api/generate endpoint to accept requests and return responses.",
+      "acceptanceCriteria": [
+        "In backend/main.py: FastAPI app with POST /api/generate endpoint",
+        "Request model: prompt (str required), image (optional: type str, data str), conversationHistory (optional list)",
+        "Response model: id (str), content (str), usage (prompt_tokens int, completion_tokens int, total_tokens int)",
+        "Endpoint calls image_processor functions based on image.type",
+        "Endpoint calls ollama_client.generate_completion with processed data",
+        "Generates UUID for response id",
+        "Maps Ollama's prompt_eval_count/eval_count to usage fields",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Add conversation history support to endpoint",
+      "description": "As a user having a multi-turn conversation, I need previous messages included for context.",
+      "acceptanceCriteria": [
+        "Endpoint formats conversationHistory into Ollama message format",
+        "Each history item becomes a message with role and content",
+        "History images (imageUrl field) are fetched and included",
+        "Current prompt with image is appended as final user message",
+        "Empty conversationHistory works (first message in conversation)",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Add error handling with structured response format",
+      "description": "As a frontend application, I need structured error responses to display meaningful messages.",
+      "acceptanceCriteria": [
+        "Custom exception handler returns JSON: {error: {message: str, code: str}}",
+        "Missing/invalid prompt returns 400 with code 'BAD_REQUEST'",
+        "Ollama connection failure (httpx.ConnectError) returns 503 with code 'SERVICE_UNAVAILABLE' and message mentioning Ollama",
+        "Image fetch failure returns 400 with code 'IMAGE_FETCH_FAILED'",
+        "Other errors return 500 with code 'INTERNAL_ERROR'",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Add Vite proxy configuration for /api routes",
+      "description": "As a developer, I need the frontend dev server to proxy /api requests to the backend.",
+      "acceptanceCriteria": [
+        "Modify vite.config.ts to add server.proxy configuration",
+        "Proxy /api/* requests to http://localhost:8000",
+        "changeOrigin set to true",
+        "Frontend fetch('/api/generate') reaches backend without CORS issues",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Create backend README with setup instructions",
+      "description": "As a developer, I need documentation to set up and run the local backend.",
+      "acceptanceCriteria": [
+        "Create backend/README.md",
+        "Document Ollama installation: brew install ollama",
+        "Document pulling vision model: ollama pull llava",
+        "Document starting Ollama: ollama serve (runs on port 11434)",
+        "Document Python setup: cd backend && python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt",
+        "Document running backend: uvicorn main:app --reload --port 8000",
+        "Document running frontend: npm run dev (in project root)",
+        "Note that both backend and frontend must be running for the app to work",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": ""
+    }
+  ]
+}

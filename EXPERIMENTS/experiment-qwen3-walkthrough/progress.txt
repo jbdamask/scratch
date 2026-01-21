@@ -1,0 +1,119 @@
+# Ralph Progress Log - Qwen3-VL Ollama Backend
+
+Branch: ralph/qwen3-vl-ollama-backend
+Started: 2026-01-20
+
+## Codebase Patterns
+- Run `npm install` before running typecheck/lint (node_modules not committed)
+- Python backend files go in backend/ subdirectory
+- Typecheck is `npm run typecheck`, Lint is `npm run lint`
+
+## Context
+This backend creates a local Ollama-based server to replace the existing Vercel/cloud API setup.
+Backend files go in backend/ subdirectory alongside the existing React frontend.
+
+---
+
+## 2026-01-21 - US-001
+- What was implemented: Backend directory structure with Python dependencies
+- Files changed:
+  - backend/requirements.txt (created with fastapi, uvicorn[standard], httpx)
+  - backend/main.py (created empty)
+  - backend/ollama_client.py (created empty)
+  - backend/image_processor.py (created empty)
+- **Learnings for future iterations:**
+  - Run `npm install` first before trying to typecheck
+  - Empty Python files don't affect TypeScript typecheck (expected)
+---
+
+## 2026-01-21 - US-002
+- What was implemented: Base64 image decoding function in image_processor.py
+- Files changed:
+  - backend/image_processor.py (implemented decode_base64_image function)
+- **Learnings for future iterations:**
+  - Python files in backend/ don't need any special TypeScript config - they're ignored by tsc
+  - Use regex pattern matching for data URL parsing to validate format and extract data in one step
+  - Supported mime types: image/jpeg, image/png, image/gif, image/webp
+---
+
+## 2026-01-21 - US-003
+- What was implemented: Async function to fetch images from URLs using httpx
+- Files changed:
+  - backend/image_processor.py (added fetch_image_from_url async function)
+- **Learnings for future iterations:**
+  - httpx.AsyncClient timeout parameter takes a float in seconds (e.g., 10.0 for 10 seconds)
+  - Handle specific httpx exceptions: TimeoutException, HTTPStatusError, RequestError for descriptive error messages
+  - Use context manager (async with) for httpx.AsyncClient to properly manage connections
+---
+
+## 2026-01-21 - US-004
+- What was implemented: Ollama client for vision chat completions
+- Files changed:
+  - backend/ollama_client.py (implemented generate_completion async function)
+- **Learnings for future iterations:**
+  - Ollama API endpoint for chat is `/api/chat` at `http://localhost:11434`
+  - Images are passed as base64-encoded strings in an `images` array on the user message
+  - Use longer timeout (120s) for model inference since vision models can be slow
+  - Response contains `message.content`, `prompt_eval_count`, and `eval_count` fields
+  - httpx.ConnectError is raised automatically when Ollama server is not reachable
+---
+
+## 2026-01-21 - US-005
+- What was implemented: FastAPI POST /api/generate endpoint with Pydantic models
+- Files changed:
+  - backend/main.py (implemented endpoint with request/response models)
+- **Learnings for future iterations:**
+  - Use Pydantic BaseModel for request/response validation in FastAPI
+  - ImageData model has `type` ("base64" or "url") and `data` fields
+  - Use `Optional[Type] = None` for optional fields in Pydantic models
+  - Map Ollama's `prompt_eval_count` -> `prompt_tokens`, `eval_count` -> `completion_tokens`
+  - Generate UUIDs with `str(uuid.uuid4())` for response IDs
+---
+
+## 2026-01-21 - US-006
+- What was implemented: Conversation history support for multi-turn conversations
+- Files changed:
+  - backend/main.py (added ConversationHistoryItem model, updated endpoint to process history)
+- **Learnings for future iterations:**
+  - ConversationHistoryItem has: role (str), content (str), imageUrl (Optional[str])
+  - Process conversation history first, then append current prompt as final user message
+  - All images (from history and current) are collected into a single list for ollama_client
+  - Empty conversationHistory (None or empty list) works correctly - messages list just starts empty
+  - The ollama_client attaches all images to the last user message in the messages list
+---
+
+## 2026-01-21 - US-007
+- What was implemented: Error handling with structured JSON responses
+- Files changed:
+  - backend/main.py (added exception classes and handlers)
+- **Learnings for future iterations:**
+  - Use FastAPI's `@app.exception_handler()` decorator to register custom exception handlers
+  - Return JSONResponse with `status_code` and `content` dict for structured errors
+  - Custom exception class (ImageFetchError) allows distinguishing image fetch failures from other errors
+  - httpx.ConnectError can be caught directly to detect Ollama service unavailability
+  - ValueError handler catches invalid prompt/image format errors with BAD_REQUEST code
+  - General Exception handler catches all other errors with INTERNAL_ERROR code
+---
+
+## 2026-01-21 - US-008
+- What was implemented: Vite proxy configuration to route /api requests to backend
+- Files changed:
+  - vite.config.ts (added server.proxy configuration)
+- **Learnings for future iterations:**
+  - Vite proxy config goes under `server.proxy` key in defineConfig
+  - Use `/api` as the key to match all requests starting with /api
+  - `target` specifies the backend URL (http://localhost:8000)
+  - `changeOrigin: true` is needed to update Host header for the target server
+  - This setup allows frontend fetch('/api/generate') to reach the backend without CORS issues
+---
+
+## 2026-01-21 - US-009
+- What was implemented: Backend README with setup instructions
+- Files changed:
+  - backend/README.md (created with Ollama installation, model setup, Python setup, and running instructions)
+- **Learnings for future iterations:**
+  - README.md files don't affect TypeScript typecheck (as expected, Markdown files are ignored)
+  - Include a full workflow section showing all terminals/commands needed to run the full stack
+  - Document API endpoints with example request/response for developer reference
+---
+
