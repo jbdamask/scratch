@@ -1,3 +1,6 @@
+# NOTE!
+Don't use this. Simon Willison's ![Claude Code Transcripts is better](https://github.com/simonw/claude-code-transcripts)
+
 # Claude Code Chat History Viewer
 
 ![Claude Code Chat History](img/claude-code-chat-history.png)
