@@ -1,5 +1,5 @@
 # NOTE!
-Don't use this. Simon Willison's ![Claude Code Transcripts is better](https://github.com/simonw/claude-code-transcripts)
+Don't use this. Simon Willison's [Claude Code Transcripts is better](https://github.com/simonw/claude-code-transcripts)
 
 # Claude Code Chat History Viewer
 
