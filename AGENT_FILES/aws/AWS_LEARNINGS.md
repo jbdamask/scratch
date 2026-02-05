@@ -243,6 +243,200 @@ aws lambda update-function-code \
 
 ---
 
+## CloudFormation with S3 Templates
+
+### 13. Lambda Needs S3 Permissions to Use CloudFormation TemplateURL
+**Problem:** `CreateStackCommand` from Lambda failed with "S3 error: Access Denied" when using `TemplateURL: https://bucket.s3.amazonaws.com/templates/ec2.yaml`.
+
+**Root Cause:** When a Lambda calls CloudFormation with a `TemplateURL`, CloudFormation reads the template using the **caller's credentials** (the Lambda's IAM role), not as the CloudFormation service. The Lambda role lacked `s3:GetObject` permission on the template files.
+
+**Solution:** Add S3 read permission to the Lambda execution role:
+```yaml
+- PolicyName: S3TemplateAccess
+  PolicyDocument:
+    Version: '2012-10-17'
+    Statement:
+      - Effect: Allow
+        Action:
+          - s3:GetObject
+        Resource:
+          - !Sub 'arn:aws:s3:::${DeploymentBucket}/templates/*'
+```
+
+**Common Misunderstanding:** Adding a bucket policy for `cloudformation.amazonaws.com` does NOT help — CloudFormation doesn't fetch the template as itself, it uses the API caller's identity.
+
+---
+
+## Secrets Management
+
+### 14. Never Pass Secrets as CloudFormation NoEcho Parameters
+**Problem:** `aws cloudformation deploy --parameter-overrides JWTSecret=UsePreviousValue` set the literal string "UsePreviousValue" as the secret value (deploy doesn't support `UsePreviousValue=true` syntax). NoEcho parameters cannot be recovered once overwritten.
+
+**Solution:** Store secrets in AWS Secrets Manager and have Lambdas/EC2 instances fetch them at runtime:
+- `lib/secrets.ts` — cached SecretsManager client, fetches once per Lambda cold start
+- Lambda env vars contain `*_ARN` (e.g., `JWT_SECRET_ARN`) not secret values
+- EC2 UserData uses `aws secretsmanager get-secret-value` at boot
+- IAM roles need `secretsmanager:GetSecretValue` on `rocky-surf-*` secrets
+
+**Stack:** `rocky-surf-secrets-dev` defines all secrets with cross-stack ARN exports.
+
+### 15. Set Default Parameter Values to Prevent Accidental Overwrites
+**Problem:** CloudFormation deploy reverted OAuth credentials from GitHub App (correct) to old OAuth App (wrong), breaking login.
+
+**Root Cause:** The `lambdas.yaml` template had no default values for `GitHubClientId` and related parameters. A previous session had fixed OAuth by directly updating Lambda env vars (bypassing CloudFormation). When we deployed the stack later, CloudFormation used the old parameter values stored in the stack, overwriting the direct fix.
+
+**Solution:** Always set sensible default values for configuration parameters in CloudFormation templates:
+```yaml
+Parameters:
+  GitHubClientId:
+    Type: String
+    Default: Iv23liQOMQhMRptb5gij  # Prevents accidental revert
+    Description: GitHub App Client ID (NOT the old OAuth App)
+```
+
+**Key Insight:** Direct Lambda env var updates via AWS CLI are temporary fixes — they get overwritten on the next CloudFormation deploy. Always update the template defaults too, or the fix will be lost.
+
+### 16. Lambda Needs SSM Permissions for Dynamic AMI Parameters
+**Problem:** `CreateStackCommand` from Lambda failed with "User is not authorized to perform: ssm:GetParameters" when EC2 template used `AWS::SSM::Parameter::Value` for dynamic AMI lookup.
+
+**Root Cause:** EC2 templates commonly use `AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>` to fetch the latest Ubuntu/Amazon Linux AMI dynamically. When Lambda calls CloudFormation, it uses the Lambda's IAM role credentials. The role needs `ssm:GetParameters` permission on the public AWS parameter paths.
+
+**Solution:** Add SSM parameter read permission to the Lambda execution role:
+```yaml
+- PolicyName: SSMParameterAccess
+  PolicyDocument:
+    Version: '2012-10-17'
+    Statement:
+      - Effect: Allow
+        Action:
+          - ssm:GetParameters
+        Resource:
+          - 'arn:aws:ssm:*::parameter/aws/service/*'
+```
+
+**Note:** The resource ARN uses `::` (empty account ID) because AWS-provided parameters like `/aws/service/canonical/ubuntu/...` are in the global namespace, not account-specific.
+
+---
+
+## Lambda-Invoked CloudFormation
+
+### 17. CloudFormation Uses Caller Credentials for ALL Resource Creation
+**Problem:** Lambda calls `CreateStack` successfully, but individual resources fail with "not authorized to perform: ec2:CreateSecurityGroup" (or similar) even though the CloudFormation service should have permissions.
+
+**Root Cause:** When Lambda (or any AWS SDK client) invokes CloudFormation, the service creates resources using the **caller's credentials**, not a CloudFormation service role. This is different from console-based deployments where CloudFormation assumes a service role. The Lambda's IAM role must have permissions for every resource type in the template.
+
+**Solution:** Grant the Lambda role permissions for ALL resources the CloudFormation template creates:
+```yaml
+# If your CF template creates EC2 instances, security groups, and elastic IPs,
+# the Lambda role needs ALL of these permissions:
+- Effect: Allow
+  Action:
+    - ec2:RunInstances
+    - ec2:TerminateInstances
+    - ec2:CreateSecurityGroup
+    - ec2:DeleteSecurityGroup
+    - ec2:AuthorizeSecurityGroupIngress
+    - ec2:AllocateAddress
+    - ec2:ReleaseAddress
+    # ... every EC2 action your template uses
+  Resource: '*'
+```
+
+**Key Insight:** Audit your CloudFormation template for every `AWS::*` resource type and ensure the Lambda role has create/delete/describe permissions for each. A template with EC2, IAM, and Auto Scaling resources requires permissions across all three services.
+
+### 18. IAM Resources in CloudFormation Require Full Role Lifecycle Permissions
+**Problem:** CloudFormation stack fails with "not authorized to perform: iam:GetRole" when creating an EC2 instance that needs an instance profile.
+
+**Root Cause:** EC2 instances with instance profiles require CloudFormation to create IAM roles and instance profiles. The Lambda role needs comprehensive IAM permissions—not just `iam:PassRole`.
+
+**Solution:** Add complete IAM lifecycle permissions:
+```yaml
+# For IAM Roles
+- Effect: Allow
+  Action:
+    - iam:CreateRole
+    - iam:DeleteRole
+    - iam:GetRole
+    - iam:PassRole
+    - iam:PutRolePolicy
+    - iam:DeleteRolePolicy
+    - iam:AttachRolePolicy
+    - iam:DetachRolePolicy
+    - iam:TagRole
+    - iam:UntagRole
+  Resource:
+    - !Sub 'arn:aws:iam::${AWS::AccountId}:role/your-prefix-*'
+
+# For Instance Profiles
+- Effect: Allow
+  Action:
+    - iam:CreateInstanceProfile
+    - iam:DeleteInstanceProfile
+    - iam:GetInstanceProfile
+    - iam:AddRoleToInstanceProfile
+    - iam:RemoveRoleFromInstanceProfile
+    - iam:TagInstanceProfile
+    - iam:UntagInstanceProfile
+  Resource:
+    - !Sub 'arn:aws:iam::${AWS::AccountId}:instance-profile/your-prefix-*'
+```
+
+**Note:** Scope IAM permissions to a naming prefix (e.g., `your-app-*`) to limit blast radius while still allowing dynamic resource creation.
+
+### 19. Stack Deletion Requires the Same Permissions as Creation (Plus More)
+**Problem:** `DeleteStack` fails with "DELETE_FAILED" state, leaving orphaned resources (EC2 instances still running, Elastic IPs still allocated).
+
+**Root Cause:** CloudFormation deletion uses the same caller credentials as creation. If the Lambda role lacks delete permissions, or lacks permissions needed during deletion checks, the stack gets stuck. Orphaned resources continue incurring costs.
+
+**Solution:** Ensure the Lambda role has both create AND delete permissions for all resource types. Some services require additional permissions during deletion:
+```yaml
+# Auto Scaling requires DescribeScalingActivities during deletion
+- Effect: Allow
+  Action:
+    - autoscaling:CreateAutoScalingGroup
+    - autoscaling:DeleteAutoScalingGroup
+    - autoscaling:DescribeAutoScalingGroups
+    - autoscaling:DescribeScalingActivities    # Required for deletion!
+    - autoscaling:TerminateInstanceInAutoScalingGroup
+  Resource: '*'
+```
+
+**Recovery:** If a stack is stuck in DELETE_FAILED:
+1. Add the missing permissions to the Lambda role
+2. Retry deletion: `aws cloudformation delete-stack --stack-name <name>`
+3. If still failing, manually delete resources, then delete stack with `--retain-resources`
+
+### 20. Spot Instances via Auto Scaling Groups Require Launch Template Permissions
+**Problem:** Creating spot instances via Auto Scaling Groups fails with "not authorized to perform: ec2:CreateLaunchTemplate".
+
+**Root Cause:** Spot instances managed by Auto Scaling Groups use EC2 Launch Templates rather than direct instance launches. The Lambda role needs launch template permissions in addition to standard EC2 permissions.
+
+**Solution:** Add launch template and Auto Scaling permissions:
+```yaml
+# Launch Templates
+- Effect: Allow
+  Action:
+    - ec2:CreateLaunchTemplate
+    - ec2:DeleteLaunchTemplate
+    - ec2:DescribeLaunchTemplates
+    - ec2:DescribeLaunchTemplateVersions
+  Resource: '*'
+
+# Auto Scaling
+- Effect: Allow
+  Action:
+    - autoscaling:CreateAutoScalingGroup
+    - autoscaling:DeleteAutoScalingGroup
+    - autoscaling:UpdateAutoScalingGroup
+    - autoscaling:DescribeAutoScalingGroups
+    - autoscaling:DescribeScalingActivities
+    - autoscaling:SetDesiredCapacity
+    - autoscaling:TerminateInstanceInAutoScalingGroup
+  Resource: '*'
+```
+
+---
+
 ## Deployment Checklist
 
 Before deploying infrastructure changes:
@@ -257,3 +451,11 @@ Before deploying infrastructure changes:
 8. [ ] After uploading Lambda zips to S3, update each Lambda's function code
 9. [ ] Verify every endpoint returns expected status codes (not 502) after deploy
 10. [ ] Test with `curl -v` before testing in browser (clearer errors)
+11. [ ] Never pass secrets via CloudFormation parameters — use Secrets Manager ARNs
+12. [ ] If Lambda calls CloudFormation with TemplateURL, ensure Lambda role has s3:GetObject on templates
+13. [ ] Set sensible default values for CloudFormation parameters to prevent accidental overwrites
+14. [ ] If EC2 templates use dynamic AMI parameters (AWS::SSM::Parameter::Value), ensure Lambda role has ssm:GetParameters
+15. [ ] If Lambda invokes CloudFormation, audit the template for ALL resource types and grant corresponding permissions
+16. [ ] For EC2 with instance profiles, Lambda role needs full IAM lifecycle permissions (CreateRole, CreateInstanceProfile, etc.)
+17. [ ] Include deletion permissions (DescribeScalingActivities for ASG) — stuck DELETE_FAILED stacks leave orphaned resources
+18. [ ] For spot instances via ASG, add launch template permissions (ec2:CreateLaunchTemplate, etc.)
