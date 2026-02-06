@@ -120,7 +120,7 @@ zip -j auth.zip dist/auth/*.mjs  # NOT *.js
 LambdaExecutionRole:
   Type: AWS::IAM::Role
   Properties:
-    RoleName: !Sub 'rocky-surf-lambda-role-${Environment}'
+    RoleName: !Sub 'myapp-lambda-role-${Environment}'
 
 Outputs:
   LambdaExecutionRoleArn:
@@ -129,7 +129,7 @@ Outputs:
 
 # In lambdas.yaml - import
 Role:
-  Fn::ImportValue: !Sub 'rocky-surf-api-gateway-${Environment}-LambdaRoleArn'
+  Fn::ImportValue: !Sub 'myapp-api-gateway-${Environment}-LambdaRoleArn'
 ```
 
 ---
@@ -207,7 +207,7 @@ Outputs:
       Name: !Sub '${AWS::StackName}-ApiId'  # This is what you import
 
 # Importing stack - use the Export Name
-Fn::ImportValue: !Sub 'rocky-surf-api-gateway-${Environment}-ApiId'
+Fn::ImportValue: !Sub 'myapp-api-gateway-${Environment}-ApiId'
 ```
 
 ---
@@ -232,8 +232,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL.replace(/\/$/, '')
 **Solution:** After uploading new code to S3, explicitly update each Lambda's function code:
 ```bash
 aws lambda update-function-code \
-  --function-name rocky-surf-logout-dev \
-  --s3-bucket rocky-surf-deployments-us-east-1 \
+  --function-name myapp-logout-dev \
+  --s3-bucket myapp-deployments-us-east-1 \
   --s3-key lambdas/dev/auth.zip
 ```
 
@@ -276,9 +276,9 @@ aws lambda update-function-code \
 - `lib/secrets.ts` — cached SecretsManager client, fetches once per Lambda cold start
 - Lambda env vars contain `*_ARN` (e.g., `JWT_SECRET_ARN`) not secret values
 - EC2 UserData uses `aws secretsmanager get-secret-value` at boot
-- IAM roles need `secretsmanager:GetSecretValue` on `rocky-surf-*` secrets
+- IAM roles need `secretsmanager:GetSecretValue` on `myapp-*` secrets
 
-**Stack:** `rocky-surf-secrets-dev` defines all secrets with cross-stack ARN exports.
+**Stack:** `myapp-secrets-dev` defines all secrets with cross-stack ARN exports.
 
 ### 15. Set Default Parameter Values to Prevent Accidental Overwrites
 **Problem:** CloudFormation deploy reverted OAuth credentials from GitHub App (correct) to old OAuth App (wrong), breaking login.
@@ -290,7 +290,7 @@ aws lambda update-function-code \
 Parameters:
   GitHubClientId:
     Type: String
-    Default: Iv23liQOMQhMRptb5gij  # Prevents accidental revert
+    Default: Iv23liQOMQhMRb5gij  # Prevents accidental revert
     Description: GitHub App Client ID (NOT the old OAuth App)
 ```
 
