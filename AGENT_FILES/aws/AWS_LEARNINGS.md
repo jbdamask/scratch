@@ -1,6 +1,6 @@
 # AWS Deployment Learnings
 
-Hard-won lessons from deploying Rocky Surf to AWS. Reference this before making infrastructure changes.
+This document contains hard-won lessons from building AWS apps with coding agents. Reference this when adding or changing AWS components in a project. If you learn a new lesson, generalize it from the current project and add it.
 
 ---
 
@@ -437,6 +437,50 @@ Parameters:
 
 ---
 
+## EC2 UserData
+
+### 21. `awscli` Apt Package Does Not Exist on Ubuntu 24.04
+**Problem:** EC2 UserData script silently failed partway through. Only the first progress report (`instance_launching`) ever reached the API. The `rocky` user, SSH keys, tool installations, and remaining progress reports never executed.
+
+**Root Cause:** The UserData script had `apt-get install -y ... awscli`, but on Ubuntu 24.04 Noble, the `awscli` package is not available in the default apt repositories. Combined with `set -e` at the top of the script, the apt failure killed the entire script immediately. Everything after the failed apt-get line never ran.
+
+**Symptoms:**
+- Server stuck in `provisioning` state with `provisioningStep: instance_launching`
+- SSH returns "Permission denied (publickey)" (user was never created)
+- EC2 console output (`get-console-output`) shows: `E: Package 'awscli' has no installation candidate`
+
+**Solution:** Use the official AWS CLI v2 installer instead of the apt package:
+```bash
+# Instead of: apt-get install -y awscli
+curl -s "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+unzip -q /tmp/awscliv2.zip -d /tmp
+/tmp/aws/install
+rm -rf /tmp/awscliv2.zip /tmp/aws
+```
+
+**Key Insight:** Never assume apt packages available on Ubuntu 22.04 exist on 24.04. The official AWS CLI v2 installer works reliably across all Ubuntu versions. When UserData stops partway through, check `get-console-output` first — the problem may be that the script crashed before reaching the code you're debugging.
+
+### 22. `set -e` in UserData Makes Failures Silent and Total
+**Problem:** A single `apt-get` failure caused the entire UserData script to abort with no visible error in the application. The server appeared to provision normally (CloudFormation `CREATE_COMPLETE`) but was completely unconfigured.
+
+**Root Cause:** `set -e` causes bash to exit immediately on any non-zero exit code. CloudFormation reports `CREATE_COMPLETE` when the EC2 instance launches — it doesn't wait for or monitor UserData execution. So infrastructure looks healthy while the software setup is completely broken.
+
+**Solution:** For critical operations, handle errors explicitly rather than relying on `set -e` to catch everything:
+```bash
+# Option 1: Use || to handle expected failures
+apt-get install -y some-package || echo "WARNING: some-package not available"
+
+# Option 2: Check console output when debugging
+aws ec2 get-console-output --instance-id i-xxx --output text
+```
+
+**Diagnostic Steps When UserData Seems Stuck:**
+1. Check EC2 console output: `aws ec2 get-console-output --instance-id <id>`
+2. Look for the exact failure line in the cloud-init log
+3. Don't assume the Lambda/API/WebSocket pipeline is broken — the EC2 may never have sent the updates
+
+---
+
 ## Deployment Checklist
 
 Before deploying infrastructure changes:
@@ -459,3 +503,5 @@ Before deploying infrastructure changes:
 16. [ ] For EC2 with instance profiles, Lambda role needs full IAM lifecycle permissions (CreateRole, CreateInstanceProfile, etc.)
 17. [ ] Include deletion permissions (DescribeScalingActivities for ASG) — stuck DELETE_FAILED stacks leave orphaned resources
 18. [ ] For spot instances via ASG, add launch template permissions (ec2:CreateLaunchTemplate, etc.)
+19. [ ] Never use `apt-get install -y awscli` on Ubuntu 24.04 — use the official AWS CLI v2 installer
+20. [ ] When UserData stops partway through, check `get-console-output` before debugging the backend pipeline
