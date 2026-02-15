@@ -127,7 +127,7 @@ Outputs:
     Export:
       Name: !Sub '${AWS::StackName}-LambdaRoleArn'
 
-# In lambdas.yaml - import
+# In consuming stack - import
 Role:
   Fn::ImportValue: !Sub 'myapp-api-gateway-${Environment}-LambdaRoleArn'
 ```
@@ -273,7 +273,7 @@ aws lambda update-function-code \
 **Problem:** `aws cloudformation deploy --parameter-overrides JWTSecret=UsePreviousValue` set the literal string "UsePreviousValue" as the secret value (deploy doesn't support `UsePreviousValue=true` syntax). NoEcho parameters cannot be recovered once overwritten.
 
 **Solution:** Store secrets in AWS Secrets Manager and have Lambdas/EC2 instances fetch them at runtime:
-- `lib/secrets.ts` — cached SecretsManager client, fetches once per Lambda cold start
+- Use a cached SecretsManager client that fetches once per Lambda cold start
 - Lambda env vars contain `*_ARN` (e.g., `JWT_SECRET_ARN`) not secret values
 - EC2 UserData uses `aws secretsmanager get-secret-value` at boot
 - IAM roles need `secretsmanager:GetSecretValue` on `myapp-*` secrets
@@ -281,17 +281,17 @@ aws lambda update-function-code \
 **Stack:** `myapp-secrets-dev` defines all secrets with cross-stack ARN exports.
 
 ### 15. Set Default Parameter Values to Prevent Accidental Overwrites
-**Problem:** CloudFormation deploy reverted OAuth credentials from GitHub App (correct) to old OAuth App (wrong), breaking login.
+**Problem:** CloudFormation deploy reverted configuration values (e.g., OAuth credentials) back to old values, breaking functionality.
 
-**Root Cause:** The `lambdas.yaml` template had no default values for `GitHubClientId` and related parameters. A previous session had fixed OAuth by directly updating Lambda env vars (bypassing CloudFormation). When we deployed the stack later, CloudFormation used the old parameter values stored in the stack, overwriting the direct fix.
+**Root Cause:** The template had no default values for certain parameters. A previous session had fixed the issue by directly updating Lambda env vars (bypassing CloudFormation). When the stack was deployed later, CloudFormation used the old parameter values stored in the stack, overwriting the direct fix.
 
 **Solution:** Always set sensible default values for configuration parameters in CloudFormation templates:
 ```yaml
 Parameters:
-  GitHubClientId:
+  SomeClientId:
     Type: String
-    Default: Iv23liQOMQhMRb5gij  # Prevents accidental revert
-    Description: GitHub App Client ID (NOT the old OAuth App)
+    Default: actual-current-value  # Prevents accidental revert
+    Description: Current value for the integration
 ```
 
 **Key Insight:** Direct Lambda env var updates via AWS CLI are temporary fixes — they get overwritten on the next CloudFormation deploy. Always update the template defaults too, or the fix will be lost.
@@ -440,7 +440,7 @@ Parameters:
 ## EC2 UserData
 
 ### 21. `awscli` Apt Package Does Not Exist on Ubuntu 24.04
-**Problem:** EC2 UserData script silently failed partway through. Only the first progress report (`instance_launching`) ever reached the API. The `rocky` user, SSH keys, tool installations, and remaining progress reports never executed.
+**Problem:** EC2 UserData script silently failed partway through. Only the first progress report (`instance_launching`) ever reached the API. The application user, SSH keys, tool installations, and remaining progress reports never executed.
 
 **Root Cause:** The UserData script had `apt-get install -y ... awscli`, but on Ubuntu 24.04 Noble, the `awscli` package is not available in the default apt repositories. Combined with `set -e` at the top of the script, the apt failure killed the entire script immediately. Everything after the failed apt-get line never ran.
 
@@ -481,6 +481,109 @@ aws ec2 get-console-output --instance-id i-xxx --output text
 
 ---
 
+### 23. CloudFormation Templates Over 51,200 Bytes Require S3 Upload
+**Problem:** `aws cloudformation deploy` failed with "Templates with a size greater than 51,200 bytes must be deployed via an S3 Bucket."
+
+**Root Cause:** As templates grow (adding Lambda functions, API methods, permissions), they exceed the 51KB inline limit for `deploy`.
+
+**Solution:** Add `--s3-bucket` and `--s3-prefix` to the deploy command:
+```bash
+aws cloudformation deploy \
+  --template-file infrastructure/my-template.yaml \
+  --s3-bucket myapp-deployments-us-east-1 \
+  --s3-prefix cfn-templates \
+  --stack-name myapp-lambdas-dev \
+  --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides ...
+```
+
+**Key Insight:** The deployment S3 bucket you already use for Lambda zips works fine for templates too. CloudFormation automatically uploads, hashes, and references the template. Plan for this from the start — templates only grow.
+
+---
+
+## S3 Uploads
+
+### 24. Browser Direct-to-S3 Uploads via Presigned URLs Need CORS on the Bucket
+**Problem:** Frontend uploads a file to S3 via a presigned PUT URL. Browser blocks the request with "No 'Access-Control-Allow-Origin' header is present on the requested resource."
+
+**Root Cause:** Presigned URLs let the browser upload directly to S3, bypassing API Gateway. Since the frontend is served from CloudFront (different origin than S3), the browser sends a CORS preflight (OPTIONS) to S3. Without CORS configuration on the S3 bucket, S3 rejects the preflight.
+
+**Solution:** Use a dedicated uploads staging bucket with CORS configured, not the frontend asset bucket:
+```yaml
+UploadsBucket:
+  Type: AWS::S3::Bucket
+  Properties:
+    CorsConfiguration:
+      CorsRules:
+        - AllowedHeaders: ['*']
+          AllowedMethods: [PUT]
+          AllowedOrigins: ['https://your-cloudfront-domain.cloudfront.net']
+          ExposedHeaders: [ETag]
+          MaxAge: 3600
+    LifecycleConfiguration:
+      Rules:
+        - Id: AutoDeleteUploads
+          Status: Enabled
+          ExpirationInDays: 1
+    NotificationConfiguration:
+      EventBridgeConfiguration:
+        EventBridgeEnabled: true
+```
+
+**Architecture Pattern:** Uploads staging bucket → EventBridge S3 event → processing Lambda → copies to final destination bucket. This keeps CORS isolated to the uploads bucket, validates/transforms files before they reach production, and is extensible for different upload types via context-based routing.
+
+**Key Insight:** Never add CORS to your frontend/CDN bucket just for uploads. Use a separate staging bucket with CORS, lifecycle cleanup, and EventBridge notifications.
+
+---
+
+## EventBridge
+
+### 25. EventBridge PutEvents Can Return 200 OK With Failed Entries
+**Problem:** Admin endpoint reported "event injected successfully" but the EventBridge handler Lambda was never triggered.
+
+**Root Cause:** `EventBridgeClient.send(PutEventsCommand)` returns HTTP 200 even when individual entries fail to inject. Failures are reported in the response body via `FailedEntryCount` and per-entry `ErrorCode`/`ErrorMessage` fields.
+
+**Solution:** Always check `FailedEntryCount` after PutEvents:
+```typescript
+const result = await eventBridge.send(new PutEventsCommand({ Entries: [...] }))
+if (result.FailedEntryCount && result.FailedEntryCount > 0) {
+  console.error('EventBridge PutEvents had failures:', JSON.stringify(result.Entries))
+  throw new Error('Failed to inject event into EventBridge')
+}
+```
+
+### 26. Lambda::Permission Required Per-Function for API Gateway
+**Problem:** New API Gateway endpoint returned 500 Internal Server Error. Lambda CloudWatch logs showed zero invocations.
+
+**Root Cause:** Each Lambda function invoked by API Gateway needs its own `AWS::Lambda::Permission` resource. Without it, API Gateway gets "Access Denied" when trying to invoke the Lambda. The error isn't visible in the Lambda's logs because the invocation is blocked at the API Gateway → Lambda boundary.
+
+**Solution:** Add a Lambda permission for every Lambda function that API Gateway calls:
+```yaml
+MyFunctionPermission:
+  Type: AWS::Lambda::Permission
+  Properties:
+    FunctionName: !Ref MyFunction
+    Action: lambda:InvokeFunction
+    Principal: apigateway.amazonaws.com
+    SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiId}/*/*/*'
+```
+
+**Key Insight:** When an API Gateway endpoint returns 500 and the Lambda has no logs at all, the first thing to check is whether the `Lambda::Permission` exists.
+
+### 27. WebSocket API Gateway Has a 10-Minute Idle Connection Timeout
+**Problem:** WebSocket connections appeared to "fail" repeatedly — browser showed reconnection cycles every ~10 minutes during long-running operations like server provisioning.
+
+**Root Cause:** AWS API Gateway WebSocket has a default idle connection timeout of 10 minutes. If no messages are sent over the connection for 10 minutes, API Gateway closes it. The client then reconnects, which the user may perceive as "connection failures."
+
+**Impact:** This is normal behavior, not a bug. During long operations with sparse updates, WebSocket connections will reconnect periodically. Messages sent during the brief reconnection window (~1-2 seconds) could be missed.
+
+**Mitigation Options:**
+- Accept periodic reconnections (simplest, acceptable for MVP)
+- Implement server-side ping/pong frames every 5 minutes to keep connections alive
+- On the client, queue/replay missed messages using a "last received timestamp" mechanism
+
+---
+
 ## Deployment Checklist
 
 Before deploying infrastructure changes:
@@ -505,3 +608,27 @@ Before deploying infrastructure changes:
 18. [ ] For spot instances via ASG, add launch template permissions (ec2:CreateLaunchTemplate, etc.)
 19. [ ] Never use `apt-get install -y awscli` on Ubuntu 24.04 — use the official AWS CLI v2 installer
 20. [ ] When UserData stops partway through, check `get-console-output` before debugging the backend pipeline
+21. [ ] When templates exceed 51KB, use `--s3-bucket` and `--s3-prefix` with `aws cloudformation deploy`
+22. [ ] For browser direct-to-S3 uploads via presigned URLs, use a dedicated uploads bucket with CORS — never add CORS to your frontend bucket
+23. [ ] After EventBridge `PutEvents`, always check `FailedEntryCount` — a 200 response can still contain failed entries
+24. [ ] Every Lambda invoked by API Gateway needs its own `AWS::Lambda::Permission` — missing permission causes 500 with zero Lambda logs
+25. [ ] WebSocket connections drop every ~10 min of inactivity due to API Gateway idle timeout — this is normal, not a bug
+26. [ ] EventBridge spot interruption rule must target the Lambda ARN, not the function name — use `!GetAtt Function.Arn`
+27. [ ] Spot interruption handler needs the same broad env vars as your server creation Lambda if doing auto-replacement
+28. [ ] When adding new API Gateway resources, deploy api-gateway stack FIRST, then lambdas stack — the lambdas stack imports the resource IDs
+
+---
+
+## Spot Interruption Handling — General Lessons
+
+### Testing Spot Interruptions Without Waiting for Real Events
+**Problem:** Real EC2 spot interruptions are unpredictable and can't be triggered on demand, making it hard to test interruption handling.
+
+**Solution:** Build a simulator endpoint that directly invokes the interruption handler Lambda with a synthetic EventBridge-style payload (using `Lambda InvokeCommand`), bypassing EventBridge itself. This is necessary because EventBridge blocks `PutEvents` with `aws.*` sources — only genuine AWS events can use those source prefixes.
+
+**Verification Checklist:**
+- [ ] Handler Lambda receives and processes the synthetic event
+- [ ] Database records updated with interruption metadata
+- [ ] Real-time notifications (WebSocket/push) delivered to the user
+- [ ] Auto-replacement logic triggers if configured
+- [ ] Original resource linked to its replacement in the database
