@@ -1,10 +1,9 @@
-"""Lambda handler: extract text from PDF, generate HTML via Claude, publish gist."""
+"""Lambda handler: send PDF to Claude, generate HTML, publish gist."""
 
 import os
 
 import boto3
 
-from pdf_processor import extract_text
 from generator import generate_html
 from gist_publisher import create_gist
 
@@ -26,11 +25,8 @@ def handler(event, context):
         response = s3.get_object(Bucket=BUCKET, Key=s3_key)
         pdf_bytes = response["Body"].read()
 
-        # Extract text
-        text = extract_text(pdf_bytes)
-
-        # Generate HTML via Claude
-        html = generate_html(text)
+        # Send PDF to Claude and generate HTML
+        html = generate_html(pdf_bytes)
 
         # Publish to GitHub Gist
         url = create_gist(html, filename)

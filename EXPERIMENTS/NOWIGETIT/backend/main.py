@@ -7,7 +7,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 
-from pdf_processor import extract_text
 from generator import generate_html
 from gist_publisher import create_gist
 
@@ -41,8 +40,7 @@ async def upload_pdf(file: UploadFile):
 
     # Run synchronously for now — move to background task in Phase 4 (Lambda)
     try:
-        text = extract_text(contents)
-        html = generate_html(text)
+        html = generate_html(contents)
         gist_url = create_gist(html, file.filename)
         jobs[job_id] = {"status": "complete", "url": gist_url}
     except Exception as e:

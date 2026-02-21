@@ -49,13 +49,12 @@ trap "rm -rf $BUILD_DIR" EXIT
 
 # Install dependencies into the build dir
 pip install -q -t "$BUILD_DIR" \
-  anthropic pdfplumber requests python-dotenv 2>/dev/null
+  anthropic requests python-dotenv 2>/dev/null
 
 # Copy Lambda handler files
 cp "$SCRIPT_DIR/backend/lambda_upload.py" "$BUILD_DIR/"
 cp "$SCRIPT_DIR/backend/lambda_process.py" "$BUILD_DIR/"
 cp "$SCRIPT_DIR/backend/lambda_status.py" "$BUILD_DIR/"
-cp "$SCRIPT_DIR/backend/pdf_processor.py" "$BUILD_DIR/"
 cp "$SCRIPT_DIR/backend/generator.py" "$BUILD_DIR/"
 cp "$SCRIPT_DIR/backend/gist_publisher.py" "$BUILD_DIR/"
 

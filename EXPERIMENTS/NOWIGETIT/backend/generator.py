@@ -1,3 +1,4 @@
+import base64
 import os
 import re
 
@@ -9,9 +10,11 @@ SYSTEM_PROMPT = (
 )
 
 
-def generate_html(paper_text: str) -> str:
-    """Send paper text to Claude Opus 4.6 and get back a single-page HTML app."""
+def generate_html(pdf_bytes: bytes) -> str:
+    """Send PDF directly to Claude Opus 4.6 and get back a single-page HTML app."""
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+
+    pdf_b64 = base64.standard_b64encode(pdf_bytes).decode("utf-8")
 
     message = client.messages.create(
         model="claude-opus-4-6",
@@ -20,7 +23,16 @@ def generate_html(paper_text: str) -> str:
         messages=[
             {
                 "role": "user",
-                "content": paper_text,
+                "content": [
+                    {
+                        "type": "document",
+                        "source": {
+                            "type": "base64",
+                            "media_type": "application/pdf",
+                            "data": pdf_b64,
+                        },
+                    },
+                ],
             }
         ],
     )
