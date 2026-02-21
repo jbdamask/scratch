@@ -32,22 +32,29 @@ fi
 
 echo "==> Deploying NowIGetIt (stack: $STACK_NAME, region: $REGION)"
 
-# ─── Step 1a: Store secrets in SSM Parameter Store ───────────────
+# ─── Step 1a: Store secrets in Secrets Manager ───────────────────
 
-echo "==> Storing secrets in SSM Parameter Store..."
-aws ssm put-parameter \
-  --name "/${STACK_NAME}/anthropic-api-key" \
-  --type SecureString \
-  --value "$ANTHROPIC_API_KEY" \
-  --overwrite \
-  --region "$REGION" > /dev/null
+echo "==> Storing secrets in Secrets Manager..."
+for secret_name_suffix in anthropic-api-key github-token; do
+  secret_name="${STACK_NAME}/${secret_name_suffix}"
+  if [ "$secret_name_suffix" = "anthropic-api-key" ]; then
+    secret_value="$ANTHROPIC_API_KEY"
+  else
+    secret_value="$GITHUB_TOKEN"
+  fi
 
-aws ssm put-parameter \
-  --name "/${STACK_NAME}/github-token" \
-  --type SecureString \
-  --value "$GITHUB_TOKEN" \
-  --overwrite \
-  --region "$REGION" > /dev/null
+  if aws secretsmanager describe-secret --secret-id "$secret_name" --region "$REGION" > /dev/null 2>&1; then
+    aws secretsmanager put-secret-value \
+      --secret-id "$secret_name" \
+      --secret-string "$secret_value" \
+      --region "$REGION" > /dev/null
+  else
+    aws secretsmanager create-secret \
+      --name "$secret_name" \
+      --secret-string "$secret_value" \
+      --region "$REGION" > /dev/null
+  fi
+done
 
 # ─── Step 1b: Create deployment bucket if needed ─────────────────
 

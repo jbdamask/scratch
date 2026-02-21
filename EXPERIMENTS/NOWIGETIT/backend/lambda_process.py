@@ -8,7 +8,7 @@ from generator import generate_html
 from gist_publisher import create_gist
 
 s3 = boto3.client("s3")
-ssm = boto3.client("ssm")
+secrets_client = boto3.client("secretsmanager")
 dynamodb = boto3.resource("dynamodb")
 
 SHAREIT_BUCKET = os.environ["SHAREIT_BUCKET"]
@@ -17,16 +17,16 @@ TABLE = os.environ["JOBS_TABLE"]
 
 
 def _load_secrets():
-    """Fetch API keys from SSM Parameter Store (cached across warm invocations)."""
-    for env_var, param_env in [
-        ("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY_PARAM"),
-        ("GITHUB_TOKEN", "GITHUB_TOKEN_PARAM"),
+    """Fetch API keys from Secrets Manager (cached across warm invocations)."""
+    for env_var, secret_env in [
+        ("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY_SECRET"),
+        ("GITHUB_TOKEN", "GITHUB_TOKEN_SECRET"),
     ]:
         if env_var not in os.environ:
-            resp = ssm.get_parameter(
-                Name=os.environ[param_env], WithDecryption=True
+            resp = secrets_client.get_secret_value(
+                SecretId=os.environ[secret_env]
             )
-            os.environ[env_var] = resp["Parameter"]["Value"]
+            os.environ[env_var] = resp["SecretString"]
 
 
 def handler(event, context):
