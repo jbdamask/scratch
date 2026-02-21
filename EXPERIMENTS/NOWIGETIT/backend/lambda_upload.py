@@ -3,6 +3,7 @@
 import base64
 import json
 import os
+import time
 import uuid
 
 import boto3
@@ -14,11 +15,12 @@ lambda_client = boto3.client("lambda")
 SHAREIT_BUCKET = os.environ["SHAREIT_BUCKET"]
 TABLE = os.environ["JOBS_TABLE"]
 PROCESSOR_FN = os.environ["PROCESSOR_FUNCTION_NAME"]
+ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
 
 
 def handler(event, context):
     headers = {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
         "Access-Control-Allow-Methods": "POST, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json",
@@ -29,6 +31,14 @@ def handler(event, context):
 
     try:
         content_type = event.get("headers", {}).get("content-type", "")
+
+        if "multipart/form-data" not in content_type:
+            return {
+                "statusCode": 400,
+                "headers": headers,
+                "body": json.dumps({"detail": "Expected multipart/form-data."}),
+            }
+
         body = event.get("body", "")
         is_base64 = event.get("isBase64Encoded", False)
 
@@ -65,7 +75,7 @@ def handler(event, context):
             ContentType="application/pdf",
         )
 
-        # Create job record in DynamoDB
+        # Create job record in DynamoDB (TTL: 24 hours)
         table = dynamodb.Table(TABLE)
         table.put_item(
             Item={
@@ -73,6 +83,7 @@ def handler(event, context):
                 "status": "processing",
                 "filename": filename,
                 "s3_key": s3_key,
+                "ttl": int(time.time()) + 86400,
             }
         )
 
@@ -90,10 +101,11 @@ def handler(event, context):
         }
 
     except Exception as e:
+        print(f"Upload error: {e}")
         return {
             "statusCode": 500,
             "headers": headers,
-            "body": json.dumps({"detail": str(e)}),
+            "body": json.dumps({"detail": "Upload failed. Please try again."}),
         }
 
 
@@ -125,6 +137,7 @@ def _parse_multipart(content_type: str, body: bytes) -> tuple[str, bytes]:
         for line in header.split("\r\n"):
             if "filename=" in line:
                 filename = line.split('filename="')[1].split('"')[0]
+                filename = os.path.basename(filename)
                 return filename, file_data
 
     raise ValueError("No file found in upload.")

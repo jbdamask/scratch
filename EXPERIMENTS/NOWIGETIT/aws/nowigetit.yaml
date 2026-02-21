@@ -2,16 +2,6 @@ AWSTemplateFormatVersion: '2010-09-09'
 Description: NowIGetIt - Transform scientific PDFs into interactive web apps
 
 Parameters:
-  AnthropicApiKey:
-    Type: String
-    NoEcho: true
-    Description: Anthropic API key for Claude
-
-  GithubToken:
-    Type: String
-    NoEcho: true
-    Description: GitHub personal access token with gist scope
-
   DeploymentBucket:
     Type: String
     Description: S3 bucket containing Lambda deployment packages
@@ -132,6 +122,16 @@ Resources:
                 Action:
                   - lambda:InvokeFunction
                 Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-process'
+        - PolicyName: SSMSecrets
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource:
+                  - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/anthropic-api-key'
+                  - !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/github-token'
 
   # ─────────────────────────────────────────────────────────────────
   # Lambda - Upload handler
@@ -154,6 +154,7 @@ Resources:
           SHAREIT_BUCKET: !Ref ShareItBucket
           JOBS_TABLE: !Ref JobsTable
           PROCESSOR_FUNCTION_NAME: !Sub '${AWS::StackName}-process'
+          ALLOWED_ORIGIN: !GetAtt FrontendBucket.WebsiteURL
 
   # ─────────────────────────────────────────────────────────────────
   # Lambda - Status handler
@@ -174,6 +175,7 @@ Resources:
       Environment:
         Variables:
           JOBS_TABLE: !Ref JobsTable
+          ALLOWED_ORIGIN: !GetAtt FrontendBucket.WebsiteURL
 
   # ─────────────────────────────────────────────────────────────────
   # Lambda - Processing handler (heavy lifting)
@@ -186,7 +188,7 @@ Resources:
       Runtime: python3.12
       Handler: lambda_process.handler
       Role: !GetAtt LambdaRole.Arn
-      Timeout: 120
+      Timeout: 300
       MemorySize: 512
       Code:
         S3Bucket: !Ref DeploymentBucket
@@ -194,8 +196,8 @@ Resources:
       Environment:
         Variables:
           JOBS_TABLE: !Ref JobsTable
-          ANTHROPIC_API_KEY: !Ref AnthropicApiKey
-          GITHUB_TOKEN: !Ref GithubToken
+          ANTHROPIC_API_KEY_PARAM: !Sub '/${AWS::StackName}/anthropic-api-key'
+          GITHUB_TOKEN_PARAM: !Sub '/${AWS::StackName}/github-token'
           SHAREIT_BUCKET: !Ref ShareItBucket
           SHAREIT_URL: !Ref ShareItUrl
 
@@ -216,7 +218,7 @@ Resources:
           - GET
           - OPTIONS
         AllowOrigins:
-          - '*'
+          - !GetAtt FrontendBucket.WebsiteURL
 
   ApiStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -224,6 +226,9 @@ Resources:
       ApiId: !Ref HttpApi
       StageName: $default
       AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 5
+        ThrottlingRateLimit: 2
 
   # Upload route: POST /api/upload
   UploadIntegration:

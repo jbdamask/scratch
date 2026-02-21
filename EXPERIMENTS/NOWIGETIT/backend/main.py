@@ -34,11 +34,11 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/api/upload")
-async def upload_pdf(file: UploadFile):
+def upload_pdf(file: UploadFile):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted.")
 
-    contents = await file.read()
+    contents = file.file.read()
     if len(contents) > 10 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large. 10 MB max.")
 
@@ -60,10 +60,14 @@ async def upload_pdf(file: UploadFile):
         gist_url = create_gist(html, file.filename)
         jobs[job_id] = {"status": "complete", "url": gist_url}
     except Exception as e:
-        jobs[job_id] = {"status": "error", "error": str(e)}
+        print(f"Error processing upload: {e}")
+        jobs[job_id] = {"status": "error", "error": "Processing failed."}
     finally:
         # Clean up PDF from public bucket
-        s3.delete_object(Bucket=SHAREIT_BUCKET, Key=public_key)
+        try:
+            s3.delete_object(Bucket=SHAREIT_BUCKET, Key=public_key)
+        except Exception as cleanup_err:
+            print(f"Failed to clean up S3 object {public_key}: {cleanup_err}")
 
     return {"job_id": job_id}
 

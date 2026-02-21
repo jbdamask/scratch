@@ -7,11 +7,12 @@ import boto3
 
 dynamodb = boto3.resource("dynamodb")
 TABLE = os.environ["JOBS_TABLE"]
+ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
 
 
 def handler(event, context):
     headers = {
-        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
         "Access-Control-Allow-Methods": "GET, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type",
         "Content-Type": "application/json",

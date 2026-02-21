@@ -32,7 +32,24 @@ fi
 
 echo "==> Deploying NowIGetIt (stack: $STACK_NAME, region: $REGION)"
 
-# ─── Step 1: Create deployment bucket if needed ──────────────────
+# ─── Step 1a: Store secrets in SSM Parameter Store ───────────────
+
+echo "==> Storing secrets in SSM Parameter Store..."
+aws ssm put-parameter \
+  --name "/${STACK_NAME}/anthropic-api-key" \
+  --type SecureString \
+  --value "$ANTHROPIC_API_KEY" \
+  --overwrite \
+  --region "$REGION" > /dev/null
+
+aws ssm put-parameter \
+  --name "/${STACK_NAME}/github-token" \
+  --type SecureString \
+  --value "$GITHUB_TOKEN" \
+  --overwrite \
+  --region "$REGION" > /dev/null
+
+# ─── Step 1b: Create deployment bucket if needed ─────────────────
 
 echo "==> Ensuring deployment bucket exists: $DEPLOY_BUCKET"
 if ! aws s3api head-bucket --bucket "$DEPLOY_BUCKET" 2>/dev/null; then
@@ -80,8 +97,6 @@ aws cloudformation deploy \
   --region "$REGION" \
   --capabilities CAPABILITY_NAMED_IAM \
   --parameter-overrides \
-    AnthropicApiKey="$ANTHROPIC_API_KEY" \
-    GithubToken="$GITHUB_TOKEN" \
     DeploymentBucket="$DEPLOY_BUCKET" \
     LambdaCodeKey="$S3_KEY" \
   --no-fail-on-empty-changeset
