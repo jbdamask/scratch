@@ -19,8 +19,8 @@ TABLE = os.environ["JOBS_TABLE"]
 def _load_secrets():
     """Fetch API keys from Secrets Manager (cached across warm invocations)."""
     for env_var, secret_env in [
-        ("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY_SECRET"),
-        ("GITHUB_TOKEN", "GITHUB_TOKEN_SECRET"),
+        ("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY_ARN"),
+        ("GITHUB_TOKEN", "GITHUB_TOKEN_ARN"),
     ]:
         if env_var not in os.environ:
             resp = secrets_client.get_secret_value(

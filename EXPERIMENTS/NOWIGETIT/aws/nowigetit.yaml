@@ -196,8 +196,8 @@ Resources:
       Environment:
         Variables:
           JOBS_TABLE: !Ref JobsTable
-          ANTHROPIC_API_KEY_SECRET: !Sub '${AWS::StackName}/anthropic-api-key'
-          GITHUB_TOKEN_SECRET: !Sub '${AWS::StackName}/github-token'
+          ANTHROPIC_API_KEY_ARN: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/anthropic-api-key'
+          GITHUB_TOKEN_ARN: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/github-token'
           SHAREIT_BUCKET: !Ref ShareItBucket
           SHAREIT_URL: !Ref ShareItUrl
 
