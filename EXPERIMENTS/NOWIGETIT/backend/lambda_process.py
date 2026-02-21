@@ -10,10 +10,9 @@ from gist_publisher import create_gist
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
 
-PDF_BUCKET = os.environ["PDF_BUCKET"]
-TABLE = os.environ["JOBS_TABLE"]
 SHAREIT_BUCKET = os.environ["SHAREIT_BUCKET"]
 SHAREIT_URL = os.environ["SHAREIT_URL"]
+TABLE = os.environ["JOBS_TABLE"]
 
 
 def handler(event, context):
@@ -21,17 +20,10 @@ def handler(event, context):
     s3_key = event["s3_key"]
     filename = event["filename"]
     table = dynamodb.Table(TABLE)
-    public_key = f"nowigetit/{job_id}.pdf"
 
     try:
-        # Copy PDF to public ShareIt bucket so Claude can fetch it by URL
-        s3.copy_object(
-            CopySource={"Bucket": PDF_BUCKET, "Key": s3_key},
-            Bucket=SHAREIT_BUCKET,
-            Key=public_key,
-            ContentType="application/pdf",
-        )
-        pdf_url = f"{SHAREIT_URL}/{public_key}"
+        # PDF is already in the public ShareIt bucket — just build the URL
+        pdf_url = f"{SHAREIT_URL}/{s3_key}"
 
         # Send URL to Claude and generate HTML
         html = generate_html(pdf_url)
@@ -56,6 +48,5 @@ def handler(event, context):
         )
 
     finally:
-        # Clean up PDFs from both buckets
-        s3.delete_object(Bucket=PDF_BUCKET, Key=s3_key)
-        s3.delete_object(Bucket=SHAREIT_BUCKET, Key=public_key)
+        # Clean up PDF from ShareIt bucket
+        s3.delete_object(Bucket=SHAREIT_BUCKET, Key=s3_key)

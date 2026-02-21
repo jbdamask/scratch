@@ -61,19 +61,6 @@ Resources:
             Resource: !Sub '${FrontendBucket.Arn}/*'
 
   # ─────────────────────────────────────────────────────────────────
-  # S3 - Temporary PDF uploads
-  # ─────────────────────────────────────────────────────────────────
-
-  PdfBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      LifecycleConfiguration:
-        Rules:
-          - Id: DeleteAfterOneDay
-            Status: Enabled
-            ExpirationInDays: 1
-
-  # ─────────────────────────────────────────────────────────────────
   # DynamoDB - Job status tracking
   # ─────────────────────────────────────────────────────────────────
 
@@ -128,16 +115,6 @@ Resources:
                   - dynamodb:GetItem
                   - dynamodb:UpdateItem
                 Resource: !GetAtt JobsTable.Arn
-        - PolicyName: S3Pdf
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:PutObject
-                  - s3:GetObject
-                  - s3:DeleteObject
-                Resource: !Sub '${PdfBucket.Arn}/*'
         - PolicyName: S3ShareIt
           PolicyDocument:
             Version: '2012-10-17'
@@ -174,7 +151,7 @@ Resources:
         S3Key: !Ref LambdaCodeKey
       Environment:
         Variables:
-          PDF_BUCKET: !Ref PdfBucket
+          SHAREIT_BUCKET: !Ref ShareItBucket
           JOBS_TABLE: !Ref JobsTable
           PROCESSOR_FUNCTION_NAME: !Sub '${AWS::StackName}-process'
 
@@ -216,7 +193,6 @@ Resources:
         S3Key: !Ref LambdaCodeKey
       Environment:
         Variables:
-          PDF_BUCKET: !Ref PdfBucket
           JOBS_TABLE: !Ref JobsTable
           ANTHROPIC_API_KEY: !Ref AnthropicApiKey
           GITHUB_TOKEN: !Ref GithubToken
@@ -309,10 +285,6 @@ Outputs:
   FrontendBucketName:
     Description: Name of the frontend S3 bucket
     Value: !Ref FrontendBucket
-
-  PdfBucketName:
-    Description: Name of the PDF storage bucket
-    Value: !Ref PdfBucket
 
   JobsTableName:
     Description: Name of the DynamoDB jobs table

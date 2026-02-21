@@ -11,7 +11,7 @@ s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
 lambda_client = boto3.client("lambda")
 
-BUCKET = os.environ["PDF_BUCKET"]
+SHAREIT_BUCKET = os.environ["SHAREIT_BUCKET"]
 TABLE = os.environ["JOBS_TABLE"]
 PROCESSOR_FN = os.environ["PROCESSOR_FUNCTION_NAME"]
 
@@ -56,9 +56,14 @@ def handler(event, context):
 
         job_id = str(uuid.uuid4())
 
-        # Store PDF in S3
-        s3_key = f"uploads/{job_id}.pdf"
-        s3.put_object(Bucket=BUCKET, Key=s3_key, Body=pdf_bytes)
+        # Store PDF in public ShareIt bucket (Claude fetches by URL)
+        s3_key = f"nowigetit/{job_id}.pdf"
+        s3.put_object(
+            Bucket=SHAREIT_BUCKET,
+            Key=s3_key,
+            Body=pdf_bytes,
+            ContentType="application/pdf",
+        )
 
         # Create job record in DynamoDB
         table = dynamodb.Table(TABLE)
