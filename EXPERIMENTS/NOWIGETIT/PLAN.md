@@ -10,23 +10,28 @@
 │  index.html      │    │                       │    │  Claude Opus 4.6   │──▶│ (jbdamask)   │
 │  config.js       │    │  POST /api/upload ────│──▶ Lambda (upload)     │    │ always public│
 │                  │    │  GET  /api/status/ ───│──▶ Lambda (status)     │    └──────────────┘
-└──────────────────┘    └──────────────────────┘    └────────────────────┘
-                                                      │          ▲
-                                                      ▼          │
-                                                    ┌──────┐  ┌──────────┐
-                                                    │ S3   │  │ DynamoDB │
-                                                    │ PDFs │  │ Jobs     │
-                                                    └──────┘  └──────────┘
+└──────────────────┘    └──────────────────────┘    └────────┬───────────┘
+                                                             │       ▲
+                                                             ▼       │
+                                                    ┌─────────────────────┐
+                                                    │  ShareIt S3 Bucket  │
+                                                    │  (public, existing) │
+                                                    │  + DynamoDB Jobs    │
+                                                    └─────────────────────┘
 ```
 
-## Async Processing Flow
+## How It Works
 
 1. User uploads PDF via frontend
-2. Upload Lambda: stores PDF in S3, creates DynamoDB job (`status: processing`), invokes Process Lambda async, returns `job_id`
+2. Upload Lambda: stores PDF in ShareIt S3 bucket (`nowigetit/{job_id}.pdf`), creates DynamoDB job (`status: processing`), invokes Process Lambda async, returns `job_id`
 3. Frontend polls `GET /api/status/{job_id}` every 2 seconds
-4. Process Lambda: reads PDF from S3 → extracts text → Claude generates HTML → publishes Gist → updates DynamoDB (`status: complete`, `url: ...`)
+4. Process Lambda: builds public URL for the PDF → sends URL to Claude (document source type: `url`) → Claude fetches PDF directly → generates interactive HTML → publishes to GitHub Gist → updates DynamoDB (`status: complete`, `url: ...`) → deletes PDF from S3
 5. Status Lambda returns job status from DynamoDB
 6. Frontend displays the gistpreview URL
+
+### Key Design Choice: URL-based PDF Ingestion
+
+Claude receives the PDF as a URL pointing to the public ShareIt S3 bucket — not as base64-encoded bytes. This avoids 33% payload bloat and keeps the API request small. The PDF is uploaded to `share-it-amroja` (an existing public S3 bucket) and cleaned up after processing.
 
 ---
 
@@ -40,9 +45,8 @@
 
 ## Phase 2: Backend - Core Processing Pipeline [DONE]
 
-- [x] **`main.py`** — FastAPI app for local dev (in-memory jobs)
-- [x] **`pdf_processor.py`** — PDF text extraction via pdfplumber
-- [x] **`generator.py`** — Claude Opus 4.6 HTML generation
+- [x] **`main.py`** — FastAPI app for local dev (in-memory jobs, uploads to ShareIt bucket)
+- [x] **`generator.py`** — Sends PDF URL to Claude Opus 4.6, gets back interactive HTML
 - [x] **`gist_publisher.py`** — Public GitHub Gist creation, returns gistpreview URL
 
 ---
@@ -56,12 +60,12 @@
 
 ## Phase 4: AWS Infrastructure [DONE]
 
-- [x] **`lambda_upload.py`** — Parses multipart PDF, stores in S3, creates DynamoDB record, invokes processor async
-- [x] **`lambda_process.py`** — Reads PDF from S3, runs pipeline, updates DynamoDB
+- [x] **`lambda_upload.py`** — Parses multipart PDF, stores in ShareIt S3 bucket, creates DynamoDB record, invokes processor async
+- [x] **`lambda_process.py`** — Builds PDF URL, sends to Claude, publishes gist, updates DynamoDB, cleans up PDF
 - [x] **`lambda_status.py`** — Reads job status from DynamoDB
 - [x] **`aws/nowigetit.yaml`** — CloudFormation template:
   - S3 bucket for frontend (static website hosting, public read)
-  - S3 bucket for temporary PDF storage (1-day lifecycle expiry)
+  - ShareIt S3 bucket (existing, public) for temporary PDF hosting
   - DynamoDB table with TTL
   - 3 Lambda functions (upload 30s/256MB, status 10s/128MB, process 120s/512MB)
   - HTTP API Gateway with CORS
@@ -86,11 +90,10 @@ EXPERIMENTS/NOWIGETIT/
 ├── backend/
 │   ├── .venv/
 │   ├── main.py              # FastAPI app (local dev)
-│   ├── pdf_processor.py     # PDF text extraction
-│   ├── generator.py         # Claude Opus 4.6 HTML generation
+│   ├── generator.py         # Send PDF URL to Claude, get HTML back
 │   ├── gist_publisher.py    # GitHub Gist API (public gists)
-│   ├── lambda_upload.py     # Lambda: receive PDF, store S3, kick off processing
-│   ├── lambda_process.py    # Lambda: extract → Claude → gist → update DynamoDB
+│   ├── lambda_upload.py     # Lambda: receive PDF, store in ShareIt bucket, kick off processing
+│   ├── lambda_process.py    # Lambda: URL → Claude → gist → update DynamoDB → cleanup
 │   ├── lambda_status.py     # Lambda: return job status from DynamoDB
 │   ├── requirements.txt
 │   └── static/

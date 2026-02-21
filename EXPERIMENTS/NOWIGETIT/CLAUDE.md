@@ -9,11 +9,13 @@ NowIGetIt — upload a scientific PDF, get back a shareable interactive web page
 - **Backend:** Python FastAPI in `backend/`. Serves the static frontend and exposes upload/status APIs.
 - **Frontend:** Single `backend/static/index.html` file. Vanilla HTML/CSS/JS. No build step.
 - **Job storage:** In-memory dict (local), DynamoDB (AWS).
+- **PDF flow:** Upload → ShareIt S3 bucket → URL sent to Claude → cleanup after processing.
 
 ### AWS Deployment
 - **Frontend:** S3 static website hosting (`index.html` + `config.js`)
 - **API:** HTTP API Gateway → Lambda functions
-- **Processing flow:** Upload Lambda (stores PDF in S3, writes DynamoDB, invokes Process Lambda async) → Process Lambda (extracts text, calls Claude, creates gist, updates DynamoDB) → Status Lambda (reads DynamoDB)
+- **Processing flow:** Upload Lambda (stores PDF in ShareIt S3 bucket, writes DynamoDB, invokes Process Lambda async) → Process Lambda (sends PDF URL to Claude, creates gist, updates DynamoDB, deletes PDF) → Status Lambda (reads DynamoDB)
+- **S3 buckets:** Frontend bucket (created by CloudFormation) + ShareIt bucket (`share-it-amroja`, existing public bucket for temporary PDF hosting)
 - **Infrastructure:** Single CloudFormation template in `aws/nowigetit.yaml`
 
 ## Development
@@ -23,6 +25,7 @@ NowIGetIt — upload a scientific PDF, get back a shareable interactive web page
 - Required env vars in `.env` at project root: `ANTHROPIC_API_KEY`, `GITHUB_TOKEN`
 
 ## Key Decisions
+- PDFs are sent to Claude via URL (not base64). Uploaded to public ShareIt bucket, Claude fetches directly, PDF deleted after processing.
 - Gists are always **public**, always on the `jbdamask` account.
 - Frontend is intentionally minimal — no React, no build tools.
 - Processing can take 30-60s. Frontend polls `GET /api/status/{job_id}`.
