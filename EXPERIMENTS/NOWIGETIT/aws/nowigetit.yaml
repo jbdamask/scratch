@@ -1,0 +1,296 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: NowIGetIt - Transform scientific PDFs into interactive web apps
+
+Parameters:
+  DeploymentBucket:
+    Type: String
+    Description: S3 bucket containing Lambda deployment packages
+
+  LambdaCodeKey:
+    Type: String
+    Default: nowigetit/lambda-code.zip
+    Description: S3 key for the Lambda deployment zip
+
+  ShareItBucket:
+    Type: String
+    Default: share-it-amroja
+    Description: Existing public S3 bucket for temporary PDF hosting (Claude fetches PDFs from here)
+
+  ShareItUrl:
+    Type: String
+    Default: http://share-it-amroja.s3-website-us-east-1.amazonaws.com
+    Description: Public website URL for the ShareIt bucket
+
+Resources:
+  # ─────────────────────────────────────────────────────────────────
+  # S3 - Frontend static website
+  # ─────────────────────────────────────────────────────────────────
+
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      WebsiteConfiguration:
+        IndexDocument: index.html
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+
+  # ─────────────────────────────────────────────────────────────────
+  # DynamoDB - Job status tracking
+  # ─────────────────────────────────────────────────────────────────
+
+  JobsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${AWS::StackName}-jobs'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: job_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: job_id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+
+  # ─────────────────────────────────────────────────────────────────
+  # IAM Role - Shared by all Lambdas
+  # ─────────────────────────────────────────────────────────────────
+
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${AWS::StackName}-lambda-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: CloudWatchLogs
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/${AWS::StackName}-*:*'
+        - PolicyName: DynamoDB
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                  - dynamodb:UpdateItem
+                Resource: !GetAtt JobsTable.Arn
+        - PolicyName: S3ShareIt
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub 'arn:aws:s3:::${ShareItBucket}/nowigetit/*'
+        - PolicyName: InvokeProcessor
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - lambda:InvokeFunction
+                Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-process'
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/anthropic-api-key-*'
+                  - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/github-token-*'
+
+  # ─────────────────────────────────────────────────────────────────
+  # Lambda - Upload handler
+  # ─────────────────────────────────────────────────────────────────
+
+  UploadFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-upload'
+      Runtime: python3.12
+      Handler: lambda_upload.handler
+      Role: !GetAtt LambdaRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        S3Bucket: !Ref DeploymentBucket
+        S3Key: !Ref LambdaCodeKey
+      Environment:
+        Variables:
+          SHAREIT_BUCKET: !Ref ShareItBucket
+          JOBS_TABLE: !Ref JobsTable
+          PROCESSOR_FUNCTION_NAME: !Sub '${AWS::StackName}-process'
+          ALLOWED_ORIGIN: !GetAtt FrontendBucket.WebsiteURL
+
+  # ─────────────────────────────────────────────────────────────────
+  # Lambda - Status handler
+  # ─────────────────────────────────────────────────────────────────
+
+  StatusFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-status'
+      Runtime: python3.12
+      Handler: lambda_status.handler
+      Role: !GetAtt LambdaRole.Arn
+      Timeout: 10
+      MemorySize: 128
+      Code:
+        S3Bucket: !Ref DeploymentBucket
+        S3Key: !Ref LambdaCodeKey
+      Environment:
+        Variables:
+          JOBS_TABLE: !Ref JobsTable
+          ALLOWED_ORIGIN: !GetAtt FrontendBucket.WebsiteURL
+
+  # ─────────────────────────────────────────────────────────────────
+  # Lambda - Processing handler (heavy lifting)
+  # ─────────────────────────────────────────────────────────────────
+
+  ProcessFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${AWS::StackName}-process'
+      Runtime: python3.12
+      Handler: lambda_process.handler
+      Role: !GetAtt LambdaRole.Arn
+      Timeout: 300
+      MemorySize: 512
+      Code:
+        S3Bucket: !Ref DeploymentBucket
+        S3Key: !Ref LambdaCodeKey
+      Environment:
+        Variables:
+          JOBS_TABLE: !Ref JobsTable
+          ANTHROPIC_API_KEY_ARN: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/anthropic-api-key'
+          GITHUB_TOKEN_ARN: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/github-token'
+          SHAREIT_BUCKET: !Ref ShareItBucket
+          SHAREIT_URL: !Ref ShareItUrl
+
+  # ─────────────────────────────────────────────────────────────────
+  # API Gateway HTTP API
+  # ─────────────────────────────────────────────────────────────────
+
+  HttpApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${AWS::StackName}-api'
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowHeaders:
+          - Content-Type
+        AllowMethods:
+          - POST
+          - GET
+          - OPTIONS
+        AllowOrigins:
+          - !GetAtt FrontendBucket.WebsiteURL
+
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref HttpApi
+      StageName: $default
+      AutoDeploy: true
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 5
+        ThrottlingRateLimit: 2
+
+  # Upload route: POST /api/upload
+  UploadIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt UploadFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  UploadRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: POST /api/upload
+      Target: !Sub 'integrations/${UploadIntegration}'
+
+  UploadPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref UploadFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*'
+
+  # Status route: GET /api/status/{job_id}
+  StatusIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref HttpApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !GetAtt StatusFunction.Arn
+      PayloadFormatVersion: '2.0'
+
+  StatusRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref HttpApi
+      RouteKey: GET /api/status/{job_id}
+      Target: !Sub 'integrations/${StatusIntegration}'
+
+  StatusPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref StatusFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*'
+
+Outputs:
+  FrontendUrl:
+    Description: Static website URL for the frontend
+    Value: !GetAtt FrontendBucket.WebsiteURL
+
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !GetAtt HttpApi.ApiEndpoint
+
+  FrontendBucketName:
+    Description: Name of the frontend S3 bucket
+    Value: !Ref FrontendBucket
+
+  JobsTableName:
+    Description: Name of the DynamoDB jobs table
+    Value: !Ref JobsTable
