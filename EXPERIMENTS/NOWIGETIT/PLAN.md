@@ -5,106 +5,68 @@
 ## Architecture Overview
 
 ```
-┌─────────────────────┐       ┌──────────────────────────────┐       ┌─────────────────┐
-│  Frontend (vanilla)  │──────▶│   Backend (FastAPI + Claude) │──────▶│  GitHub Gists   │
-│  static/index.html   │  PDF  │   Anthropic SDK (Opus 4.6)  │  HTML │  (jbdamask)     │
-│  upload + result     │◀──────│   pdfplumber + requests      │◀──────│  always public  │
-│                      │  URL  │                              │  URL  │                 │
-└──────────────────────┘       └──────────────────────────────┘       └─────────────────┘
-         ▲                                 ▲
-         │                                 │
-         └──── AWS CloudFormation ─────────┘
-               S3 + Lambda + API Gateway
+┌──────────────────┐    ┌──────────────────────┐    ┌────────────────────┐    ┌──────────────┐
+│  S3 Static Site  │    │  HTTP API Gateway     │    │  Lambda (process)  │    │ GitHub Gists │
+│  index.html      │    │                       │    │  Claude Opus 4.6   │──▶│ (jbdamask)   │
+│  config.js       │    │  POST /api/upload ────│──▶ Lambda (upload)     │    │ always public│
+│                  │    │  GET  /api/status/ ───│──▶ Lambda (status)     │    └──────────────┘
+└──────────────────┘    └──────────────────────┘    └────────────────────┘
+                                                      │          ▲
+                                                      ▼          │
+                                                    ┌──────┐  ┌──────────┐
+                                                    │ S3   │  │ DynamoDB │
+                                                    │ PDFs │  │ Jobs     │
+                                                    └──────┘  └──────────┘
 ```
 
-## User Flow
+## Async Processing Flow
 
-1. User visits branded landing page
-2. Uploads a scientific PDF (file picker or drag-and-drop)
-3. Backend extracts text from PDF
-4. Claude Opus 4.6 generates an interactive single-page HTML
-5. HTML is saved as a public GitHub Gist (on jbdamask's account)
-6. User receives a shareable gistpreview URL (e.g. `https://gistpreview.github.io/?<gist_id>`)
+1. User uploads PDF via frontend
+2. Upload Lambda: stores PDF in S3, creates DynamoDB job (`status: processing`), invokes Process Lambda async, returns `job_id`
+3. Frontend polls `GET /api/status/{job_id}` every 2 seconds
+4. Process Lambda: reads PDF from S3 → extracts text → Claude generates HTML → publishes Gist → updates DynamoDB (`status: complete`, `url: ...`)
+5. Status Lambda returns job status from DynamoDB
+6. Frontend displays the gistpreview URL
 
 ---
 
 ## Phase 1: Project Scaffolding [DONE]
 
-**Goal:** Set up folder structure, tooling, and configuration files.
-
-### Completed
 - [x] `backend/` directory with FastAPI app, module files, requirements.txt
 - [x] `backend/static/index.html` — vanilla HTML/CSS/JS frontend (no build step)
 - [x] `.gitignore`, `.env.example`, `CLAUDE.md`, `start.sh`
-
-### Key Dependencies
-**Backend:** fastapi, uvicorn, anthropic, pdfplumber, python-dotenv, requests, python-multipart
-
-**Frontend:** None — single HTML file served by FastAPI.
-
-### Env Vars
-```
-ANTHROPIC_API_KEY=sk-ant-...
-GITHUB_TOKEN=ghp_...          # PAT with gist scope
-```
 
 ---
 
 ## Phase 2: Backend - Core Processing Pipeline [DONE]
 
-All backend modules are implemented and ready for local testing:
-
-- [x] **`main.py`** — FastAPI app, serves static frontend, `POST /api/upload`, `GET /api/status/{job_id}`
-- [x] **`pdf_processor.py`** — Extract text from uploaded PDF using pdfplumber
-- [x] **`generator.py`** — Send extracted text to Claude Opus 4.6, parse HTML from response
-- [x] **`gist_publisher.py`** — Create public GitHub Gist, return gistpreview URL
-
-### API Contract
-```
-POST /api/upload
-  Content-Type: multipart/form-data
-  Body: file=<pdf>
-  Response: { "job_id": "uuid" }
-
-GET /api/status/{job_id}
-  Response: { "status": "processing" }
-        or: { "status": "complete", "url": "https://gistpreview.github.io/?..." }
-        or: { "status": "error", "error": "..." }
-```
+- [x] **`main.py`** — FastAPI app for local dev (in-memory jobs)
+- [x] **`pdf_processor.py`** — PDF text extraction via pdfplumber
+- [x] **`generator.py`** — Claude Opus 4.6 HTML generation
+- [x] **`gist_publisher.py`** — Public GitHub Gist creation, returns gistpreview URL
 
 ---
 
 ## Phase 3: Frontend [DONE]
 
-Single `backend/static/index.html` — vanilla HTML/CSS/JS:
-- [x] Branded landing page ("NowIGetIt — Scientific papers, actually explained.")
-- [x] Drag-and-drop + file picker (PDF only)
-- [x] Processing spinner while Claude generates
-- [x] Result display with clickable URL + copy button
-- [x] Error state display
-- [x] Responsive
+- [x] Branded landing page, drag-and-drop upload, processing spinner, result URL + copy button
+- [x] `config.js` support — `window.API_BASE` for S3 deployment, absent for local dev
 
 ---
 
-## Phase 4: AWS Infrastructure (CloudFormation)
+## Phase 4: AWS Infrastructure [DONE]
 
-**Goal:** Deploy via a single CloudFormation template.
-
-### Tasks
-- [ ] **`aws/nowigetit.yaml`** — CloudFormation template containing:
-  - **S3 Bucket** — Host the static frontend (index.html)
-  - **Lambda Function** — Run the Python backend (PDF → Claude → Gist)
-  - **API Gateway (HTTP)** — Route `/api/*` to Lambda, serve frontend from S3
-  - **IAM Roles** — Lambda execution role
-  - **CloudFront Distribution** — CDN for S3 + API Gateway
-  - **Parameters** — `AnthropicApiKey`, `GithubToken`
-  - **Outputs** — CloudFront URL, API endpoint
-
-### Architecture Notes
-- Lambda needs a container image for `pdfplumber` (native deps)
-- Lambda timeout should be 120s+ (Claude generation takes 30-60s)
-- API Gateway timeout max is 29s → use Lambda function URL or async pattern
-- Async pattern (current design): upload returns job_id, frontend polls status
+- [x] **`lambda_upload.py`** — Parses multipart PDF, stores in S3, creates DynamoDB record, invokes processor async
+- [x] **`lambda_process.py`** — Reads PDF from S3, runs pipeline, updates DynamoDB
+- [x] **`lambda_status.py`** — Reads job status from DynamoDB
+- [x] **`aws/nowigetit.yaml`** — CloudFormation template:
+  - S3 bucket for frontend (static website hosting, public read)
+  - S3 bucket for temporary PDF storage (1-day lifecycle expiry)
+  - DynamoDB table with TTL
+  - 3 Lambda functions (upload 30s/256MB, status 10s/128MB, process 120s/512MB)
+  - HTTP API Gateway with CORS
+  - Shared IAM role
+- [x] **`deploy.sh`** — Packages Lambda code, uploads to S3, deploys stack, uploads frontend with generated `config.js`
 
 ---
 
@@ -123,10 +85,13 @@ Single `backend/static/index.html` — vanilla HTML/CSS/JS:
 EXPERIMENTS/NOWIGETIT/
 ├── backend/
 │   ├── .venv/
-│   ├── main.py              # FastAPI app + serves static frontend
+│   ├── main.py              # FastAPI app (local dev)
 │   ├── pdf_processor.py     # PDF text extraction
 │   ├── generator.py         # Claude Opus 4.6 HTML generation
 │   ├── gist_publisher.py    # GitHub Gist API (public gists)
+│   ├── lambda_upload.py     # Lambda: receive PDF, store S3, kick off processing
+│   ├── lambda_process.py    # Lambda: extract → Claude → gist → update DynamoDB
+│   ├── lambda_status.py     # Lambda: return job status from DynamoDB
 │   ├── requirements.txt
 │   └── static/
 │       └── index.html       # Vanilla HTML/CSS/JS frontend
@@ -136,13 +101,25 @@ EXPERIMENTS/NOWIGETIT/
 ├── .gitignore
 ├── CLAUDE.md
 ├── PLAN.md
-└── start.sh
+├── deploy.sh                # Build, package, deploy to AWS
+└── start.sh                 # Local dev server
+```
+
+---
+
+## Deployment
+
+```bash
+# Local
+./start.sh
+
+# AWS (requires .env with ANTHROPIC_API_KEY and GITHUB_TOKEN)
+./deploy.sh
 ```
 
 ---
 
 ## Open Questions
 
-1. **Lambda packaging** — `pdfplumber` has native deps. Docker container image is likely the way to go.
-2. **Long papers** — Very long papers may exceed Claude's context. Consider a two-pass approach (summarize → generate) for papers over ~50 pages.
-3. **PDF size limit** — Currently 10 MB. Adjust if needed.
+1. **Long papers** — Very long papers may exceed Claude's context. Consider a two-pass approach (summarize → generate) for papers over ~50 pages.
+2. **PDF size limit** — Currently 10 MB. Adjust if needed.

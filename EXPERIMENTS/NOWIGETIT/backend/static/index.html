@@ -196,7 +196,12 @@
     </div>
   </div>
 
+  <!-- For S3 deployment: create config.js with window.API_BASE = "https://your-api-gw-url"; -->
+  <script src="config.js"></script>
   <script>
+    // API_BASE: empty string for local dev (relative paths), set in config.js for S3
+    const API_BASE = window.API_BASE || '';
+
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const fileName = document.getElementById('fileName');
@@ -258,7 +263,7 @@
         const form = new FormData();
         form.append('file', selectedFile);
 
-        const res = await fetch('/api/upload', { method: 'POST', body: form });
+        const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: form });
         if (!res.ok) {
           const err = await res.json();
           throw new Error(err.detail || 'Upload failed');
@@ -277,7 +282,7 @@
       while (true) {
         await sleep(2000);
         try {
-          const res = await fetch(`/api/status/${jobId}`);
+          const res = await fetch(`${API_BASE}/api/status/${jobId}`);
           const data = await res.json();
 
           if (data.status === 'complete') {
