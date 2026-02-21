@@ -21,6 +21,16 @@ Parameters:
     Default: nowigetit/lambda-code.zip
     Description: S3 key for the Lambda deployment zip
 
+  ShareItBucket:
+    Type: String
+    Default: share-it-amroja
+    Description: Existing public S3 bucket for temporary PDF hosting (Claude fetches PDFs from here)
+
+  ShareItUrl:
+    Type: String
+    Default: http://share-it-amroja.s3-website-us-east-1.amazonaws.com
+    Description: Public website URL for the ShareIt bucket
+
 Resources:
   # ─────────────────────────────────────────────────────────────────
   # S3 - Frontend static website
@@ -128,6 +138,15 @@ Resources:
                   - s3:GetObject
                   - s3:DeleteObject
                 Resource: !Sub '${PdfBucket.Arn}/*'
+        - PolicyName: S3ShareIt
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:DeleteObject
+                Resource: !Sub 'arn:aws:s3:::${ShareItBucket}/nowigetit/*'
         - PolicyName: InvokeProcessor
           PolicyDocument:
             Version: '2012-10-17'
@@ -201,6 +220,8 @@ Resources:
           JOBS_TABLE: !Ref JobsTable
           ANTHROPIC_API_KEY: !Ref AnthropicApiKey
           GITHUB_TOKEN: !Ref GithubToken
+          SHAREIT_BUCKET: !Ref ShareItBucket
+          SHAREIT_URL: !Ref ShareItUrl
 
   # ─────────────────────────────────────────────────────────────────
   # API Gateway HTTP API

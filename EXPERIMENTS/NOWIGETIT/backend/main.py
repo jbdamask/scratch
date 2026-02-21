@@ -1,7 +1,9 @@
+import os
 import uuid
 from pathlib import Path
 from contextlib import asynccontextmanager
 
+import boto3
 from fastapi import FastAPI, UploadFile, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -12,6 +14,11 @@ from gist_publisher import create_gist
 
 # Load .env from project root
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+SHAREIT_BUCKET = os.environ.get("SHAREIT_BUCKET", "share-it-amroja")
+SHAREIT_URL = os.environ.get("SHAREIT_URL", "http://share-it-amroja.s3-website-us-east-1.amazonaws.com")
+
+s3 = boto3.client("s3")
 
 # In-memory job store: job_id -> { status, url, error }
 jobs: dict[str, dict] = {}
@@ -37,14 +44,26 @@ async def upload_pdf(file: UploadFile):
 
     job_id = str(uuid.uuid4())
     jobs[job_id] = {"status": "processing"}
+    public_key = f"nowigetit/{job_id}.pdf"
 
-    # Run synchronously for now — move to background task in Phase 4 (Lambda)
     try:
-        html = generate_html(contents)
+        # Upload PDF to public ShareIt bucket
+        s3.put_object(
+            Bucket=SHAREIT_BUCKET,
+            Key=public_key,
+            Body=contents,
+            ContentType="application/pdf",
+        )
+        pdf_url = f"{SHAREIT_URL}/{public_key}"
+
+        html = generate_html(pdf_url)
         gist_url = create_gist(html, file.filename)
         jobs[job_id] = {"status": "complete", "url": gist_url}
     except Exception as e:
         jobs[job_id] = {"status": "error", "error": str(e)}
+    finally:
+        # Clean up PDF from public bucket
+        s3.delete_object(Bucket=SHAREIT_BUCKET, Key=public_key)
 
     return {"job_id": job_id}
 
