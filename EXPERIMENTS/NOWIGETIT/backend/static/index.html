@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NowIGetIt</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .tagline {
+      color: #94a3b8;
+      font-size: 1.1rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      border: 2px dashed #334155;
+      border-radius: 12px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #6366f1;
+      background: rgba(99, 102, 241, 0.05);
+    }
+
+    .drop-zone .icon {
+      font-size: 2.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .drop-zone p {
+      color: #94a3b8;
+      font-size: 0.95rem;
+    }
+
+    .drop-zone .filename {
+      color: #e2e8f0;
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+
+    .drop-zone input[type="file"] {
+      display: none;
+    }
+
+    /* Button */
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 0.85rem;
+      margin-top: 1.25rem;
+      background: #6366f1;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover { background: #4f46e5; }
+    .btn:disabled { background: #334155; cursor: not-allowed; }
+
+    /* Status area */
+    .status {
+      margin-top: 1.5rem;
+      padding: 1.25rem;
+      border-radius: 10px;
+      display: none;
+    }
+
+    .status.processing {
+      display: block;
+      background: #1e293b;
+      border: 1px solid #334155;
+    }
+
+    .status.complete {
+      display: block;
+      background: rgba(34, 197, 94, 0.08);
+      border: 1px solid #166534;
+    }
+
+    .status.error {
+      display: block;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid #991b1b;
+    }
+
+    .status .label {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .status.processing .label { color: #a5b4fc; }
+    .status.complete .label { color: #4ade80; }
+    .status.error .label { color: #f87171; }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid #6366f1;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-right: 0.4rem;
+      vertical-align: middle;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-url {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .result-url a {
+      color: #6366f1;
+      word-break: break-all;
+      font-size: 0.9rem;
+    }
+
+    .copy-btn {
+      background: none;
+      border: 1px solid #334155;
+      color: #94a3b8;
+      padding: 0.3rem 0.6rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      transition: border-color 0.2s;
+    }
+
+    .copy-btn:hover { border-color: #6366f1; color: #e2e8f0; }
+
+    .status .detail {
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>NowIGetIt</h1>
+  <p class="tagline">Scientific papers, actually explained.</p>
+
+  <div class="container">
+    <div class="drop-zone" id="dropZone">
+      <div class="icon">📄</div>
+      <p>Drop your PDF here, or click to browse</p>
+      <p class="filename" id="fileName"></p>
+      <input type="file" id="fileInput" accept=".pdf">
+    </div>
+
+    <button class="btn" id="uploadBtn" disabled>Upload & Generate</button>
+
+    <div class="status" id="status">
+      <div class="label" id="statusLabel"></div>
+      <div class="detail" id="statusDetail"></div>
+      <div class="result-url" id="resultUrl" style="display:none">
+        <a id="resultLink" href="#" target="_blank"></a>
+        <button class="copy-btn" id="copyBtn">Copy</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const uploadBtn = document.getElementById('uploadBtn');
+    const status = document.getElementById('status');
+    const statusLabel = document.getElementById('statusLabel');
+    const statusDetail = document.getElementById('statusDetail');
+    const resultUrl = document.getElementById('resultUrl');
+    const resultLink = document.getElementById('resultLink');
+    const copyBtn = document.getElementById('copyBtn');
+
+    let selectedFile = null;
+
+    // Drop zone interactions
+    dropZone.addEventListener('click', () => fileInput.click());
+
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      const file = e.dataTransfer.files[0];
+      if (file && file.type === 'application/pdf') selectFile(file);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) selectFile(fileInput.files[0]);
+    });
+
+    function selectFile(file) {
+      selectedFile = file;
+      fileName.textContent = file.name;
+      uploadBtn.disabled = false;
+      resetStatus();
+    }
+
+    function resetStatus() {
+      status.className = 'status';
+      resultUrl.style.display = 'none';
+      statusLabel.textContent = '';
+      statusDetail.textContent = '';
+    }
+
+    // Upload & poll
+    uploadBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      uploadBtn.disabled = true;
+      showProcessing('Uploading PDF...');
+
+      try {
+        const form = new FormData();
+        form.append('file', selectedFile);
+
+        const res = await fetch('/api/upload', { method: 'POST', body: form });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Upload failed');
+        }
+
+        const { job_id } = await res.json();
+        showProcessing('Generating your interactive page... this may take a minute.');
+        await pollStatus(job_id);
+      } catch (err) {
+        showError(err.message);
+        uploadBtn.disabled = false;
+      }
+    });
+
+    async function pollStatus(jobId) {
+      while (true) {
+        await sleep(2000);
+        try {
+          const res = await fetch(`/api/status/${jobId}`);
+          const data = await res.json();
+
+          if (data.status === 'complete') {
+            showComplete(data.url);
+            uploadBtn.disabled = false;
+            return;
+          } else if (data.status === 'error') {
+            showError(data.error || 'Something went wrong.');
+            uploadBtn.disabled = false;
+            return;
+          }
+          // still processing — keep polling
+        } catch {
+          // Network error during poll — keep trying
+        }
+      }
+    }
+
+    function showProcessing(msg) {
+      status.className = 'status processing';
+      statusLabel.innerHTML = '<span class="spinner"></span> Processing';
+      statusDetail.textContent = msg;
+      resultUrl.style.display = 'none';
+    }
+
+    function showComplete(url) {
+      status.className = 'status complete';
+      statusLabel.textContent = 'Your page is ready!';
+      statusDetail.textContent = '';
+      resultLink.href = url;
+      resultLink.textContent = url;
+      resultUrl.style.display = 'flex';
+    }
+
+    function showError(msg) {
+      status.className = 'status error';
+      statusLabel.textContent = 'Error';
+      statusDetail.textContent = msg;
+      resultUrl.style.display = 'none';
+    }
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(resultLink.href);
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+    });
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  </script>
+</body>
+</html>

@@ -6,11 +6,11 @@
 
 ```
 ┌─────────────────────┐       ┌──────────────────────────────┐       ┌─────────────────┐
-│   Frontend (React)  │──────▶│   Backend (FastAPI + Claude) │──────▶│  GitHub Gists   │
-│   PDF Upload Page   │  PDF  │   Anthropic Agent SDK        │  HTML │  (jbdamask)     │
-│   Result Display    │◀──────│   Opus 4.6                   │◀──────│                 │
-│                     │  URL  │                              │  URL  │                 │
-└─────────────────────┘       └──────────────────────────────┘       └─────────────────┘
+│  Frontend (vanilla)  │──────▶│   Backend (FastAPI + Claude) │──────▶│  GitHub Gists   │
+│  static/index.html   │  PDF  │   Anthropic SDK (Opus 4.6)  │  HTML │  (jbdamask)     │
+│  upload + result     │◀──────│   pdfplumber + requests      │◀──────│  always public  │
+│                      │  URL  │                              │  URL  │                 │
+└──────────────────────┘       └──────────────────────────────┘       └─────────────────┘
          ▲                                 ▲
          │                                 │
          └──── AWS CloudFormation ─────────┘
@@ -23,38 +23,26 @@
 2. Uploads a scientific PDF (file picker or drag-and-drop)
 3. Backend extracts text from PDF
 4. Claude Opus 4.6 generates an interactive single-page HTML
-5. HTML is saved as a GitHub Gist (on jbdamask's account)
+5. HTML is saved as a public GitHub Gist (on jbdamask's account)
 6. User receives a shareable gistpreview URL (e.g. `https://gistpreview.github.io/?<gist_id>`)
 
 ---
 
-## Phase 1: Project Scaffolding
+## Phase 1: Project Scaffolding [DONE]
 
-**Goal:** Set up folder structure, tooling, and configuration files following repo conventions.
+**Goal:** Set up folder structure, tooling, and configuration files.
 
-### Tasks
-- [ ] Create `backend/` and `frontend/` directories
-- [ ] Initialize Python virtual environment (`backend/.venv`)
-- [ ] Create `backend/requirements.txt` with initial dependencies
-- [ ] Scaffold frontend with Vite + React 18 + TypeScript
-- [ ] Install shadcn/ui + Tailwind CSS
-- [ ] Create `.gitignore`, `CLAUDE.md`, `start.sh`
-- [ ] Create `.env.example` documenting required env vars
+### Completed
+- [x] `backend/` directory with FastAPI app, module files, requirements.txt
+- [x] `backend/static/index.html` — vanilla HTML/CSS/JS frontend (no build step)
+- [x] `.gitignore`, `.env.example`, `CLAUDE.md`, `start.sh`
 
 ### Key Dependencies
-**Backend:**
-- `fastapi` + `uvicorn` — API server
-- `anthropic` — Agent SDK (Opus 4.6)
-- `pdfplumber` — PDF text extraction
-- `python-dotenv` — env config
-- `requests` — GitHub Gist API calls
+**Backend:** fastapi, uvicorn, anthropic, pdfplumber, python-dotenv, requests, python-multipart
 
-**Frontend:**
-- Vite + React 18 + TypeScript
-- shadcn/ui + Tailwind CSS
-- Lucide React (icons)
+**Frontend:** None — single HTML file served by FastAPI.
 
-### Env Vars Needed
+### Env Vars
 ```
 ANTHROPIC_API_KEY=sk-ant-...
 GITHUB_TOKEN=ghp_...          # PAT with gist scope
@@ -62,180 +50,99 @@ GITHUB_TOKEN=ghp_...          # PAT with gist scope
 
 ---
 
-## Phase 2: Backend - Core Processing Pipeline
+## Phase 2: Backend - Core Processing Pipeline [DONE]
 
-**Goal:** Build the FastAPI server that accepts a PDF, runs it through Claude, and returns a gist preview URL.
+All backend modules are implemented and ready for local testing:
 
-### Tasks
-- [ ] **`main.py`** — FastAPI app with CORS, health check, and upload endpoint
-- [ ] **`pdf_processor.py`** — Extract text from uploaded PDF using pdfplumber
-- [ ] **`generator.py`** — Send extracted text to Claude Opus 4.6 via Anthropic SDK
-  - System prompt: *"make a really freaking cool-looking interactive single-page website that demonstrates the contents of this paper to a layperson"*
-  - Include extracted text as user message
-  - Parse HTML from Claude's response
-- [ ] **`gist_publisher.py`** — Create a GitHub Gist via REST API
-  - POST to `https://api.github.com/gists`
-  - Use `GITHUB_TOKEN` for auth
-  - Return gist ID
-- [ ] **Upload endpoint** (`POST /api/upload`)
-  - Accept PDF file upload
-  - Pipeline: extract text → generate HTML → publish gist → return URL
-  - Return `{ "url": "https://gistpreview.github.io/?<gist_id>" }`
-- [ ] **Error handling** — Graceful failures for bad PDFs, API errors, rate limits
+- [x] **`main.py`** — FastAPI app, serves static frontend, `POST /api/upload`, `GET /api/status/{job_id}`
+- [x] **`pdf_processor.py`** — Extract text from uploaded PDF using pdfplumber
+- [x] **`generator.py`** — Send extracted text to Claude Opus 4.6, parse HTML from response
+- [x] **`gist_publisher.py`** — Create public GitHub Gist, return gistpreview URL
 
 ### API Contract
 ```
 POST /api/upload
   Content-Type: multipart/form-data
   Body: file=<pdf>
+  Response: { "job_id": "uuid" }
 
-Response 200:
-  { "url": "https://gistpreview.github.io/?41a23034435ab0ab927a71c233411ee8" }
-
-Response 4xx/5xx:
-  { "error": "description of what went wrong" }
+GET /api/status/{job_id}
+  Response: { "status": "processing" }
+        or: { "status": "complete", "url": "https://gistpreview.github.io/?..." }
+        or: { "status": "error", "error": "..." }
 ```
 
 ---
 
-## Phase 3: Frontend - Landing Page & Upload UI
+## Phase 3: Frontend [DONE]
 
-**Goal:** Build a branded, minimalist landing page with PDF upload and result display.
-
-### Tasks
-- [ ] **Landing page layout** — Clean header with "NowIGetIt" branding + tagline
-- [ ] **Upload component** — File input + drag-and-drop zone (PDF only)
-- [ ] **Processing state** — Loading indicator while Claude generates the page
-- [ ] **Result display** — Show clickable gistpreview URL + copy-to-clipboard button
-- [ ] **Error state** — User-friendly error messages
-- [ ] **Responsive design** — Works on mobile and desktop
-
-### UI Wireframe
-```
-┌──────────────────────────────────────────┐
-│              NowIGetIt                   │
-│  Scientific papers, actually explained.  │
-│                                          │
-│  ┌────────────────────────────────────┐  │
-│  │                                    │  │
-│  │     Drop your PDF here             │  │
-│  │     or click to browse             │  │
-│  │                                    │  │
-│  │         [ 📄 icon ]               │  │
-│  │                                    │  │
-│  └────────────────────────────────────┘  │
-│                                          │
-│  ┌────────────────────────────────────┐  │
-│  │  ✅ Your page is ready!            │  │
-│  │  https://gistpreview.github.io/... │  │
-│  │                        [ Copy 📋 ] │  │
-│  └────────────────────────────────────┘  │
-└──────────────────────────────────────────┘
-```
+Single `backend/static/index.html` — vanilla HTML/CSS/JS:
+- [x] Branded landing page ("NowIGetIt — Scientific papers, actually explained.")
+- [x] Drag-and-drop + file picker (PDF only)
+- [x] Processing spinner while Claude generates
+- [x] Result display with clickable URL + copy button
+- [x] Error state display
+- [x] Responsive
 
 ---
 
 ## Phase 4: AWS Infrastructure (CloudFormation)
 
-**Goal:** Deploy the full stack to AWS via a single CloudFormation template.
+**Goal:** Deploy via a single CloudFormation template.
 
 ### Tasks
 - [ ] **`aws/nowigetit.yaml`** — CloudFormation template containing:
-  - **S3 Bucket** — Host the built React frontend (static site)
-  - **Lambda Function** — Run the Python backend (PDF processing + Claude + Gist)
-  - **API Gateway (HTTP)** — Route `POST /api/upload` to Lambda
-  - **IAM Roles** — Lambda execution role with necessary permissions
-  - **CloudFront Distribution** — CDN for the S3-hosted frontend
-  - **Parameters** — `AnthropicApiKey`, `GithubToken` (as SecureString)
+  - **S3 Bucket** — Host the static frontend (index.html)
+  - **Lambda Function** — Run the Python backend (PDF → Claude → Gist)
+  - **API Gateway (HTTP)** — Route `/api/*` to Lambda, serve frontend from S3
+  - **IAM Roles** — Lambda execution role
+  - **CloudFront Distribution** — CDN for S3 + API Gateway
+  - **Parameters** — `AnthropicApiKey`, `GithubToken`
   - **Outputs** — CloudFront URL, API endpoint
 
 ### Architecture Notes
-- Lambda needs a layer or container image for `pdfplumber` (native deps)
-- Consider Lambda timeout — Claude generation could take 30-60s
-- API Gateway timeout max is 29s; may need async pattern:
-  - Option A: Increase Lambda timeout, use Lambda function URL instead of API Gateway
-  - Option B: Async flow — upload triggers Lambda, poll for result via second endpoint
-- Store secrets in AWS Secrets Manager or SSM Parameter Store (referenced in CloudFormation)
-
-### Async Pattern (Recommended)
-```
-POST /api/upload  →  Returns { "job_id": "abc123" }
-                     (Lambda starts processing async)
-
-GET /api/status/abc123  →  Returns { "status": "processing" }
-                           or      { "status": "complete", "url": "..." }
-```
-This avoids API Gateway timeout issues and gives a better UX with progress polling.
+- Lambda needs a container image for `pdfplumber` (native deps)
+- Lambda timeout should be 120s+ (Claude generation takes 30-60s)
+- API Gateway timeout max is 29s → use Lambda function URL or async pattern
+- Async pattern (current design): upload returns job_id, frontend polls status
 
 ---
 
 ## Phase 5: Integration & Polish
 
-**Goal:** End-to-end testing, documentation, and final polish.
-
-### Tasks
 - [ ] End-to-end test: upload PDF → get working gistpreview URL
-- [ ] Test with various paper types (short, long, heavy on figures/tables)
-- [ ] Add PDF size limit validation (frontend + backend)
-- [ ] Write `README.md` with setup instructions, architecture, usage
-- [ ] Write `CLAUDE.md` with agent development guidelines
-- [ ] Record any AWS deployment gotchas
+- [ ] Test with various paper types (short, long, figure-heavy)
+- [ ] Write `README.md`
+- [ ] Record AWS deployment gotchas
 
 ---
 
-## Project Structure (Target)
+## Project Structure
 
 ```
 EXPERIMENTS/NOWIGETIT/
 ├── backend/
 │   ├── .venv/
-│   ├── main.py              # FastAPI app
+│   ├── main.py              # FastAPI app + serves static frontend
 │   ├── pdf_processor.py     # PDF text extraction
-│   ├── generator.py         # Claude Agent SDK integration
-│   ├── gist_publisher.py    # GitHub Gist API
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── UploadZone.tsx
-│   │   │   └── ResultDisplay.tsx
-│   │   ├── lib/
-│   │   │   └── api.ts
-│   │   ├── App.tsx
-│   │   └── main.tsx
-│   ├── index.html
-│   ├── package.json
-│   ├── tailwind.config.js
-│   ├── tsconfig.json
-│   └── vite.config.ts
+│   ├── generator.py         # Claude Opus 4.6 HTML generation
+│   ├── gist_publisher.py    # GitHub Gist API (public gists)
+│   ├── requirements.txt
+│   └── static/
+│       └── index.html       # Vanilla HTML/CSS/JS frontend
 ├── aws/
 │   └── nowigetit.yaml       # CloudFormation template
 ├── .env.example
 ├── .gitignore
 ├── CLAUDE.md
-├── README.md
-├── PLAN.md                  # This file
+├── PLAN.md
 └── start.sh
 ```
 
 ---
 
-## Open Questions / Decisions
+## Open Questions
 
-1. **Async vs sync processing?** Claude generation could take 30-60s. API Gateway has a 29s timeout. Recommend async pattern with job polling (see Phase 4).
-2. **PDF size limit?** Suggest 10MB max to keep Lambda memory/time reasonable.
-3. **Claude context window usage** — Very long papers may need chunking or summarization before HTML generation. Consider a two-pass approach: summarize → generate.
-4. **Gist visibility** — Public or secret gists? Public means anyone with the URL can find it via search; secret means link-only access.
-5. **Lambda packaging** — `pdfplumber` has native dependencies. Options: Lambda container image (Docker) or Lambda layer with pre-built binaries.
-
----
-
-## Suggested Build Order
-
-Start local, deploy later:
-
-1. **Phase 1** → Scaffolding
-2. **Phase 2** → Backend (test with `curl` / Postman)
-3. **Phase 3** → Frontend (connect to local backend)
-4. **Phase 5** → Integration test locally
-5. **Phase 4** → AWS deployment (once it works end-to-end locally)
+1. **Lambda packaging** — `pdfplumber` has native deps. Docker container image is likely the way to go.
+2. **Long papers** — Very long papers may exceed Claude's context. Consider a two-pass approach (summarize → generate) for papers over ~50 pages.
+3. **PDF size limit** — Currently 10 MB. Adjust if needed.
