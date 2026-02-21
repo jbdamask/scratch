@@ -16,7 +16,7 @@ def create_gist(html_content: str, original_filename: str) -> str:
     response = requests.post(
         GIST_API_URL,
         headers={
-            "Authorization": f"token {token}",
+            "Authorization": f"Bearer {token}",
             "Accept": "application/vnd.github+json",
         },
         json={

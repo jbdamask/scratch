@@ -48,11 +48,16 @@ for secret_name_suffix in anthropic-api-key github-token; do
       --secret-id "$secret_name" \
       --secret-string "$secret_value" \
       --region "$REGION" > /dev/null
+    aws secretsmanager tag-resource \
+      --secret-id "$secret_name" \
+      --region "$REGION" \
+      --tags Key=Application,Value=NowIGetIt Key=Stack,Value="$STACK_NAME" > /dev/null
   else
     aws secretsmanager create-secret \
       --name "$secret_name" \
       --secret-string "$secret_value" \
-      --region "$REGION" > /dev/null
+      --region "$REGION" \
+      --tags Key=Application,Value=NowIGetIt Key=Stack,Value="$STACK_NAME" > /dev/null
   fi
 done
 
