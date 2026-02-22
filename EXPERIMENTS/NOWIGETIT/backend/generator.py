@@ -15,7 +15,7 @@ def generate_html(pdf_url: str) -> str:
 
     message = client.messages.create(
         model="claude-opus-4-6",
-        max_tokens=16000,
+        max_tokens=64000,
         system=SYSTEM_PROMPT,
         messages=[
             {
@@ -33,10 +33,18 @@ def generate_html(pdf_url: str) -> str:
         ],
     )
 
+    if message.stop_reason == "max_tokens":
+        raise ValueError("Claude response was truncated (hit token limit).")
+
     response_text = message.content[0].text
 
     # Extract HTML from the response (Claude may wrap it in ```html blocks)
     html_match = re.search(r"```html\s*([\s\S]*?)```", response_text)
+    if html_match:
+        return html_match.group(1).strip()
+
+    # Handle truncated code block (opening ```html but no closing ```)
+    html_match = re.search(r"```html\s*([\s\S]*)", response_text)
     if html_match:
         return html_match.group(1).strip()
 
