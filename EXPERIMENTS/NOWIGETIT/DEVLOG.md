@@ -4,7 +4,7 @@
 
 NowIGetIt takes scientific PDFs and transforms them into shareable, interactive web pages that explain the paper to a layperson. Upload a PDF, Claude reads the paper and generates a single-page HTML app, which gets published as a public GitHub Gist. The goal is making academic research accessible to anyone.
 
-**Status:** Active
+**Status:** Feature-complete (initial release)
 **Started:** 2026-02-21
 **Last Updated:** 2026-02-22
 
@@ -63,5 +63,17 @@ The frontend handles 429 responses with a specific message ("Daily limit reached
 Added per-job cost tracking. The Claude API response already includes `input_tokens` and `output_tokens` in the usage object -- `stream.get_final_message().usage` was already being called but the data was being thrown away. Now `generate_html()` returns a `(html, usage)` tuple, and the process Lambda calculates costs using Opus 4.6 pricing ($5/MTok input, $25/MTok output) and writes five fields to each job's DynamoDB record: `input_tokens`, `input_tokens_cost`, `output_tokens`, `output_tokens_cost`, and `total_cost`.
 
 The frontend displays a cost breakdown below the gist link after processing completes, showing input tokens, output tokens, and total cost. Keeps the operator aware of what each paper costs to process.
+
+---
+
+## 2026-02-22 - Final Polish: Footer and Secrets Descriptions
+
+Two small cleanup tasks to close out the initial build.
+
+Replaced the "Powered by Claude" footer with a proper copyright line ("&copy; 2026 Amroja, LLC") on the left and a link to johndamask.com on the right, using flexbox to keep them apart. Changed the footer from a `<p>` to a `<div>` to hold the two elements.
+
+Also added human-readable descriptions to the two Secrets Manager secrets (`nowigetit/anthropic-api-key` and `nowigetit/github-token`) in the deploy script. Both the create and update paths now set descriptions, so anyone browsing the AWS console can immediately see what each secret is for without having to trace through code.
+
+With these two changes deployed, all 8 beads issues are closed. The project is feature-complete for its initial release.
 
 ---
