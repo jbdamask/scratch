@@ -29,7 +29,7 @@ def _check_rate_limit(table):
     table.update_item(
         Key={"job_id": f"RATE_LIMIT#{today}"},
         UpdateExpression="SET request_count = if_not_exists(request_count, :zero) + :one, #ttl = if_not_exists(#ttl, :ttl_val)",
-        ConditionExpression="if_not_exists(request_count, :zero) < :limit",
+        ConditionExpression="attribute_not_exists(request_count) OR request_count < :limit",
         ExpressionAttributeNames={"#ttl": "ttl"},
         ExpressionAttributeValues={
             ":zero": 0,
