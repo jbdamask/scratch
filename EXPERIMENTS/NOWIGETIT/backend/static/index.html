@@ -608,6 +608,10 @@
         form.append('file', selectedFile);
 
         const res = await fetch(`${API_BASE}/api/upload`, { method: 'POST', body: form });
+        if (res.status === 429) {
+          const err = await res.json();
+          throw new Error(err.detail || 'Daily limit reached — please try again tomorrow.');
+        }
         if (!res.ok) {
           const err = await res.json();
           throw new Error(err.detail || 'Upload failed');

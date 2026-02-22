@@ -21,6 +21,12 @@ Parameters:
     Default: https://share-it-amroja.s3.amazonaws.com
     Description: Public HTTPS URL for the ShareIt bucket (Claude API requires HTTPS)
 
+  DailyProcessingLimit:
+    Type: Number
+    Default: 20
+    MinValue: 1
+    Description: Maximum number of PDFs that can be processed per day (global cap)
+
 Resources:
   # ─────────────────────────────────────────────────────────────────
   # S3 - Frontend static website
@@ -175,6 +181,7 @@ Resources:
           JOBS_TABLE: !Ref JobsTable
           PROCESSOR_FUNCTION_NAME: !Sub '${AWS::StackName}-process'
           ALLOWED_ORIGIN: !GetAtt FrontendBucket.WebsiteURL
+          DAILY_PROCESSING_LIMIT: !Ref DailyProcessingLimit
 
   # ─────────────────────────────────────────────────────────────────
   # Lambda - Status handler

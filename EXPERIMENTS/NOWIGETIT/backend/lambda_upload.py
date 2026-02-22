@@ -1,12 +1,14 @@
 """Lambda handler: receive PDF upload, store in S3, kick off processing."""
 
 import base64
+import datetime
 import json
 import os
 import time
 import uuid
 
 import boto3
+from botocore.exceptions import ClientError
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
@@ -16,6 +18,26 @@ SHAREIT_BUCKET = os.environ["SHAREIT_BUCKET"]
 TABLE = os.environ["JOBS_TABLE"]
 PROCESSOR_FN = os.environ["PROCESSOR_FUNCTION_NAME"]
 ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
+DAILY_LIMIT = int(os.environ.get("DAILY_PROCESSING_LIMIT", "20"))
+
+
+def _check_rate_limit(table):
+    """Atomically increment daily counter; raise ClientError if limit exceeded."""
+    today = datetime.date.today().isoformat()
+    ttl_val = int(time.time()) + 172800  # 48 hours
+
+    table.update_item(
+        Key={"job_id": f"RATE_LIMIT#{today}"},
+        UpdateExpression="SET request_count = if_not_exists(request_count, :zero) + :one, #ttl = if_not_exists(#ttl, :ttl_val)",
+        ConditionExpression="if_not_exists(request_count, :zero) < :limit",
+        ExpressionAttributeNames={"#ttl": "ttl"},
+        ExpressionAttributeValues={
+            ":zero": 0,
+            ":one": 1,
+            ":limit": DAILY_LIMIT,
+            ":ttl_val": ttl_val,
+        },
+    )
 
 
 def handler(event, context):
@@ -30,6 +52,19 @@ def handler(event, context):
         return {"statusCode": 200, "headers": headers, "body": ""}
 
     try:
+        # Check daily rate limit before doing any work
+        table = dynamodb.Table(TABLE)
+        try:
+            _check_rate_limit(table)
+        except ClientError as e:
+            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
+                return {
+                    "statusCode": 429,
+                    "headers": headers,
+                    "body": json.dumps({"detail": "Daily processing limit reached. Please try again tomorrow."}),
+                }
+            raise
+
         content_type = event.get("headers", {}).get("content-type", "")
 
         if "multipart/form-data" not in content_type:
@@ -76,7 +111,6 @@ def handler(event, context):
         )
 
         # Create job record in DynamoDB (TTL: 24 hours)
-        table = dynamodb.Table(TABLE)
         table.put_item(
             Item={
                 "job_id": job_id,
