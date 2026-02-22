@@ -21,13 +21,18 @@ Parameters:
     Default: https://share-it-amroja.s3.amazonaws.com
     Description: Public HTTPS URL for the ShareIt bucket (Claude API requires HTTPS)
 
-  DailyProcessingLimit:
-    Type: Number
-    Default: 20
-    MinValue: 1
-    Description: Maximum number of PDFs that can be processed per day (global cap)
-
 Resources:
+  # ─────────────────────────────────────────────────────────────────
+  # SSM Parameter Store - Daily processing limit
+  # ─────────────────────────────────────────────────────────────────
+
+  DailyProcessingLimit:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub '/${AWS::StackName}/daily-processing-limit'
+      Type: String
+      Value: '20'
+      Description: Maximum number of PDFs that can be processed per day
   # ─────────────────────────────────────────────────────────────────
   # S3 - Frontend static website
   # ─────────────────────────────────────────────────────────────────
@@ -125,6 +130,7 @@ Resources:
                   - dynamodb:PutItem
                   - dynamodb:GetItem
                   - dynamodb:UpdateItem
+                  - dynamodb:Scan
                 Resource: !GetAtt JobsTable.Arn
         - PolicyName: S3ShareIt
           PolicyDocument:
@@ -143,6 +149,14 @@ Resources:
                 Action:
                   - lambda:InvokeFunction
                 Resource: !Sub 'arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${AWS::StackName}-process'
+        - PolicyName: SSMParameterAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ssm:GetParameter
+                Resource: !Sub 'arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${AWS::StackName}/daily-processing-limit'
         - PolicyName: SecretsManagerAccess
           PolicyDocument:
             Version: '2012-10-17'
@@ -181,7 +195,7 @@ Resources:
           JOBS_TABLE: !Ref JobsTable
           PROCESSOR_FUNCTION_NAME: !Sub '${AWS::StackName}-process'
           ALLOWED_ORIGIN: !GetAtt FrontendBucket.WebsiteURL
-          DAILY_PROCESSING_LIMIT: !Ref DailyProcessingLimit
+          DAILY_LIMIT_PARAM: !Sub '/${AWS::StackName}/daily-processing-limit'
 
   # ─────────────────────────────────────────────────────────────────
   # Lambda - Status handler

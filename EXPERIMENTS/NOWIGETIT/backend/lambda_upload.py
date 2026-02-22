@@ -8,36 +8,36 @@ import time
 import uuid
 
 import boto3
-from botocore.exceptions import ClientError
 
 s3 = boto3.client("s3")
 dynamodb = boto3.resource("dynamodb")
 lambda_client = boto3.client("lambda")
+ssm = boto3.client("ssm")
 
 SHAREIT_BUCKET = os.environ["SHAREIT_BUCKET"]
 TABLE = os.environ["JOBS_TABLE"]
 PROCESSOR_FN = os.environ["PROCESSOR_FUNCTION_NAME"]
 ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
-DAILY_LIMIT = int(os.environ.get("DAILY_PROCESSING_LIMIT", "20"))
+DAILY_LIMIT_PARAM = os.environ.get("DAILY_LIMIT_PARAM", "")
 
 
-def _check_rate_limit(table):
-    """Atomically increment daily counter; raise ClientError if limit exceeded."""
+def _get_daily_limit():
+    """Read the daily processing limit from SSM Parameter Store."""
+    if not DAILY_LIMIT_PARAM:
+        return 20
+    resp = ssm.get_parameter(Name=DAILY_LIMIT_PARAM)
+    return int(resp["Parameter"]["Value"])
+
+
+def _count_todays_jobs(table):
+    """Count job records created today (excludes rate limit counter items)."""
     today = datetime.date.today().isoformat()
-    ttl_val = int(time.time()) + 172800  # 48 hours
-
-    table.update_item(
-        Key={"job_id": f"RATE_LIMIT#{today}"},
-        UpdateExpression="SET request_count = if_not_exists(request_count, :zero) + :one, #ttl = if_not_exists(#ttl, :ttl_val)",
-        ConditionExpression="attribute_not_exists(request_count) OR request_count < :limit",
-        ExpressionAttributeNames={"#ttl": "ttl"},
-        ExpressionAttributeValues={
-            ":zero": 0,
-            ":one": 1,
-            ":limit": DAILY_LIMIT,
-            ":ttl_val": ttl_val,
-        },
+    resp = table.scan(
+        FilterExpression="created_date = :today",
+        ExpressionAttributeValues={":today": today},
+        Select="COUNT",
     )
+    return resp["Count"]
 
 
 def handler(event, context):
@@ -54,16 +54,13 @@ def handler(event, context):
     try:
         # Check daily rate limit before doing any work
         table = dynamodb.Table(TABLE)
-        try:
-            _check_rate_limit(table)
-        except ClientError as e:
-            if e.response["Error"]["Code"] == "ConditionalCheckFailedException":
-                return {
-                    "statusCode": 429,
-                    "headers": headers,
-                    "body": json.dumps({"detail": "Daily processing limit reached. Please try again tomorrow."}),
-                }
-            raise
+        daily_limit = _get_daily_limit()
+        if _count_todays_jobs(table) >= daily_limit:
+            return {
+                "statusCode": 429,
+                "headers": headers,
+                "body": json.dumps({"detail": "Daily processing limit reached. Please try again tomorrow."}),
+            }
 
         content_type = event.get("headers", {}).get("content-type", "")
 
@@ -118,6 +115,7 @@ def handler(event, context):
                 "progress_stage": "uploading",
                 "filename": filename,
                 "s3_key": s3_key,
+                "created_date": datetime.date.today().isoformat(),
                 "ttl": int(time.time()) + 86400,
             }
         )
