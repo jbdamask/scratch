@@ -43,10 +43,20 @@ for secret_name_suffix in anthropic-api-key github-token; do
     secret_value="$GITHUB_TOKEN"
   fi
 
+  if [ "$secret_name_suffix" = "anthropic-api-key" ]; then
+    secret_desc="Anthropic API key for Claude — used by the NowIGetIt process Lambda"
+  else
+    secret_desc="GitHub personal access token — used to publish gists on jbdamask's account"
+  fi
+
   if aws secretsmanager describe-secret --secret-id "$secret_name" --region "$REGION" > /dev/null 2>&1; then
     aws secretsmanager put-secret-value \
       --secret-id "$secret_name" \
       --secret-string "$secret_value" \
+      --region "$REGION" > /dev/null
+    aws secretsmanager update-secret \
+      --secret-id "$secret_name" \
+      --description "$secret_desc" \
       --region "$REGION" > /dev/null
     aws secretsmanager tag-resource \
       --secret-id "$secret_name" \
@@ -55,6 +65,7 @@ for secret_name_suffix in anthropic-api-key github-token; do
   else
     aws secretsmanager create-secret \
       --name "$secret_name" \
+      --description "$secret_desc" \
       --secret-string "$secret_value" \
       --region "$REGION" \
       --tags Key=Application,Value=NowIGetIt Key=Stack,Value="$STACK_NAME" > /dev/null

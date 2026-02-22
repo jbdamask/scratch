@@ -463,9 +463,14 @@
       font-size: 0.85rem;
     }
 
-    /* Footer credit */
+    /* Footer */
     .footer {
       margin-top: 3rem;
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       color: var(--text-muted);
       font-size: 0.75rem;
       letter-spacing: 0.05em;
@@ -543,7 +548,10 @@
     </div>
   </div>
 
-  <p class="footer animate-in">Powered by Claude</p>
+  <div class="footer animate-in">
+    <span>&copy; 2026 Amroja, LLC</span>
+    <a href="https://johndamask.com" target="_blank">johndamask.com</a>
+  </div>
 
   <!-- For S3 deployment: create config.js with window.API_BASE = "https://your-api-gw-url"; -->
   <script src="config.js"></script>
