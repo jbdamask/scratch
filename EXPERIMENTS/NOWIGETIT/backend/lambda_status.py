@@ -41,6 +41,8 @@ def handler(event, context):
         }
 
     response = {"status": item["status"]}
+    if "progress_stage" in item:
+        response["progress_stage"] = item["progress_stage"]
     if "url" in item:
         response["url"] = item["url"]
     if "error" in item:

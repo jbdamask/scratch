@@ -18,6 +18,9 @@ NowIGetIt — upload a scientific PDF, get back a shareable interactive web page
 - **S3 buckets:** Frontend bucket (created by CloudFormation) + ShareIt bucket (`share-it-amroja`, existing public bucket for temporary PDF hosting)
 - **Infrastructure:** Single CloudFormation template in `aws/nowigetit.yaml`
 
+## AWS Profile
+- Use `AdministratorAccess-277707111475` for deployments: `AWS_PROFILE=AdministratorAccess-277707111475`
+
 ## Development
 - Python work happens in `backend/.venv`. Check if it exists before creating.
 - Run locally: `./start.sh` or `cd backend && source .venv/bin/activate && uvicorn main:app --reload`

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NowIGetIt</title>
+  <title>Now I Get It!</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -139,6 +139,66 @@
 
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Progress stepper */
+    .stepper {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin-top: 0.75rem;
+    }
+
+    .step {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.4rem 0;
+      color: #475569;
+      font-size: 0.9rem;
+      transition: color 0.3s;
+    }
+
+    .step.done {
+      color: #4ade80;
+    }
+
+    .step.active {
+      color: #a5b4fc;
+    }
+
+    .step-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step.done .step-icon::before {
+      content: '\2713';
+      font-weight: 700;
+    }
+
+    .step.active .step-icon::before {
+      content: '';
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border: 2px solid #6366f1;
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    .step.pending .step-icon::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #334155;
+    }
+
     .result-url {
       display: flex;
       align-items: center;
@@ -173,7 +233,7 @@
   </style>
 </head>
 <body>
-  <h1>NowIGetIt</h1>
+  <h1>Now I Get It!</h1>
   <p class="tagline">Scientific papers, actually explained.</p>
 
   <div class="container">
@@ -189,6 +249,20 @@
     <div class="status" id="status">
       <div class="label" id="statusLabel"></div>
       <div class="detail" id="statusDetail"></div>
+      <div class="stepper" id="stepper" style="display:none">
+        <div class="step pending" data-stage="uploading">
+          <span class="step-icon"></span> Uploading PDF
+        </div>
+        <div class="step pending" data-stage="reading">
+          <span class="step-icon"></span> Reading paper
+        </div>
+        <div class="step pending" data-stage="generating">
+          <span class="step-icon"></span> Generating interactive page
+        </div>
+        <div class="step pending" data-stage="publishing">
+          <span class="step-icon"></span> Publishing to web
+        </div>
+      </div>
       <div class="result-url" id="resultUrl" style="display:none">
         <a id="resultLink" href="#" target="_blank"></a>
         <button class="copy-btn" id="copyBtn">Copy</button>
@@ -202,6 +276,8 @@
     // API_BASE: empty string for local dev (relative paths), set in config.js for S3
     const API_BASE = window.API_BASE || '';
 
+    const STAGES = ['uploading', 'reading', 'generating', 'publishing'];
+
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const fileName = document.getElementById('fileName');
@@ -209,6 +285,7 @@
     const status = document.getElementById('status');
     const statusLabel = document.getElementById('statusLabel');
     const statusDetail = document.getElementById('statusDetail');
+    const stepper = document.getElementById('stepper');
     const resultUrl = document.getElementById('resultUrl');
     const resultLink = document.getElementById('resultLink');
     const copyBtn = document.getElementById('copyBtn');
@@ -248,8 +325,30 @@
     function resetStatus() {
       status.className = 'status';
       resultUrl.style.display = 'none';
+      stepper.style.display = 'none';
       statusLabel.textContent = '';
       statusDetail.textContent = '';
+      // Reset all steps
+      stepper.querySelectorAll('.step').forEach(s => {
+        s.className = 'step pending';
+      });
+    }
+
+    function updateStepper(currentStage) {
+      const currentIdx = STAGES.indexOf(currentStage);
+      if (currentIdx === -1) return;
+
+      stepper.querySelectorAll('.step').forEach(stepEl => {
+        const stage = stepEl.dataset.stage;
+        const stageIdx = STAGES.indexOf(stage);
+        if (stageIdx < currentIdx) {
+          stepEl.className = 'step done';
+        } else if (stageIdx === currentIdx) {
+          stepEl.className = 'step active';
+        } else {
+          stepEl.className = 'step pending';
+        }
+      });
     }
 
     // Upload & poll
@@ -257,7 +356,7 @@
       if (!selectedFile) return;
 
       uploadBtn.disabled = true;
-      showProcessing('Uploading PDF...');
+      showProcessing('uploading');
 
       try {
         const form = new FormData();
@@ -270,7 +369,6 @@
         }
 
         const { job_id } = await res.json();
-        showProcessing('Generating your interactive page... this may take a minute.');
         await pollStatus(job_id);
       } catch (err) {
         showError(err.message);
@@ -286,6 +384,8 @@
           const data = await res.json();
 
           if (data.status === 'complete') {
+            // Mark all steps done
+            stepper.querySelectorAll('.step').forEach(s => s.className = 'step done');
             showComplete(data.url);
             uploadBtn.disabled = false;
             return;
@@ -294,24 +394,31 @@
             uploadBtn.disabled = false;
             return;
           }
-          // still processing — keep polling
+
+          // Update stepper with current progress stage
+          if (data.progress_stage) {
+            showProcessing(data.progress_stage);
+          }
         } catch {
           // Network error during poll — keep trying
         }
       }
     }
 
-    function showProcessing(msg) {
+    function showProcessing(stage) {
       status.className = 'status processing';
       statusLabel.innerHTML = '<span class="spinner"></span> Processing';
-      statusDetail.textContent = msg;
+      statusDetail.textContent = '';
+      stepper.style.display = 'flex';
       resultUrl.style.display = 'none';
+      updateStepper(stage);
     }
 
     function showComplete(url) {
       status.className = 'status complete';
       statusLabel.textContent = 'Your page is ready!';
       statusDetail.textContent = '';
+      stepper.style.display = 'flex';
       resultLink.href = url;
       resultLink.textContent = url;
       resultUrl.style.display = 'flex';
@@ -321,6 +428,7 @@
       status.className = 'status error';
       statusLabel.textContent = 'Error';
       statusDetail.textContent = msg;
+      stepper.style.display = 'none';
       resultUrl.style.display = 'none';
     }
 

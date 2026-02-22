@@ -81,6 +81,7 @@ def handler(event, context):
             Item={
                 "job_id": job_id,
                 "status": "processing",
+                "progress_stage": "uploading",
                 "filename": filename,
                 "s3_key": s3_key,
                 "ttl": int(time.time()) + 86400,

@@ -29,6 +29,15 @@ def _load_secrets():
             os.environ[env_var] = resp["SecretString"]
 
 
+def _update_progress(table, job_id, stage):
+    """Write progress_stage to DynamoDB so the frontend can show it."""
+    table.update_item(
+        Key={"job_id": job_id},
+        UpdateExpression="SET progress_stage = :ps",
+        ExpressionAttributeValues={":ps": stage},
+    )
+
+
 def handler(event, context):
     _load_secrets()
 
@@ -41,27 +50,30 @@ def handler(event, context):
         # PDF is already in the public ShareIt bucket — just build the URL
         pdf_url = f"{SHAREIT_URL}/{s3_key}"
 
-        # Send URL to Claude and generate HTML
+        # Send PDF URL to Claude
+        _update_progress(table, job_id, "reading")
+        _update_progress(table, job_id, "generating")
         html = generate_html(pdf_url)
 
         # Publish to GitHub Gist
+        _update_progress(table, job_id, "publishing")
         url = create_gist(html, filename)
 
         # Update job as complete
         table.update_item(
             Key={"job_id": job_id},
-            UpdateExpression="SET #s = :s, #u = :u",
+            UpdateExpression="SET #s = :s, #u = :u, progress_stage = :ps",
             ExpressionAttributeNames={"#s": "status", "#u": "url"},
-            ExpressionAttributeValues={":s": "complete", ":u": url},
+            ExpressionAttributeValues={":s": "complete", ":u": url, ":ps": "complete"},
         )
 
     except Exception as e:
         print(f"Processing error for {job_id}: {e}")
         table.update_item(
             Key={"job_id": job_id},
-            UpdateExpression="SET #s = :s, #e = :e",
+            UpdateExpression="SET #s = :s, #e = :e, progress_stage = :ps",
             ExpressionAttributeNames={"#s": "status", "#e": "error"},
-            ExpressionAttributeValues={":s": "error", ":e": "Processing failed."},
+            ExpressionAttributeValues={":s": "error", ":e": "Processing failed.", ":ps": "error"},
         )
 
     finally:

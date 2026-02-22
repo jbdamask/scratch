@@ -1,4 +1,5 @@
 import os
+import threading
 import uuid
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -20,7 +21,7 @@ SHAREIT_URL = os.environ.get("SHAREIT_URL", "http://share-it-amroja.s3-website-u
 
 s3 = boto3.client("s3")
 
-# In-memory job store: job_id -> { status, url, error }
+# In-memory job store: job_id -> { status, progress_stage, url, error }
 jobs: dict[str, dict] = {}
 
 
@@ -33,6 +34,41 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
+def _process_job(job_id: str, contents: bytes, filename: str):
+    """Run PDF processing in a background thread."""
+    public_key = f"nowigetit/{job_id}.pdf"
+    try:
+        # Upload PDF to public ShareIt bucket
+        jobs[job_id]["progress_stage"] = "uploading"
+        s3.put_object(
+            Bucket=SHAREIT_BUCKET,
+            Key=public_key,
+            Body=contents,
+            ContentType="application/pdf",
+        )
+        pdf_url = f"{SHAREIT_URL}/{public_key}"
+
+        # Send PDF URL to Claude
+        jobs[job_id]["progress_stage"] = "reading"
+        jobs[job_id]["progress_stage"] = "generating"
+        html = generate_html(pdf_url)
+
+        # Publish to GitHub Gist
+        jobs[job_id]["progress_stage"] = "publishing"
+        gist_url = create_gist(html, filename)
+
+        jobs[job_id] = {"status": "complete", "progress_stage": "complete", "url": gist_url}
+    except Exception as e:
+        print(f"Error processing upload: {e}")
+        jobs[job_id] = {"status": "error", "progress_stage": "error", "error": "Processing failed."}
+    finally:
+        # Clean up PDF from public bucket
+        try:
+            s3.delete_object(Bucket=SHAREIT_BUCKET, Key=public_key)
+        except Exception as cleanup_err:
+            print(f"Failed to clean up S3 object {public_key}: {cleanup_err}")
+
+
 @app.post("/api/upload")
 def upload_pdf(file: UploadFile):
     if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -43,31 +79,10 @@ def upload_pdf(file: UploadFile):
         raise HTTPException(status_code=400, detail="File too large. 10 MB max.")
 
     job_id = str(uuid.uuid4())
-    jobs[job_id] = {"status": "processing"}
-    public_key = f"nowigetit/{job_id}.pdf"
+    jobs[job_id] = {"status": "processing", "progress_stage": "uploading"}
 
-    try:
-        # Upload PDF to public ShareIt bucket
-        s3.put_object(
-            Bucket=SHAREIT_BUCKET,
-            Key=public_key,
-            Body=contents,
-            ContentType="application/pdf",
-        )
-        pdf_url = f"{SHAREIT_URL}/{public_key}"
-
-        html = generate_html(pdf_url)
-        gist_url = create_gist(html, file.filename)
-        jobs[job_id] = {"status": "complete", "url": gist_url}
-    except Exception as e:
-        print(f"Error processing upload: {e}")
-        jobs[job_id] = {"status": "error", "error": "Processing failed."}
-    finally:
-        # Clean up PDF from public bucket
-        try:
-            s3.delete_object(Bucket=SHAREIT_BUCKET, Key=public_key)
-        except Exception as cleanup_err:
-            print(f"Failed to clean up S3 object {public_key}: {cleanup_err}")
+    thread = threading.Thread(target=_process_job, args=(job_id, contents, file.filename), daemon=True)
+    thread.start()
 
     return {"job_id": job_id}
 
