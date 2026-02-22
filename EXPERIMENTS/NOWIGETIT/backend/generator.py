@@ -42,8 +42,6 @@ def generate_html(pdf_url: str) -> str:
     if stop_reason == "max_tokens":
         raise ValueError("Claude response was truncated (hit token limit).")
 
-    response_text = message.content[0].text
-
     # Extract HTML from the response (Claude may wrap it in ```html blocks)
     html_match = re.search(r"```html\s*([\s\S]*?)```", response_text)
     if html_match:
