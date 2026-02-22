@@ -218,7 +218,7 @@ Resources:
       Runtime: python3.12
       Handler: lambda_process.handler
       Role: !GetAtt LambdaRole.Arn
-      Timeout: 300
+      Timeout: 900
       MemorySize: 512
       Code:
         S3Bucket: !Ref DeploymentBucket

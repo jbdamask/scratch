@@ -13,7 +13,10 @@ def generate_html(pdf_url: str) -> str:
     """Send a PDF URL to Claude Opus 4.6 and get back a single-page HTML app."""
     client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
-    message = client.messages.create(
+    response_text = ""
+    stop_reason = None
+
+    with client.messages.stream(
         model="claude-opus-4-6",
         max_tokens=64000,
         system=SYSTEM_PROMPT,
@@ -31,9 +34,12 @@ def generate_html(pdf_url: str) -> str:
                 ],
             }
         ],
-    )
+    ) as stream:
+        for text in stream.text_stream:
+            response_text += text
+        stop_reason = stream.get_final_message().stop_reason
 
-    if message.stop_reason == "max_tokens":
+    if stop_reason == "max_tokens":
         raise ValueError("Claude response was truncated (hit token limit).")
 
     response_text = message.content[0].text
