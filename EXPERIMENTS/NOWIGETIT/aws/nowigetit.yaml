@@ -18,8 +18,8 @@ Parameters:
 
   ShareItUrl:
     Type: String
-    Default: http://share-it-amroja.s3-website-us-east-1.amazonaws.com
-    Description: Public website URL for the ShareIt bucket
+    Default: https://share-it-amroja.s3.amazonaws.com
+    Description: Public HTTPS URL for the ShareIt bucket (Claude API requires HTTPS)
 
 Resources:
   # ─────────────────────────────────────────────────────────────────

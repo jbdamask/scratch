@@ -78,6 +78,7 @@ trap "rm -rf $BUILD_DIR" EXIT
 
 # Install dependencies into the build dir
 pip install -q -t "$BUILD_DIR" \
+  --platform manylinux2014_x86_64 --only-binary=:all: \
   anthropic requests python-dotenv 2>/dev/null
 
 # Copy Lambda handler files
