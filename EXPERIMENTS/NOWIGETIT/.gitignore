@@ -13,3 +13,6 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
+
+# bv (beads viewer) local config and caches
+.bv/
