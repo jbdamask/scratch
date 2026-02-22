@@ -53,18 +53,39 @@ def handler(event, context):
         # Send PDF URL to Claude
         _update_progress(table, job_id, "reading")
         _update_progress(table, job_id, "generating")
-        html = generate_html(pdf_url)
+        html, usage = generate_html(pdf_url)
+
+        # Calculate costs (Claude Opus 4.6 standard pricing)
+        INPUT_PRICE_PER_MTOK = 5.00
+        OUTPUT_PRICE_PER_MTOK = 25.00
+        input_tokens = usage["input_tokens"]
+        output_tokens = usage["output_tokens"]
+        input_cost = (input_tokens / 1_000_000) * INPUT_PRICE_PER_MTOK
+        output_cost = (output_tokens / 1_000_000) * OUTPUT_PRICE_PER_MTOK
+        total_cost = input_cost + output_cost
 
         # Publish to GitHub Gist
         _update_progress(table, job_id, "publishing")
         url = create_gist(html, filename)
 
-        # Update job as complete
+        # Update job as complete (with usage and cost data)
         table.update_item(
             Key={"job_id": job_id},
-            UpdateExpression="SET #s = :s, #u = :u, progress_stage = :ps",
+            UpdateExpression="SET #s = :s, #u = :u, progress_stage = :ps, "
+                "input_tokens = :it, input_tokens_cost = :itc, "
+                "output_tokens = :ot, output_tokens_cost = :otc, "
+                "total_cost = :tc",
             ExpressionAttributeNames={"#s": "status", "#u": "url"},
-            ExpressionAttributeValues={":s": "complete", ":u": url, ":ps": "complete"},
+            ExpressionAttributeValues={
+                ":s": "complete",
+                ":u": url,
+                ":ps": "complete",
+                ":it": input_tokens,
+                ":itc": f"{input_cost:.4f}",
+                ":ot": output_tokens,
+                ":otc": f"{output_cost:.4f}",
+                ":tc": f"{total_cost:.4f}",
+            },
         )
 
     except Exception as e:

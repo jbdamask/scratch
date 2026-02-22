@@ -47,6 +47,12 @@ def handler(event, context):
         response["url"] = item["url"]
     if "error" in item:
         response["error"] = item["error"]
+    for key in ("input_tokens", "output_tokens"):
+        if key in item:
+            response[key] = int(item[key])
+    for key in ("input_tokens_cost", "output_tokens_cost", "total_cost"):
+        if key in item:
+            response[key] = str(item[key])
 
     return {
         "statusCode": 200,

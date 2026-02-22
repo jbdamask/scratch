@@ -433,6 +433,31 @@
       border-color: rgba(110, 201, 138, 0.35);
     }
 
+    .cost-breakdown {
+      display: none;
+      margin-top: 0.75rem;
+      padding: 0.6rem 0.85rem;
+      background: rgba(255, 255, 255, 0.02);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+    }
+
+    .cost-breakdown .cost-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .cost-breakdown .cost-total {
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      margin-top: 0.3rem;
+      padding-top: 0.3rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
     .status .detail {
       color: var(--text-secondary);
       font-size: 0.85rem;
@@ -510,6 +535,11 @@
         <a id="resultLink" href="#" target="_blank"></a>
         <button class="copy-btn" id="copyBtn">Copy</button>
       </div>
+      <div class="cost-breakdown" id="costBreakdown">
+        <div class="cost-row"><span>Input Tokens</span><span id="costInput"></span></div>
+        <div class="cost-row"><span>Output Tokens</span><span id="costOutput"></span></div>
+        <div class="cost-row cost-total"><span>Total Cost</span><span id="costTotal"></span></div>
+      </div>
     </div>
   </div>
 
@@ -534,6 +564,10 @@
     const resultUrl = document.getElementById('resultUrl');
     const resultLink = document.getElementById('resultLink');
     const copyBtn = document.getElementById('copyBtn');
+    const costBreakdown = document.getElementById('costBreakdown');
+    const costInput = document.getElementById('costInput');
+    const costOutput = document.getElementById('costOutput');
+    const costTotal = document.getElementById('costTotal');
 
     let selectedFile = null;
 
@@ -570,6 +604,7 @@
     function resetStatus() {
       status.className = 'status';
       resultUrl.style.display = 'none';
+      costBreakdown.style.display = 'none';
       stepper.style.display = 'none';
       statusLabel.textContent = '';
       statusDetail.textContent = '';
@@ -635,7 +670,7 @@
           if (data.status === 'complete') {
             // Mark all steps done
             stepper.querySelectorAll('.step').forEach(s => s.className = 'step done');
-            showComplete(data.url);
+            showComplete(data.url, data);
             uploadBtn.disabled = false;
             return;
           } else if (data.status === 'error') {
@@ -663,7 +698,7 @@
       updateStepper(stage);
     }
 
-    function showComplete(url) {
+    function showComplete(url, data) {
       status.className = 'status complete';
       statusLabel.textContent = 'Your page is ready!';
       statusDetail.textContent = '';
@@ -671,6 +706,15 @@
       resultLink.href = url;
       resultLink.textContent = url;
       resultUrl.style.display = 'flex';
+
+      if (data && data.input_tokens != null) {
+        const fmtNum = n => Number(n).toLocaleString();
+        const fmtUsd = v => '$' + Number(v).toFixed(2);
+        costInput.textContent = `${fmtNum(data.input_tokens)} (${fmtUsd(data.input_tokens_cost)})`;
+        costOutput.textContent = `${fmtNum(data.output_tokens)} (${fmtUsd(data.output_tokens_cost)})`;
+        costTotal.textContent = fmtUsd(data.total_cost);
+        costBreakdown.style.display = 'block';
+      }
     }
 
     function showError(msg) {
