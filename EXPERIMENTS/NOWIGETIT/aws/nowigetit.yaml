@@ -21,6 +21,19 @@ Parameters:
     Default: https://share-it-amroja.s3.amazonaws.com
     Description: Public HTTPS URL for the ShareIt bucket (Claude API requires HTTPS)
 
+  DomainName:
+    Type: String
+    Default: nowigetit.us
+    Description: Custom domain name for the frontend
+
+  CertificateArn:
+    Type: String
+    Description: ARN of the ACM certificate for the custom domain
+
+  HostedZoneId:
+    Type: String
+    Description: Route 53 hosted zone ID for the custom domain
+
 Resources:
   # ─────────────────────────────────────────────────────────────────
   # SSM Parameter Store - Daily processing limit
@@ -196,7 +209,7 @@ Resources:
           SHAREIT_BUCKET: !Ref ShareItBucket
           JOBS_TABLE: !Ref JobsTable
           PROCESSOR_FUNCTION_NAME: !Sub '${AWS::StackName}-process'
-          ALLOWED_ORIGIN: !GetAtt FrontendBucket.WebsiteURL
+          ALLOWED_ORIGIN: !Sub 'https://${DomainName}'
           DAILY_LIMIT_PARAM: !Sub '/${AWS::StackName}/daily-processing-limit'
 
   # ─────────────────────────────────────────────────────────────────
@@ -223,7 +236,7 @@ Resources:
       Environment:
         Variables:
           JOBS_TABLE: !Ref JobsTable
-          ALLOWED_ORIGIN: !GetAtt FrontendBucket.WebsiteURL
+          ALLOWED_ORIGIN: !Sub 'https://${DomainName}'
 
   # ─────────────────────────────────────────────────────────────────
   # Lambda - Processing handler (heavy lifting)
@@ -274,7 +287,7 @@ Resources:
           - GET
           - OPTIONS
         AllowOrigins:
-          - !GetAtt FrontendBucket.WebsiteURL
+          - !Sub 'https://${DomainName}'
 
   ApiStage:
     Type: AWS::ApiGatewayV2::Stage
@@ -334,10 +347,114 @@ Resources:
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${HttpApi}/*/*'
 
+  # ─────────────────────────────────────────────────────────────────
+  # CloudFront - CDN with custom domain
+  # ─────────────────────────────────────────────────────────────────
+
+  WwwRedirectFunction:
+    Type: AWS::CloudFront::Function
+    Properties:
+      Name: !Sub '${AWS::StackName}-www-redirect'
+      AutoPublish: true
+      FunctionCode: !Sub |
+        function handler(event) {
+          var request = event.request;
+          var host = request.headers.host.value;
+          if (host.startsWith('www.')) {
+            return {
+              statusCode: 301,
+              statusDescription: 'Moved Permanently',
+              headers: { location: { value: 'https://${DomainName}' + request.uri } }
+            };
+          }
+          return request;
+        }
+      FunctionConfig:
+        Comment: !Sub 'Redirect www.${DomainName} to ${DomainName}'
+        Runtime: cloudfront-js-2.0
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      Tags:
+        - Key: Application
+          Value: NowIGetIt
+        - Key: Stack
+          Value: !Ref 'AWS::StackName'
+      DistributionConfig:
+        Enabled: true
+        Comment: !Sub '${AWS::StackName} frontend'
+        DefaultRootObject: index.html
+        Aliases:
+          - !Ref DomainName
+          - !Sub 'www.${DomainName}'
+        ViewerCertificate:
+          AcmCertificateArn: !Ref CertificateArn
+          SslSupportMethod: sni-only
+          MinimumProtocolVersion: TLSv1.2_2021
+        Origins:
+          - Id: S3WebsiteOrigin
+            DomainName: !Sub '${FrontendBucket}.s3-website-${AWS::Region}.amazonaws.com'
+            CustomOriginConfig:
+              OriginProtocolPolicy: http-only
+              HTTPPort: 80
+        DefaultCacheBehavior:
+          TargetOriginId: S3WebsiteOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # CachingOptimized
+          Compress: true
+          FunctionAssociations:
+            - EventType: viewer-request
+              FunctionARN: !GetAtt WwwRedirectFunction.FunctionARN
+
+  # ─────────────────────────────────────────────────────────────────
+  # Route 53 - DNS records
+  # ─────────────────────────────────────────────────────────────────
+
+  DnsRecordApex:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2  # CloudFront global hosted zone ID
+
+  DnsRecordApexIPv6:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Ref DomainName
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+
+  DnsRecordWww:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub 'www.${DomainName}'
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+
+  DnsRecordWwwIPv6:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: !Ref HostedZoneId
+      Name: !Sub 'www.${DomainName}'
+      Type: AAAA
+      AliasTarget:
+        DNSName: !GetAtt CloudFrontDistribution.DomainName
+        HostedZoneId: Z2FDTNDATAQYW2
+
 Outputs:
   FrontendUrl:
-    Description: Static website URL for the frontend
-    Value: !GetAtt FrontendBucket.WebsiteURL
+    Description: Frontend URL (custom domain)
+    Value: !Sub 'https://${DomainName}'
 
   ApiUrl:
     Description: API Gateway endpoint URL
@@ -346,6 +463,10 @@ Outputs:
   FrontendBucketName:
     Description: Name of the frontend S3 bucket
     Value: !Ref FrontendBucket
+
+  CloudFrontDistributionId:
+    Description: CloudFront distribution ID (for cache invalidation)
+    Value: !Ref CloudFrontDistribution
 
   JobsTableName:
     Description: Name of the DynamoDB jobs table

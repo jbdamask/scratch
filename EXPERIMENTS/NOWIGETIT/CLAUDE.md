@@ -13,7 +13,10 @@ NowIGetIt — upload a scientific PDF, get back a shareable interactive web page
 - **HTML publishing:** Generated HTML uploaded to `share-it-amroja/NOWIGETIT/{job_id}.html`, served via S3 website hosting.
 
 ### AWS Deployment
-- **Frontend:** S3 static website hosting (`index.html` + `config.js`)
+- **Domain:** `https://nowigetit.us` (www redirects to apex)
+- **CDN:** CloudFront distribution fronting the S3 frontend bucket, with ACM TLS cert
+- **DNS:** Route 53 hosted zone with A/AAAA alias records to CloudFront
+- **Frontend:** S3 static website hosting (`index.html` + `config.js`) behind CloudFront
 - **API:** HTTP API Gateway → Lambda functions
 - **Processing flow:** Upload Lambda (stores PDF in ShareIt S3 bucket, writes DynamoDB, invokes Process Lambda async) → Process Lambda (sends PDF URL to Claude, publishes HTML to S3, updates DynamoDB, deletes PDF) → Status Lambda (reads DynamoDB)
 - **S3 buckets:** Frontend bucket (created by CloudFormation) + ShareIt bucket (`share-it-amroja`, existing public bucket for PDF hosting and generated HTML pages)

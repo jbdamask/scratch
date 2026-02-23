@@ -17,6 +17,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 STACK_NAME="${STACK_NAME:-nowigetit}"
 REGION="${AWS_REGION:-us-east-1}"
 DEPLOY_BUCKET="${DEPLOY_BUCKET:-${STACK_NAME}-deployments-${REGION}}"
+DOMAIN_NAME="${DOMAIN_NAME:-nowigetit.us}"
 
 # Load .env
 if [ -f "$SCRIPT_DIR/.env" ]; then
@@ -69,6 +70,85 @@ if ! aws s3api head-bucket --bucket "$DEPLOY_BUCKET" 2>/dev/null; then
   echo "    Created bucket: $DEPLOY_BUCKET"
 fi
 
+# ─── Step 1c: Look up Route 53 hosted zone ───────────────────────
+
+echo "==> Looking up Route 53 hosted zone for $DOMAIN_NAME..."
+HOSTED_ZONE_ID=$(aws route53 list-hosted-zones-by-name \
+  --dns-name "$DOMAIN_NAME" \
+  --query "HostedZones[?Name=='${DOMAIN_NAME}.'].Id" \
+  --output text | sed 's|/hostedzone/||')
+
+if [ -z "$HOSTED_ZONE_ID" ]; then
+  echo "Error: No Route 53 hosted zone found for $DOMAIN_NAME"
+  exit 1
+fi
+echo "    Hosted zone: $HOSTED_ZONE_ID"
+
+# ─── Step 1d: Provision ACM certificate ──────────────────────────
+
+echo "==> Checking ACM certificate for $DOMAIN_NAME..."
+CERT_ARN=$(aws acm list-certificates \
+  --region "$REGION" \
+  --query "CertificateSummaryList[?DomainName=='${DOMAIN_NAME}'].CertificateArn" \
+  --output text)
+
+if [ -z "$CERT_ARN" ] || [ "$CERT_ARN" = "None" ]; then
+  echo "    Requesting new certificate..."
+  CERT_ARN=$(aws acm request-certificate \
+    --domain-name "$DOMAIN_NAME" \
+    --subject-alternative-names "www.${DOMAIN_NAME}" \
+    --validation-method DNS \
+    --region "$REGION" \
+    --query 'CertificateArn' \
+    --output text)
+  echo "    Certificate ARN: $CERT_ARN"
+
+  # Wait for DNS validation details to become available
+  echo "    Waiting for validation details..."
+  sleep 10
+
+  # Create DNS validation records in Route 53
+  VALIDATION_RECORDS=$(aws acm describe-certificate \
+    --certificate-arn "$CERT_ARN" \
+    --region "$REGION" \
+    --query 'Certificate.DomainValidationOptions[].ResourceRecord' \
+    --output json)
+
+  # Build Route 53 change batch from validation records
+  CHANGE_BATCH=$(echo "$VALIDATION_RECORDS" | python3 -c "
+import json, sys
+records = json.load(sys.stdin)
+seen = set()
+changes = []
+for r in records:
+    key = r['Name']
+    if key not in seen:
+        seen.add(key)
+        changes.append({
+            'Action': 'UPSERT',
+            'ResourceRecordSet': {
+                'Name': r['Name'],
+                'Type': r['Type'],
+                'TTL': 300,
+                'ResourceRecords': [{'Value': r['Value']}]
+            }
+        })
+print(json.dumps({'Changes': changes}))
+")
+
+  aws route53 change-resource-record-sets \
+    --hosted-zone-id "$HOSTED_ZONE_ID" \
+    --change-batch "$CHANGE_BATCH" > /dev/null
+
+  echo "    DNS validation records created. Waiting for certificate validation..."
+  aws acm wait certificate-validated \
+    --certificate-arn "$CERT_ARN" \
+    --region "$REGION"
+  echo "    Certificate validated!"
+else
+  echo "    Using existing certificate: $CERT_ARN"
+fi
+
 # ─── Step 2: Package Lambda code ────────────────────────────────
 
 echo "==> Packaging Lambda code..."
@@ -111,6 +191,9 @@ aws cloudformation deploy \
   --parameter-overrides \
     DeploymentBucket="$DEPLOY_BUCKET" \
     LambdaCodeKey="$S3_KEY" \
+    DomainName="$DOMAIN_NAME" \
+    CertificateArn="$CERT_ARN" \
+    HostedZoneId="$HOSTED_ZONE_ID" \
   --no-fail-on-empty-changeset
 
 # ─── Step 5: Update Lambda function code (ensure latest zip) ────
@@ -146,6 +229,12 @@ FRONTEND_URL=$(aws cloudformation describe-stacks \
   --query "Stacks[0].Outputs[?OutputKey=='FrontendUrl'].OutputValue" \
   --output text)
 
+CF_DIST_ID=$(aws cloudformation describe-stacks \
+  --stack-name "$STACK_NAME" \
+  --region "$REGION" \
+  --query "Stacks[0].Outputs[?OutputKey=='CloudFrontDistributionId'].OutputValue" \
+  --output text)
+
 # ─── Step 7: Upload frontend to S3 ──────────────────────────────
 
 echo "==> Uploading frontend to s3://$FRONTEND_BUCKET"
@@ -161,6 +250,15 @@ aws s3 cp "$SCRIPT_DIR/backend/static/config.js" "s3://$FRONTEND_BUCKET/config.j
 
 # Clean up generated config.js
 rm "$SCRIPT_DIR/backend/static/config.js"
+
+# ─── Step 8: Invalidate CloudFront cache ─────────────────────────
+
+echo "==> Invalidating CloudFront cache..."
+aws cloudfront create-invalidation \
+  --distribution-id "$CF_DIST_ID" \
+  --paths "/*" \
+  --query 'Invalidation.Id' \
+  --output text > /dev/null
 
 # ─── Done ────────────────────────────────────────────────────────
 
