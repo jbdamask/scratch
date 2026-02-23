@@ -10,7 +10,7 @@ set -euo pipefail
 #
 # Prerequisites:
 #   - AWS CLI configured with appropriate credentials
-#   - .env file with ANTHROPIC_API_KEY and GITHUB_TOKEN
+#   - .env file with ANTHROPIC_API_KEY
 # ─────────────────────────────────────────────────────────────────
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -25,8 +25,8 @@ if [ -f "$SCRIPT_DIR/.env" ]; then
   set +a
 fi
 
-if [ -z "${ANTHROPIC_API_KEY:-}" ] || [ -z "${GITHUB_TOKEN:-}" ]; then
-  echo "Error: ANTHROPIC_API_KEY and GITHUB_TOKEN must be set in .env or environment"
+if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
+  echo "Error: ANTHROPIC_API_KEY must be set in .env or environment"
   exit 1
 fi
 
@@ -35,42 +35,30 @@ echo "==> Deploying NowIGetIt (stack: $STACK_NAME, region: $REGION)"
 # ─── Step 1a: Store secrets in Secrets Manager ───────────────────
 
 echo "==> Storing secrets in Secrets Manager..."
-for secret_name_suffix in anthropic-api-key github-token; do
-  secret_name="${STACK_NAME}/${secret_name_suffix}"
-  if [ "$secret_name_suffix" = "anthropic-api-key" ]; then
-    secret_value="$ANTHROPIC_API_KEY"
-  else
-    secret_value="$GITHUB_TOKEN"
-  fi
+secret_name="${STACK_NAME}/anthropic-api-key"
+secret_desc="Anthropic API key for Claude — used by the NowIGetIt process Lambda"
 
-  if [ "$secret_name_suffix" = "anthropic-api-key" ]; then
-    secret_desc="Anthropic API key for Claude — used by the NowIGetIt process Lambda"
-  else
-    secret_desc="GitHub personal access token — used to publish gists on jbdamask's account"
-  fi
-
-  if aws secretsmanager describe-secret --secret-id "$secret_name" --region "$REGION" > /dev/null 2>&1; then
-    aws secretsmanager put-secret-value \
-      --secret-id "$secret_name" \
-      --secret-string "$secret_value" \
-      --region "$REGION" > /dev/null
-    aws secretsmanager update-secret \
-      --secret-id "$secret_name" \
-      --description "$secret_desc" \
-      --region "$REGION" > /dev/null
-    aws secretsmanager tag-resource \
-      --secret-id "$secret_name" \
-      --region "$REGION" \
-      --tags Key=Application,Value=NowIGetIt Key=Stack,Value="$STACK_NAME" > /dev/null
-  else
-    aws secretsmanager create-secret \
-      --name "$secret_name" \
-      --description "$secret_desc" \
-      --secret-string "$secret_value" \
-      --region "$REGION" \
-      --tags Key=Application,Value=NowIGetIt Key=Stack,Value="$STACK_NAME" > /dev/null
-  fi
-done
+if aws secretsmanager describe-secret --secret-id "$secret_name" --region "$REGION" > /dev/null 2>&1; then
+  aws secretsmanager put-secret-value \
+    --secret-id "$secret_name" \
+    --secret-string "$ANTHROPIC_API_KEY" \
+    --region "$REGION" > /dev/null
+  aws secretsmanager update-secret \
+    --secret-id "$secret_name" \
+    --description "$secret_desc" \
+    --region "$REGION" > /dev/null
+  aws secretsmanager tag-resource \
+    --secret-id "$secret_name" \
+    --region "$REGION" \
+    --tags Key=Application,Value=NowIGetIt Key=Stack,Value="$STACK_NAME" > /dev/null
+else
+  aws secretsmanager create-secret \
+    --name "$secret_name" \
+    --description "$secret_desc" \
+    --secret-string "$ANTHROPIC_API_KEY" \
+    --region "$REGION" \
+    --tags Key=Application,Value=NowIGetIt Key=Stack,Value="$STACK_NAME" > /dev/null
+fi
 
 # ─── Step 1b: Create deployment bucket if needed ─────────────────
 
@@ -90,14 +78,14 @@ trap "rm -rf $BUILD_DIR" EXIT
 # Install dependencies into the build dir
 pip install -q -t "$BUILD_DIR" \
   --platform manylinux2014_x86_64 --only-binary=:all: \
-  anthropic requests python-dotenv 2>/dev/null
+  anthropic python-dotenv 2>/dev/null
 
 # Copy Lambda handler files
 cp "$SCRIPT_DIR/backend/lambda_upload.py" "$BUILD_DIR/"
 cp "$SCRIPT_DIR/backend/lambda_process.py" "$BUILD_DIR/"
 cp "$SCRIPT_DIR/backend/lambda_status.py" "$BUILD_DIR/"
 cp "$SCRIPT_DIR/backend/generator.py" "$BUILD_DIR/"
-cp "$SCRIPT_DIR/backend/gist_publisher.py" "$BUILD_DIR/"
+cp "$SCRIPT_DIR/backend/s3_publisher.py" "$BUILD_DIR/"
 
 # Create zip
 LAMBDA_ZIP="$SCRIPT_DIR/lambda-code.zip"

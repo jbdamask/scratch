@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 
 from generator import generate_html
-from gist_publisher import create_gist
+from s3_publisher import publish_html
 
 # Load .env from project root
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
@@ -51,13 +51,13 @@ def _process_job(job_id: str, contents: bytes, filename: str):
         # Send PDF URL to Claude
         jobs[job_id]["progress_stage"] = "reading"
         jobs[job_id]["progress_stage"] = "generating"
-        html = generate_html(pdf_url)
+        html, usage = generate_html(pdf_url)
 
-        # Publish to GitHub Gist
+        # Publish HTML to S3
         jobs[job_id]["progress_stage"] = "publishing"
-        gist_url = create_gist(html, filename)
+        url = publish_html(html, job_id)
 
-        jobs[job_id] = {"status": "complete", "progress_stage": "complete", "url": gist_url}
+        jobs[job_id] = {"status": "complete", "progress_stage": "complete", "url": url}
     except Exception as e:
         print(f"Error processing upload: {e}")
         jobs[job_id] = {"status": "error", "progress_stage": "error", "error": "Processing failed."}

@@ -1,11 +1,11 @@
-"""Lambda handler: send PDF to Claude via public URL, generate HTML, publish gist."""
+"""Lambda handler: send PDF to Claude via public URL, generate HTML, publish to S3."""
 
 import os
 
 import boto3
 
 from generator import generate_html
-from gist_publisher import create_gist
+from s3_publisher import publish_html
 
 s3 = boto3.client("s3")
 secrets_client = boto3.client("secretsmanager")
@@ -20,7 +20,6 @@ def _load_secrets():
     """Fetch API keys from Secrets Manager (cached across warm invocations)."""
     for env_var, secret_env in [
         ("ANTHROPIC_API_KEY", "ANTHROPIC_API_KEY_ARN"),
-        ("GITHUB_TOKEN", "GITHUB_TOKEN_ARN"),
     ]:
         if env_var not in os.environ:
             resp = secrets_client.get_secret_value(
@@ -64,9 +63,9 @@ def handler(event, context):
         output_cost = (output_tokens / 1_000_000) * OUTPUT_PRICE_PER_MTOK
         total_cost = input_cost + output_cost
 
-        # Publish to GitHub Gist
+        # Publish HTML to S3
         _update_progress(table, job_id, "publishing")
-        url = create_gist(html, filename)
+        url = publish_html(html, job_id)
 
         # Update job as complete (with usage and cost data)
         table.update_item(

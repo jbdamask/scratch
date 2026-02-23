@@ -140,7 +140,9 @@ Resources:
                 Action:
                   - s3:PutObject
                   - s3:DeleteObject
-                Resource: !Sub 'arn:aws:s3:::${ShareItBucket}/nowigetit/*'
+                Resource:
+                  - !Sub 'arn:aws:s3:::${ShareItBucket}/nowigetit/*'
+                  - !Sub 'arn:aws:s3:::${ShareItBucket}/NOWIGETIT/*'
         - PolicyName: InvokeProcessor
           PolicyDocument:
             Version: '2012-10-17'
@@ -248,9 +250,9 @@ Resources:
         Variables:
           JOBS_TABLE: !Ref JobsTable
           ANTHROPIC_API_KEY_ARN: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/anthropic-api-key'
-          GITHUB_TOKEN_ARN: !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}/github-token'
           SHAREIT_BUCKET: !Ref ShareItBucket
           SHAREIT_URL: !Ref ShareItUrl
+          SHAREIT_WEBSITE_URL: 'http://share-it-amroja.s3-website-us-east-1.amazonaws.com'
 
   # ─────────────────────────────────────────────────────────────────
   # API Gateway HTTP API
