@@ -2,9 +2,9 @@
 
 ## About This Project
 
-NowIGetIt takes scientific PDFs and transforms them into shareable, interactive web pages that explain the paper to a layperson. Upload a PDF, Claude reads the paper and generates a single-page HTML app, which gets published as a public GitHub Gist. The goal is making academic research accessible to anyone.
+NowIGetIt takes scientific PDFs and transforms them into shareable, interactive web pages that explain the paper to a layperson. Upload a PDF, Claude reads the paper and generates a single-page HTML app, which gets published to S3 and served at https://nowigetit.us. The goal is making academic research accessible to anyone.
 
-**Status:** Feature-complete (initial release)
+**Status:** Live at https://nowigetit.us
 **Started:** 2026-02-21
 **Last Updated:** 2026-02-22
 
@@ -75,5 +75,17 @@ Replaced the "Powered by Claude" footer with a proper copyright line ("&copy; 20
 Also added human-readable descriptions to the two Secrets Manager secrets (`nowigetit/anthropic-api-key` and `nowigetit/github-token`) in the deploy script. Both the create and update paths now set descriptions, so anyone browsing the AWS console can immediately see what each secret is for without having to trace through code.
 
 With these two changes deployed, all 8 beads issues are closed. The project is feature-complete for its initial release.
+
+---
+
+## 2026-02-22 - S3 Publishing and Custom Domain
+
+Two infrastructure changes in one session.
+
+First, replaced GitHub Gist publishing with direct S3 uploads. Generated HTML pages now go to `share-it-amroja/NOWIGETIT/{job_id}.html` instead of creating a Gist via the GitHub API. This eliminated the GITHUB_TOKEN requirement, the `requests` library dependency, and the gistpreview.github.io external dependency. The new `s3_publisher.py` is 25 lines versus the old `gist_publisher.py`'s 37. Also fixed a tuple unpacking bug in `main.py` where `generate_html()` returns `(html, usage)` but local dev was only capturing `html`.
+
+Second, added the custom domain `nowigetit.us`. The deploy script now provisions an ACM certificate with DNS validation (idempotent -- reuses existing cert on re-deploy), and CloudFormation creates a CloudFront distribution fronting the S3 frontend bucket. A CloudFront Function handles `www.nowigetit.us` → `nowigetit.us` 301 redirects. The ACM cert is created in `deploy.sh` rather than CloudFormation to avoid the stack blocking while waiting for DNS validation. CORS and Lambda `ALLOWED_ORIGIN` env vars updated to allow `https://nowigetit.us`.
+
+Key architectural decision: CloudFront uses the S3 website endpoint as a custom HTTP origin (no OAC) to avoid changing the S3 bucket configuration. The API stays on the raw API Gateway URL since it's only referenced in `config.js`.
 
 ---
