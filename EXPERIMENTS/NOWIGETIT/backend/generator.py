@@ -5,7 +5,9 @@ import anthropic
 
 SYSTEM_PROMPT = (
     "make a really freaking cool-looking interactive single-page website "
-    "that demonstrates the contents of this paper to a layperson"
+    "that demonstrates the contents of this paper to a layperson. "
+    "At the very bottom of the page, add a footer with "
+    "'© 2026 Amroja, LLC' on the left and a link to https://johndamask.com on the right."
 )
 
 
