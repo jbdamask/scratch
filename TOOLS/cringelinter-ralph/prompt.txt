@@ -1,0 +1,1 @@
+Run your cringelinter skill against the markdown file in this directory. Compare every identification of cringe against cringelog.txt to see if it's been touched before (create the cringelog if it doesn't exist. Write a separate line in the log for each cringey identification and the replacement. Rerwite the blogpost with an incremented version. 
