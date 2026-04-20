@@ -1,1 +1,7 @@
-Run your cringelinter skill against the markdown file in this directory. Compare every identification of cringe against cringelog.txt to see if it's been touched before (create the cringelog if it doesn't exist. Write a separate line in the log for each cringey identification and the replacement. Rerwite the blogpost with an incremented version. 
+Run your cringelinter skill against the provided blog post file.
+
+Write the output as a new file with an incremented version suffix: if the provided file is `myblog.md`, write `myblog-v1.md`; if it is `myblog-v3.md`, write `myblog-v4.md`.
+
+Compare every identification of cringe against cringelog.jsonl to see if it's been touched before (create the cringelog if it doesn't exist). Write a separate line in the log for each cringy identification and its replacement.
+
+If cringelinter finds less than three issues or negligible issues, respond with <promise>COMPLETE</promise>
