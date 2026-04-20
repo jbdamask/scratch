@@ -10,7 +10,7 @@ Ralph loop for de-cringing markdown documents written by AI.
 - chmod +x ralph.sh (make the file executable)
 
 ## Use
-./ralph.sh [number of iterations]
+./ralph.sh <filename> [number of iterations]
 
 ## Output
 Sequentially-versioned documents.
