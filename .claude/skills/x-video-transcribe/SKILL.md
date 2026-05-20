@@ -55,9 +55,29 @@ When the user supplies a URL:
    whose title starts `Transcript: `. Read its body (already in the
    list response, or via `mcp__github__issue_read`).
 
-5. **Present the clean transcript** as markdown. The issue body has the
-   clean version followed by a `<details>` block with timestamps —
-   surface only the clean version unless the user asks for timestamps.
+5. **Present the clean transcript** as markdown, broken into paragraphs.
+   The issue body has the clean version followed by a `<details>` block
+   with timestamps — surface only the clean version unless the user asks
+   for timestamps.
+
+   The clean version is one run-on paragraph. Insert paragraph breaks
+   at natural boundaries to make it readable:
+
+   - Speaker topic shifts ("So...", "And then...", "Now let's...").
+   - Long pauses (visible as larger time gaps in the `<details>` block
+     — use those as hints).
+   - End of an extended thought or anecdote before the speaker pivots
+     to the next.
+
+   **Hard rules:**
+   - Do **not** change, add, delete, paraphrase, summarize, or "correct"
+     any words. The text between paragraph breaks must be byte-identical
+     to a contiguous slice of `transcript-clean.txt`.
+   - Do **not** introduce headings, bullets, bold, or other structure
+     beyond paragraph breaks. Plain paragraphs only.
+   - Don't merge words across breaks or drop trailing/leading spaces.
+     A paragraph break is just `\n\n` between two existing space-
+     separated word boundaries.
 
 ## Failure modes and what to do
 
@@ -83,9 +103,9 @@ When the user supplies a URL:
   quality/speed for short clips). For longer/higher-stakes clips, the
   user can pick `small` or `medium` via Actions UI → "Run workflow";
   the push-triggered path always uses `base`.
-- `transcript-clean.txt` joins all segments with single spaces. When
-  presenting, you may insert paragraph breaks at natural pauses to
-  improve readability — but **do not paraphrase or correct** the words.
+- `transcript-clean.txt` joins all segments with single spaces. The
+  paragraph-break rules are spelled out in step 5 of the procedure
+  above — follow them strictly. No word changes, ever.
 - The pipeline runs locally too
   (`python EXPERIMENTS/x-video-transcribe/transcribe.py <url>`) when the
   environment can reach the source — but Claude Code's web sandbox
