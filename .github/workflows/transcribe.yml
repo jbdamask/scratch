@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: "X.com video URL"
+        description: "Video URL (X.com, YouTube, etc.)"
         required: true
-        default: "https://x.com/ycombinator/status/2056908727400423481/video/1"
+        default: "https://youtu.be/t-G67yKAHBQ"
       model:
         description: "Whisper model size (tiny|base|small|medium)"
         required: true
@@ -47,7 +47,7 @@ jobs:
         run: |
           URL="${{ github.event.inputs.url }}"
           MODEL="${{ github.event.inputs.model }}"
-          : "${URL:=https://x.com/ycombinator/status/2056908727400423481/video/1}"
+          : "${URL:=https://youtu.be/t-G67yKAHBQ}"
           : "${MODEL:=base}"
           echo "url=$URL"   >> "$GITHUB_OUTPUT"
           echo "model=$MODEL" >> "$GITHUB_OUTPUT"
