@@ -71,9 +71,12 @@ You: "transcribe this video: <url>"
             └─ GitHub Actions sees the url.txt change
                  └─ runs .github/workflows/x-video-transcribe.yml
                       └─ runs EXPERIMENTS/x-video-transcribe/transcribe.py
-                           ├─ yt-dlp downloads the video
-                           ├─ ffmpeg strips audio (16 kHz mono WAV)
-                           └─ faster-whisper transcribes (CPU, int8)
+                           ├─ YouTube? fetch official captions
+                           │            via youtube-transcript-api
+                           └─ anything else?
+                                ├─ yt-dlp downloads the video
+                                ├─ ffmpeg strips audio (16 kHz mono WAV)
+                                └─ faster-whisper transcribes (CPU, int8)
                       └─ opens a GitHub issue "Transcript: <url>"
   └─ Claude polls for the new issue, reads it, pastes the transcript back
 ```
@@ -122,10 +125,14 @@ Two reasons:
    can read on the GitHub mobile app — no artifact download, no
    Actions-log spelunking.
 
-GitHub-hosted runner IPs are on YouTube's bot-detection list, so
-YouTube URLs hit a "Sign in to confirm you're not a bot" wall on the
-runner. X.com works reliably. For YouTube clips, supply an alternative
-source (X mirror, direct mp4) or pass yt-dlp cookies via the workflow.
+**YouTube uses a different path.** GitHub-hosted runner IPs are on
+YouTube's bot-detection list, so audio download via yt-dlp hits a
+"Sign in to confirm you're not a bot" wall. For YouTube URLs the
+pipeline instead fetches YouTube's official auto-captions via
+`youtube-transcript-api` (no audio download, no Whisper needed, no bot
+wall). The output format is the same as the Whisper path. Caveat: if
+the creator disabled captions on a video, this fails — there's no
+fallback.
 
 ## Uninstall
 

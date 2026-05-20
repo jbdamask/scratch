@@ -81,10 +81,13 @@ When the user supplies a URL:
 
 ## Failure modes and what to do
 
-- **`Run pipeline` fails with yt-dlp YouTube error** ("Sign in to
-  confirm you're not a bot"). Runner IP is on YouTube's blocklist. Ask
-  the user for an alternative source (X.com mirror, direct mp4, Vimeo).
-  Do not silently fall back.
+- **YouTube video has no captions** (`TranscriptsDisabled` or
+  `NoTranscriptFound`). The YouTube path uses YouTube's caption
+  endpoint — it doesn't transcribe audio. If captions are off (creator
+  disabled them, or it's a brand-new upload), tell the user the source
+  has no captions and ask for an alternative (X.com mirror, direct mp4).
+- **Non-YouTube `Run pipeline` fails with yt-dlp 403** on a private or
+  geo-blocked source. Tell the user; consider a mirror.
 - **Pipeline succeeds but `Post transcript as GitHub issue` fails.**
   Read the failed-run page via `WebFetch`. Most likely cause is the
   repo's "Workflow permissions" set to read-only — direct the user to
@@ -106,6 +109,11 @@ When the user supplies a URL:
 - `transcript-clean.txt` joins all segments with single spaces. The
   paragraph-break rules are spelled out in step 5 of the procedure
   above — follow them strictly. No word changes, ever.
+- **YouTube path is different from everything else.** YouTube URLs use
+  `youtube-transcript-api` to fetch YouTube's official captions (no
+  audio download, no Whisper, no bot wall). All other URLs go through
+  yt-dlp → ffmpeg → faster-whisper. The output format is identical, so
+  the procedure above doesn't change.
 - The pipeline runs locally too
   (`python EXPERIMENTS/x-video-transcribe/transcribe.py <url>`) when the
   environment can reach the source — but Claude Code's web sandbox
