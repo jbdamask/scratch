@@ -59,7 +59,9 @@ jobs:
           echo "model=$MODEL" >> "$GITHUB_OUTPUT"
 
       - name: Run pipeline
+        shell: bash
         run: |
+          set -o pipefail
           mkdir -p EXPERIMENTS/x-video-transcribe/out
           python EXPERIMENTS/x-video-transcribe/transcribe.py \
             "${{ steps.cfg.outputs.url }}" \
@@ -128,6 +130,34 @@ jobs:
             echo '```'
             echo
             echo "</details>"
+          } > "$BODY_FILE"
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "$TITLE" \
+            --body-file "$BODY_FILE"
+
+      - name: Post diagnostic issue on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          URL: ${{ steps.cfg.outputs.url }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          TITLE="Transcribe FAILED: ${URL:-<no url>}"
+          BODY_FILE=$(mktemp)
+          {
+            echo "**Source:** ${URL:-<no url>}"
+            echo "**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${RUN_ID}"
+            echo
+            if [ -f EXPERIMENTS/x-video-transcribe/out/run.log ]; then
+              echo '### run.log (last 120 lines)'
+              echo
+              echo '```'
+              tail -n 120 EXPERIMENTS/x-video-transcribe/out/run.log
+              echo '```'
+            else
+              echo '_run.log not produced — pipeline likely failed before it could write._'
+            fi
           } > "$BODY_FILE"
           gh issue create \
             --repo "${{ github.repository }}" \
