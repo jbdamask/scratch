@@ -1,14 +1,18 @@
 # x-video-transcribe
 
-Get a clean text transcript from any video URL by typing one sentence at
-Claude Code.
+Get a clean text transcript from an X.com (Twitter) video by typing one
+sentence at Claude Code.
 
 > transcribe this video: `https://x.com/some-clip`
 
 → Claude pushes the URL to a tracked file, GitHub Actions does the heavy
-work (download → audio extract → faster-whisper), and the transcript
-lands as a new GitHub issue that Claude reads back inline. ~4 minutes
-per clip. No API keys, no local Python install needed.
+work (yt-dlp download → ffmpeg audio extract → faster-whisper), and the
+transcript lands as a new GitHub issue that Claude reads back inline.
+~4 minutes per clip. No API keys, no local Python install needed.
+
+**Scope:** X.com is the supported source. YouTube does not work — both
+the audio-download API and the captions API IP-block cloud providers,
+so GitHub Actions runners can't reach them.
 
 ## Install in a dedicated repo (one command)
 
@@ -71,12 +75,9 @@ You: "transcribe this video: <url>"
             └─ GitHub Actions sees the url.txt change
                  └─ runs .github/workflows/x-video-transcribe.yml
                       └─ runs EXPERIMENTS/x-video-transcribe/transcribe.py
-                           ├─ YouTube? fetch official captions
-                           │            via youtube-transcript-api
-                           └─ anything else?
-                                ├─ yt-dlp downloads the video
-                                ├─ ffmpeg strips audio (16 kHz mono WAV)
-                                └─ faster-whisper transcribes (CPU, int8)
+                           ├─ yt-dlp downloads the video
+                           ├─ ffmpeg strips audio (16 kHz mono WAV)
+                           └─ faster-whisper transcribes (CPU, int8)
                       └─ opens a GitHub issue "Transcript: <url>"
   └─ Claude polls for the new issue, reads it, pastes the transcript back
 ```
@@ -125,14 +126,14 @@ Two reasons:
    can read on the GitHub mobile app — no artifact download, no
    Actions-log spelunking.
 
-**YouTube uses a different path.** GitHub-hosted runner IPs are on
-YouTube's bot-detection list, so audio download via yt-dlp hits a
-"Sign in to confirm you're not a bot" wall. For YouTube URLs the
-pipeline instead fetches YouTube's official auto-captions via
-`youtube-transcript-api` (no audio download, no Whisper needed, no bot
-wall). The output format is the same as the Whisper path. Caveat: if
-the creator disabled captions on a video, this fails — there's no
-fallback.
+**Why YouTube doesn't work:** GitHub-hosted runner IPs are on YouTube's
+blocklist for both the video player API (yt-dlp hits a "Sign in to
+confirm you're not a bot" wall) and the captions API
+(`youtube-transcript-api` raises `RequestBlocked`). Bypasses exist
+(authenticated cookies stored as a GitHub secret; residential proxy)
+but they're out of scope for this skill — see
+https://github.com/jdepoix/youtube-transcript-api?tab=readme-ov-file#working-around-ip-bans-requestblocked-or-ipblocked-exception
+if you want to set one up.
 
 ## Uninstall
 

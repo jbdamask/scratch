@@ -1,6 +1,6 @@
 ---
 name: x-video-transcribe
-description: Transcribe a video from any URL yt-dlp can resolve (X.com, YouTube, etc.) and return a clean, readable transcript. Use this whenever the user asks to "transcribe", "get the words from", or "give me the transcript of" a video link. Offloads the heavy work to a GitHub Actions runner in the current repo because Claude Code's sandbox blocks x.com — Actions on X.com works reliably.
+description: Transcribe a video from an X.com (Twitter) URL and return a clean, readable transcript. Use this whenever the user asks to "transcribe", "get the words from", or "give me the transcript of" an X.com video link. Offloads the heavy work to a GitHub Actions runner in the current repo because Claude Code's sandbox blocks x.com — Actions runners reach X.com fine. YouTube is not supported (cloud IPs are blocked by YouTube).
 ---
 
 # x-video-transcribe
@@ -81,19 +81,24 @@ When the user supplies a URL:
 
 ## Failure modes and what to do
 
-- **YouTube video has no captions** (`TranscriptsDisabled` or
-  `NoTranscriptFound`). The YouTube path uses YouTube's caption
-  endpoint — it doesn't transcribe audio. If captions are off (creator
-  disabled them, or it's a brand-new upload), tell the user the source
-  has no captions and ask for an alternative (X.com mirror, direct mp4).
-- **Non-YouTube `Run pipeline` fails with yt-dlp 403** on a private or
-  geo-blocked source. Tell the user; consider a mirror.
+- **YouTube URLs don't work.** GitHub-hosted runner IPs are blocked by
+  YouTube for both audio download (yt-dlp bot wall) and the caption
+  API (`youtube-transcript-api` raises `RequestBlocked`). Tell the
+  user this skill doesn't support YouTube and ask for an X.com mirror
+  or a direct mp4 instead. Don't try to work around it.
+- **`Run pipeline` fails with yt-dlp 403** on a private or geo-blocked
+  source. Tell the user; consider a mirror.
 - **Pipeline succeeds but `Post transcript as GitHub issue` fails.**
   Read the failed-run page via `WebFetch`. Most likely cause is the
   repo's "Workflow permissions" set to read-only — direct the user to
   *Settings → Actions → General → Workflow permissions* and enable
   "Read and write permissions". The transcript is still in the run's job
   summary and as an uploaded artifact.
+- **Pipeline fails for any reason — read the diagnostic issue.** The
+  workflow opens a `Transcribe FAILED: <url>` issue with the last 120
+  lines of run.log when the pipeline fails. Use
+  `mcp__github__list_issues` to find it and surface the error to the
+  user.
 - **Workflow doesn't trigger.** Verify the changed path is exactly
   `EXPERIMENTS/x-video-transcribe/url.txt`. The workflow's `on.push.paths`
   is narrow.
@@ -109,12 +114,7 @@ When the user supplies a URL:
 - `transcript-clean.txt` joins all segments with single spaces. The
   paragraph-break rules are spelled out in step 5 of the procedure
   above — follow them strictly. No word changes, ever.
-- **YouTube path is different from everything else.** YouTube URLs use
-  `youtube-transcript-api` to fetch YouTube's official captions (no
-  audio download, no Whisper, no bot wall). All other URLs go through
-  yt-dlp → ffmpeg → faster-whisper. The output format is identical, so
-  the procedure above doesn't change.
 - The pipeline runs locally too
   (`python EXPERIMENTS/x-video-transcribe/transcribe.py <url>`) when the
   environment can reach the source — but Claude Code's web sandbox
-  blocks `x.com` and `youtube.com`, so prefer the Actions path there.
+  blocks `x.com`, so prefer the Actions path there.
