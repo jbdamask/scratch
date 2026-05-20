@@ -79,7 +79,17 @@ jobs:
             if [ -f EXPERIMENTS/x-video-transcribe/out/transcript-clean.txt ]; then
               cat EXPERIMENTS/x-video-transcribe/out/transcript-clean.txt
             else
-              echo '(no transcript — see run.log)'
+              echo '_(no transcript — pipeline did not produce transcript-clean.txt)_'
+              if [ -f EXPERIMENTS/x-video-transcribe/out/run.log ]; then
+                echo
+                echo '<details><summary>run.log (last 80 lines)</summary>'
+                echo
+                echo '```'
+                tail -n 80 EXPERIMENTS/x-video-transcribe/out/run.log
+                echo '```'
+                echo
+                echo '</details>'
+              fi
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 

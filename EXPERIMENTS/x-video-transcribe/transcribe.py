@@ -33,14 +33,20 @@ def fetch_youtube_captions(video_id: str) -> tuple[str, str]:
     from youtube_transcript_api import YouTubeTranscriptApi
 
     print(f"Fetching YouTube captions for {video_id}", flush=True)
-    snippets = YouTubeTranscriptApi.get_transcript(video_id, languages=["en", "en-US", "en-GB"])
+    api = YouTubeTranscriptApi()
+    fetched = api.fetch(video_id, languages=("en", "en-US", "en-GB"))
+    print(
+        f"Got {len(fetched)} snippets "
+        f"(language={fetched.language_code}, generated={fetched.is_generated})",
+        flush=True,
+    )
 
     timestamped: list[str] = []
     plain: list[str] = []
-    for snip in snippets:
-        start = float(snip["start"])
-        end = start + float(snip.get("duration", 0.0))
-        text = snip["text"].replace("\n", " ").strip()
+    for snip in fetched:
+        start = float(snip.start)
+        end = start + float(snip.duration)
+        text = snip.text.replace("\n", " ").strip()
         if not text:
             continue
         line = f"[{start:7.2f} -> {end:7.2f}] {text}"
