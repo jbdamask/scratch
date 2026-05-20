@@ -1,4 +1,4 @@
-name: transcribe-video
+name: x-video-transcribe
 
 # Runs the EXPERIMENTS/x-audio-transcribe pipeline on a GitHub-hosted
 # runner (open egress), then opens a GitHub issue with the transcript

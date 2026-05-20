@@ -1,9 +1,9 @@
 ---
-name: transcribe-video
+name: x-video-transcribe
 description: Transcribe a video from any URL yt-dlp can resolve (X.com, YouTube, etc.) and return a clean, readable transcript. Use this whenever the user asks to "transcribe", "get the words from", or "give me the transcript of" a video link. Offloads the heavy work to a GitHub Actions runner in `jbdamask/scratch` because the sandbox blocks x.com and YouTube's bot wall blocks the runner only partially — Actions on X.com works reliably.
 ---
 
-# transcribe-video
+# x-video-transcribe
 
 Pipeline lives in this repo:
 - `EXPERIMENTS/x-audio-transcribe/transcribe.py` — yt-dlp + ffmpeg + faster-whisper (CPU, int8). Writes both `transcript.txt` (timestamped) and `transcript-clean.txt` (one paragraph).
