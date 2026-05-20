@@ -10,15 +10,34 @@ work (download → audio extract → faster-whisper), and the transcript
 lands as a new GitHub issue that Claude reads back inline. ~4 minutes
 per clip. No API keys, no local Python install needed.
 
-## Install in your repo (one command)
+## Install in a dedicated repo (one command)
 
-Run this from inside your git repo's root:
+**Create a fresh, dedicated GitHub repo for this** — don't install it
+into a working project. Two reasons:
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/jbdamask/scratch/main/EXPERIMENTS/x-video-transcribe/install.sh | bash
-```
+- The workflow opens a new GitHub issue per transcript. In a real
+  project repo those would clutter (or get lost in) your real issue
+  tracker. A dedicated repo keeps your transcripts in their own clean
+  issue list.
+- The workflow triggers on every push that touches `url.txt`. Sharing a
+  repo with active development means extra CI noise and possible race
+  conditions with your other workflows.
 
-That copies three things into your repo:
+Recommended setup:
+
+1. On GitHub: create a new empty repo, e.g. `<you>/transcripts`. Don't
+   add a README or license — leave it empty.
+2. Clone it and `cd` in:
+   ```bash
+   git clone https://github.com/<you>/transcripts.git
+   cd transcripts
+   ```
+3. Run the installer:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/jbdamask/scratch/main/EXPERIMENTS/x-video-transcribe/install.sh | bash
+   ```
+
+That copies three things into the repo:
 
 | File | Purpose |
 | --- | --- |
