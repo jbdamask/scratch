@@ -1,75 +1,92 @@
 # x-video-transcribe
 
-Extract audio from a video URL (X.com, YouTube, anything yt-dlp can resolve)
-and transcribe it to text.
+Get a clean text transcript from any video URL by typing one sentence at
+Claude Code.
 
-## Pipeline
+> transcribe this video: `https://x.com/ycombinator/status/2056908727400423481/video/1`
 
-1. `yt-dlp` downloads the best video+audio stream.
-2. `ffmpeg` strips audio to 16 kHz mono WAV (Whisper's preferred input).
-3. `faster-whisper` (CTranslate2-backed Whisper, CPU + int8) transcribes
-   locally — no API key needed. Outputs both:
-   - `transcript.txt` — timestamped segments
-   - `transcript-clean.txt` — single-paragraph plain text
+→ Claude pushes the URL, waits for GitHub Actions to do the heavy
+work, and pastes the transcript back inline. ~4 minutes per clip.
 
-## Running it from Claude (the easy way)
+## What this is
 
-This repo ships a Claude Code skill. The file lives at
-[`.claude/skills/x-video-transcribe/SKILL.md`](https://github.com/jbdamask/scratch/blob/main/.claude/skills/x-video-transcribe/SKILL.md)
-— it's hidden under a dot-directory, so tap the link if you can't find
-it browsing the repo on mobile.
+Three pieces that work together — none of them is useful alone:
 
-Claude picks up project-level skills automatically when the current
-working directory is this repo.
+| Piece | Path | Role |
+| --- | --- | --- |
+| **Skill** | [`.claude/skills/x-video-transcribe/SKILL.md`](https://github.com/jbdamask/scratch/blob/main/.claude/skills/x-video-transcribe/SKILL.md) | Tells Claude Code what to do when you ask for a transcript — write the URL to a tracked file, push, watch, read the result back. |
+| **Pipeline** | [`EXPERIMENTS/x-video-transcribe/transcribe.py`](https://github.com/jbdamask/scratch/blob/main/EXPERIMENTS/x-video-transcribe/transcribe.py) + `requirements.txt` | The actual yt-dlp → ffmpeg → faster-whisper code. Runs on a GitHub Actions runner. |
+| **Workflow** | [`.github/workflows/x-video-transcribe.yml`](https://github.com/jbdamask/scratch/blob/main/.github/workflows/x-video-transcribe.yml) | Triggers on a push to `url.txt`, runs the pipeline, opens a GitHub issue titled `Transcript: <url>` with the transcript as the body. |
 
-In a Claude Code session rooted in this repo, just say:
+The trigger file is [`url.txt`](https://github.com/jbdamask/scratch/blob/main/EXPERIMENTS/x-video-transcribe/url.txt) in this directory. Editing and pushing it kicks the workflow off.
+
+## How to use it in this repo
+
+The skill is already installed. In a Claude Code session whose cwd is
+this repo, just say:
 
 > transcribe this video: `<url>`
 
-or invoke it explicitly:
+or invoke explicitly:
 
 > `/x-video-transcribe <url>`
 
-Claude will write the URL to `EXPERIMENTS/x-video-transcribe/url.txt`,
-push, wait for the GitHub Actions run to finish, read the resulting
-`Transcript: <url>` issue, and present the clean transcript inline.
+You can also fire it from the GitHub mobile app: **Actions →
+x-video-transcribe → Run workflow → paste URL**. The transcript appears
+as a new issue.
 
-### Installing the skill globally (optional)
+## How to use it in your own repo
 
-If you want the skill available outside this repo, copy it into your
-user-level skills directory:
+Copy four things over, then change one identifier:
 
-```bash
-mkdir -p ~/.claude/skills
-cp -r .claude/skills/x-video-transcribe ~/.claude/skills/
-```
+1. `.claude/skills/x-video-transcribe/` — the skill
+2. `EXPERIMENTS/x-video-transcribe/` — the pipeline code (rename the
+   parent directory if you like, just be consistent)
+3. `.github/workflows/x-video-transcribe.yml` — the workflow
+4. This `.gitignore` rule so the skill ships with the repo:
+   ```gitignore
+   .claude/*
+   !.claude/skills/
+   !.claude/skills/**
+   ```
 
-Restart your Claude Code session so it re-scans skills. The skill's
-procedure still targets `jbdamask/scratch` — clone or fork that repo to
-keep the Actions workflow + issue posting available.
+Then edit two things:
 
-## Running it from the GitHub mobile app
+- **In `SKILL.md`**, replace `jbdamask/scratch` with `<your-owner>/<your-repo>` (the skill uses those when polling for the result issue).
+- **If you renamed the experiment dir**, update the path in three places: `SKILL.md`, the workflow's `on.push.paths`, and the script paths inside the workflow steps.
 
-Actions → **x-video-transcribe** → Run workflow → paste a URL. The
-transcript shows up as a new issue titled `Transcript: <url>`.
+Finally, in your repo: **Settings → Actions → General → Workflow
+permissions** → enable "Read and write permissions" (or at minimum
+ensure `issues: write` is granted to `GITHUB_TOKEN`). The workflow needs
+this to post the result issue.
 
-## Running it locally (sandbox/network permitting)
+## Run the pipeline directly (no GitHub)
+
+If your local environment can reach the video host (the Claude Code web
+sandbox can't reach `x.com` or `youtube.com`, which is why we route
+through Actions):
 
 ```bash
 pip install -r requirements.txt
-# ffmpeg must be on PATH (e.g. apt-get install -y ffmpeg)
+apt-get install -y ffmpeg          # or brew install ffmpeg, etc.
 python transcribe.py "<video-url>"
 ```
 
-Outputs `audio.wav`, `transcript.txt`, and `transcript-clean.txt` in the
-working directory.
+Outputs `audio.wav`, `transcript.txt` (timestamped), and
+`transcript-clean.txt` (single-paragraph) in the working directory.
 
-## Network notes
+## Why route through Actions at all?
 
-- The remote execution environment used by Claude Code on the web blocks
-  `x.com` and `youtube.com`, so local runs from inside that sandbox will
-  fail at the download step. Use the Actions path instead.
-- GitHub-hosted Actions runners reach `x.com` fine but get the "Sign in
-  to confirm you're not a bot" wall for YouTube. For YouTube content,
-  provide an alternative source (X.com mirror, direct mp4, Vimeo) or pass
-  cookies via yt-dlp arguments.
+Two reasons:
+
+1. **Sandbox egress.** Claude Code on the web blocks outbound traffic to
+   most hosts including `x.com` — the download step 403s locally. The
+   GitHub Actions runner has open egress.
+2. **Mobile-friendly delivery.** The workflow opens a GitHub issue with
+   the transcript as the body. You can read it on the GitHub mobile app
+   without needing to download an artifact or open the Actions log.
+
+GitHub-hosted runner IPs are on YouTube's bot-detection list, so
+YouTube URLs hit a "Sign in to confirm you're not a bot" wall on the
+runner. X.com works reliably. For YouTube clips, supply an alternative
+source (X mirror, direct mp4) or pass yt-dlp cookies via the workflow.
