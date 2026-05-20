@@ -1,4 +1,20 @@
 #!/usr/bin/env bash
+#
+# are-you-sure.sh
+#
+# Sends an initial prompt to `claude -p --dangerously-skip-permissions`, then
+# repeatedly asks Claude "are you sure?" (using --continue so conversation
+# context is preserved) up to <max-loops> times. The loop exits early as soon
+# as Claude returns a response wrapped in <FINISHED>...</FINISHED> tags.
+#
+# Usage:   ./are-you-sure.sh "<prompt>" [max-loops]
+# Default: max-loops = 5
+# Example: ./are-you-sure.sh "what is 2+2?" 3
+#
+# Exit codes:
+#   0 - Claude returned <FINISHED>...</FINISHED> within the loop budget
+#   1 - bad args, or max-loops exhausted without a <FINISHED> response
+
 set -euo pipefail
 
 if [[ $# -lt 1 || $# -gt 2 ]]; then
