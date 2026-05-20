@@ -1,0 +1,105 @@
+name: transcribe-x-video
+
+# Runs the EXPERIMENTS/x-audio-transcribe pipeline on a GitHub-hosted
+# runner (which has open egress), then commits the transcript back to
+# this branch so it's visible in the GitHub mobile app.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "X.com video URL"
+        required: true
+        default: "https://x.com/ycombinator/status/2056908727400423481/video/1"
+      model:
+        description: "Whisper model size (tiny|base|small|medium)"
+        required: true
+        default: "base"
+  push:
+    branches:
+      - claude/extract-transcribe-audio-bDzLU
+    paths:
+      - "EXPERIMENTS/x-audio-transcribe/transcribe.py"
+      - "EXPERIMENTS/x-audio-transcribe/requirements.txt"
+      - ".github/workflows/transcribe.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Python deps
+        run: pip install -r EXPERIMENTS/x-audio-transcribe/requirements.txt
+
+      - name: Resolve URL and model
+        id: cfg
+        run: |
+          URL="${{ github.event.inputs.url }}"
+          MODEL="${{ github.event.inputs.model }}"
+          : "${URL:=https://x.com/ycombinator/status/2056908727400423481/video/1}"
+          : "${MODEL:=base}"
+          echo "url=$URL"   >> "$GITHUB_OUTPUT"
+          echo "model=$MODEL" >> "$GITHUB_OUTPUT"
+
+      - name: Run pipeline
+        id: run
+        run: |
+          mkdir -p EXPERIMENTS/x-audio-transcribe/out
+          python EXPERIMENTS/x-audio-transcribe/transcribe.py \
+            "${{ steps.cfg.outputs.url }}" \
+            --out-dir EXPERIMENTS/x-audio-transcribe/out \
+            --model "${{ steps.cfg.outputs.model }}" \
+            2>&1 | tee EXPERIMENTS/x-audio-transcribe/out/run.log
+
+      - name: Write job summary
+        if: always()
+        run: |
+          {
+            echo "## Transcript"
+            echo
+            echo "**URL:** ${{ steps.cfg.outputs.url }}"
+            echo "**Model:** ${{ steps.cfg.outputs.model }}"
+            echo
+            echo '```'
+            if [ -f EXPERIMENTS/x-audio-transcribe/out/transcript.txt ]; then
+              cat EXPERIMENTS/x-audio-transcribe/out/transcript.txt
+            else
+              echo "(no transcript — see run.log)"
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: transcript-output
+          path: EXPERIMENTS/x-audio-transcribe/out/
+
+      - name: Commit transcript back to branch
+        if: success()
+        run: |
+          # Drop the heavy video file before committing.
+          find EXPERIMENTS/x-audio-transcribe/out -maxdepth 1 -type f \
+            ! -name 'transcript.txt' ! -name 'run.log' -delete || true
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add EXPERIMENTS/x-audio-transcribe/out/transcript.txt \
+                  EXPERIMENTS/x-audio-transcribe/out/run.log
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+            exit 0
+          fi
+          git commit -m "Add transcript output from Actions run [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
