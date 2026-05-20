@@ -305,8 +305,10 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# Claude code
-.claude
+# Claude code — ignore everything except shared skills
+.claude/*
+!.claude/skills/
+!.claude/skills/**
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

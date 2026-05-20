@@ -1,30 +1,29 @@
-name: transcribe-x-video
+name: transcribe-video
 
 # Runs the EXPERIMENTS/x-audio-transcribe pipeline on a GitHub-hosted
-# runner (which has open egress), then commits the transcript back to
-# this branch so it's visible in the GitHub mobile app.
+# runner (open egress), then opens a GitHub issue with the transcript
+# so it's readable on mobile and via the GitHub MCP.
+#
+# Two ways to trigger:
+#   1. Edit EXPERIMENTS/x-audio-transcribe/url.txt and push  (preferred)
+#   2. Actions UI → "Run workflow" with a URL input
 
 on:
   workflow_dispatch:
     inputs:
       url:
         description: "Video URL (X.com, YouTube, etc.)"
-        required: true
-        default: "https://x.com/ycombinator/status/2056908727400423481/video/1"
+        required: false
       model:
         description: "Whisper model size (tiny|base|small|medium)"
-        required: true
+        required: false
         default: "base"
   push:
-    branches:
-      - claude/extract-transcribe-audio-bDzLU
     paths:
-      - "EXPERIMENTS/x-audio-transcribe/transcribe.py"
-      - "EXPERIMENTS/x-audio-transcribe/requirements.txt"
-      - ".github/workflows/transcribe.yml"
+      - "EXPERIMENTS/x-audio-transcribe/url.txt"
 
 permissions:
-  contents: write
+  contents: read
   issues: write
 
 jobs:
@@ -48,13 +47,18 @@ jobs:
         run: |
           URL="${{ github.event.inputs.url }}"
           MODEL="${{ github.event.inputs.model }}"
-          : "${URL:=https://x.com/ycombinator/status/2056908727400423481/video/1}"
+          if [ -z "$URL" ] && [ -f EXPERIMENTS/x-audio-transcribe/url.txt ]; then
+            URL=$(grep -vE '^\s*(#|$)' EXPERIMENTS/x-audio-transcribe/url.txt | head -1 | tr -d '\r\n')
+          fi
           : "${MODEL:=base}"
+          if [ -z "$URL" ]; then
+            echo "No URL provided (workflow_dispatch input or url.txt)." >&2
+            exit 1
+          fi
           echo "url=$URL"   >> "$GITHUB_OUTPUT"
           echo "model=$MODEL" >> "$GITHUB_OUTPUT"
 
       - name: Run pipeline
-        id: run
         run: |
           mkdir -p EXPERIMENTS/x-audio-transcribe/out
           python EXPERIMENTS/x-audio-transcribe/transcribe.py \
@@ -72,13 +76,11 @@ jobs:
             echo "**URL:** ${{ steps.cfg.outputs.url }}"
             echo "**Model:** ${{ steps.cfg.outputs.model }}"
             echo
-            echo '```'
-            if [ -f EXPERIMENTS/x-audio-transcribe/out/transcript.txt ]; then
-              cat EXPERIMENTS/x-audio-transcribe/out/transcript.txt
+            if [ -f EXPERIMENTS/x-audio-transcribe/out/transcript-clean.txt ]; then
+              cat EXPERIMENTS/x-audio-transcribe/out/transcript-clean.txt
             else
-              echo "(no transcript — see run.log)"
+              echo '(no transcript — see run.log)'
             fi
-            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload artifacts
@@ -94,8 +96,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           URL: ${{ steps.cfg.outputs.url }}
           MODEL: ${{ steps.cfg.outputs.model }}
+          RUN_ID: ${{ github.run_id }}
         run: |
-          if [ ! -f EXPERIMENTS/x-audio-transcribe/out/transcript.txt ]; then
+          if [ ! -f EXPERIMENTS/x-audio-transcribe/out/transcript-clean.txt ]; then
             echo "No transcript file; skipping issue."
             exit 0
           fi
@@ -104,17 +107,18 @@ jobs:
           {
             echo "**Source:** ${URL}"
             echo "**Model:** faster-whisper / ${MODEL}"
-            echo "**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${RUN_ID}"
+            echo
+            cat EXPERIMENTS/x-audio-transcribe/out/transcript-clean.txt
+            echo
+            echo "<details><summary>Timestamped version</summary>"
             echo
             echo '```'
             cat EXPERIMENTS/x-audio-transcribe/out/transcript.txt
             echo '```'
+            echo
+            echo "</details>"
           } > "$BODY_FILE"
-          gh issue create \
-            --repo "${{ github.repository }}" \
-            --title "$TITLE" \
-            --body-file "$BODY_FILE" \
-            --label transcript || \
           gh issue create \
             --repo "${{ github.repository }}" \
             --title "$TITLE" \

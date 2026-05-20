@@ -1,4 +1,4 @@
-"""Extract audio from an X.com video and transcribe it with faster-whisper."""
+"""Extract audio from a video (X, YouTube, etc.) and transcribe it with faster-whisper."""
 
 from __future__ import annotations
 
@@ -22,7 +22,6 @@ def download_video(url: str, out_path: Path) -> Path:
     ]
     print(f"$ {' '.join(cmd)}", flush=True)
     subprocess.run(cmd, check=True)
-    # yt-dlp may pick any extension; find what landed.
     matches = list(out_path.parent.glob(out_path.stem + ".*"))
     if not matches:
         raise FileNotFoundError("yt-dlp produced no output file")
@@ -42,8 +41,8 @@ def extract_audio(video_path: Path, audio_path: Path) -> Path:
     return audio_path
 
 
-def transcribe(audio_path: Path, model_size: str = "base") -> str:
-    """Run faster-whisper locally. Model is downloaded once and cached."""
+def transcribe(audio_path: Path, model_size: str = "base") -> tuple[str, str]:
+    """Run faster-whisper locally. Returns (timestamped, clean) transcripts."""
     from faster_whisper import WhisperModel
 
     print(f"Loading faster-whisper model: {model_size}", flush=True)
@@ -51,17 +50,20 @@ def transcribe(audio_path: Path, model_size: str = "base") -> str:
     segments, info = model.transcribe(str(audio_path), beam_size=5)
     print(f"Detected language={info.language} (p={info.language_probability:.2f})", flush=True)
 
-    lines: list[str] = []
+    timestamped: list[str] = []
+    plain: list[str] = []
     for seg in segments:
-        line = f"[{seg.start:7.2f} -> {seg.end:7.2f}] {seg.text.strip()}"
+        text = seg.text.strip()
+        line = f"[{seg.start:7.2f} -> {seg.end:7.2f}] {text}"
         print(line, flush=True)
-        lines.append(line)
-    return "\n".join(lines)
+        timestamped.append(line)
+        plain.append(text)
+    return "\n".join(timestamped), " ".join(plain)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("url", help="X.com video URL")
+    parser.add_argument("url", help="Video URL (X.com, YouTube, etc.)")
     parser.add_argument("--out-dir", default=".", help="Output directory")
     parser.add_argument("--model", default="base",
                         help="Whisper model size: tiny|base|small|medium|large-v3")
@@ -77,12 +79,15 @@ def main() -> int:
     video_stub = out_dir / "video"
     audio_path = out_dir / "audio.wav"
     transcript_path = out_dir / "transcript.txt"
+    clean_path = out_dir / "transcript-clean.txt"
 
     video = download_video(args.url, video_stub)
     extract_audio(video, audio_path)
-    text = transcribe(audio_path, model_size=args.model)
-    transcript_path.write_text(text + "\n", encoding="utf-8")
+    timestamped, clean = transcribe(audio_path, model_size=args.model)
+    transcript_path.write_text(timestamped + "\n", encoding="utf-8")
+    clean_path.write_text(clean + "\n", encoding="utf-8")
     print(f"\nTranscript written to {transcript_path}")
+    print(f"Clean transcript written to {clean_path}")
     return 0
 
 
