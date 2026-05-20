@@ -6,9 +6,9 @@ description: Transcribe a video from any URL yt-dlp can resolve (X.com, YouTube,
 # x-video-transcribe
 
 Pipeline lives in this repo:
-- `EXPERIMENTS/x-audio-transcribe/transcribe.py` — yt-dlp + ffmpeg + faster-whisper (CPU, int8). Writes both `transcript.txt` (timestamped) and `transcript-clean.txt` (one paragraph).
-- `.github/workflows/transcribe.yml` — runs the pipeline on `ubuntu-latest`, posts a GitHub issue titled `Transcript: <url>` with the clean transcript in the body and the timestamped version in a collapsed `<details>` block.
-- `EXPERIMENTS/x-audio-transcribe/url.txt` — pushing this file triggers the workflow. The first non-comment line is the URL.
+- `EXPERIMENTS/x-video-transcribe/transcribe.py` — yt-dlp + ffmpeg + faster-whisper (CPU, int8). Writes both `transcript.txt` (timestamped) and `transcript-clean.txt` (one paragraph).
+- `.github/workflows/x-video-transcribe.yml` — runs the pipeline on `ubuntu-latest`, posts a GitHub issue titled `Transcript: <url>` with the clean transcript in the body and the timestamped version in a collapsed `<details>` block.
+- `EXPERIMENTS/x-video-transcribe/url.txt` — pushing this file triggers the workflow. The first non-comment line is the URL.
 
 ## Procedure
 
@@ -20,9 +20,9 @@ When the user supplies a URL, do this:
    ```
    and record the current highest issue number via `mcp__github__list_issues` (owner `jbdamask`, repo `scratch`, state `OPEN`, orderBy `CREATED_AT`, direction `DESC`, perPage 1).
 
-2. **Write the URL** to `EXPERIMENTS/x-audio-transcribe/url.txt` (replace any existing URL line; keep the `#` comments). Then commit and push to the current branch:
+2. **Write the URL** to `EXPERIMENTS/x-video-transcribe/url.txt` (replace any existing URL line; keep the `#` comments). Then commit and push to the current branch:
    ```
-   git add EXPERIMENTS/x-audio-transcribe/url.txt
+   git add EXPERIMENTS/x-video-transcribe/url.txt
    git commit -m "transcribe: <short description of the video>"
    git push -u origin HEAD
    ```
@@ -37,11 +37,11 @@ When the user supplies a URL, do this:
 
 - **`Run pipeline` step fails with yt-dlp error for YouTube** ("Sign in to confirm you're not a bot"). The runner IP is on YouTube's blocklist. Ask the user for an alternative source (X.com mirror, direct mp4, Vimeo). Do **not** silently fall back — tell them why.
 - **`Run pipeline` succeeds, `Post transcript as GitHub issue` fails.** Read the failed-run page via `WebFetch` to confirm; common cause is repo-level `issues: write` being denied. Fall back to writing the transcript to the job summary only and report the run URL to the user.
-- **Workflow doesn't trigger after push.** Verify the changed path matches `EXPERIMENTS/x-audio-transcribe/url.txt` exactly — the workflow's `on.push.paths` is narrow. If pushed to a non-default branch, that's still fine (no branch filter), but the path must match.
+- **Workflow doesn't trigger after push.** Verify the changed path matches `EXPERIMENTS/x-video-transcribe/url.txt` exactly — the workflow's `on.push.paths` is narrow. If pushed to a non-default branch, that's still fine (no branch filter), but the path must match.
 - **Multiple URLs requested in one session.** Repeat the procedure once per URL. Don't batch — the workflow handles one URL per run, and the issue title encodes provenance.
 
 ## Notes
 
 - Default model is `base` (~150 MB download on the runner, balanced quality/speed for short clips). For longer or higher-stakes clips, the user can pass `model: small` via the Actions UI; the push-triggered path always uses `base`.
 - `transcript-clean.txt` joins all segments with single spaces — no paragraph breaks. When presenting to the user, you may insert paragraph breaks at natural pauses to improve readability, but **do not paraphrase or correct** the words.
-- The pipeline runs locally too (`python EXPERIMENTS/x-audio-transcribe/transcribe.py <url>`) when the sandbox can reach the source — but in this remote environment x.com and youtube.com are blocked, so always prefer the Actions path.
+- The pipeline runs locally too (`python EXPERIMENTS/x-video-transcribe/transcribe.py <url>`) when the sandbox can reach the source — but in this remote environment x.com and youtube.com are blocked, so always prefer the Actions path.

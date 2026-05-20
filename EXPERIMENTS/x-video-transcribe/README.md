@@ -1,4 +1,4 @@
-# x-audio-transcribe
+# x-video-transcribe
 
 Extract audio from a video URL (X.com, YouTube, anything yt-dlp can resolve)
 and transcribe it to text.
@@ -27,7 +27,7 @@ or invoke it explicitly:
 
 > `/x-video-transcribe <url>`
 
-Claude will write the URL to `EXPERIMENTS/x-audio-transcribe/url.txt`,
+Claude will write the URL to `EXPERIMENTS/x-video-transcribe/url.txt`,
 push, wait for the GitHub Actions run to finish, read the resulting
 `Transcript: <url>` issue, and present the clean transcript inline.
 

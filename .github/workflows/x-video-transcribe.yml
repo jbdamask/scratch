@@ -1,11 +1,11 @@
 name: x-video-transcribe
 
-# Runs the EXPERIMENTS/x-audio-transcribe pipeline on a GitHub-hosted
+# Runs the EXPERIMENTS/x-video-transcribe pipeline on a GitHub-hosted
 # runner (open egress), then opens a GitHub issue with the transcript
 # so it's readable on mobile and via the GitHub MCP.
 #
 # Two ways to trigger:
-#   1. Edit EXPERIMENTS/x-audio-transcribe/url.txt and push  (preferred)
+#   1. Edit EXPERIMENTS/x-video-transcribe/url.txt and push  (preferred)
 #   2. Actions UI → "Run workflow" with a URL input
 
 on:
@@ -20,7 +20,7 @@ on:
         default: "base"
   push:
     paths:
-      - "EXPERIMENTS/x-audio-transcribe/url.txt"
+      - "EXPERIMENTS/x-video-transcribe/url.txt"
 
 permissions:
   contents: read
@@ -40,15 +40,15 @@ jobs:
           python-version: "3.11"
 
       - name: Install Python deps
-        run: pip install -r EXPERIMENTS/x-audio-transcribe/requirements.txt
+        run: pip install -r EXPERIMENTS/x-video-transcribe/requirements.txt
 
       - name: Resolve URL and model
         id: cfg
         run: |
           URL="${{ github.event.inputs.url }}"
           MODEL="${{ github.event.inputs.model }}"
-          if [ -z "$URL" ] && [ -f EXPERIMENTS/x-audio-transcribe/url.txt ]; then
-            URL=$(grep -vE '^\s*(#|$)' EXPERIMENTS/x-audio-transcribe/url.txt | head -1 | tr -d '\r\n')
+          if [ -z "$URL" ] && [ -f EXPERIMENTS/x-video-transcribe/url.txt ]; then
+            URL=$(grep -vE '^\s*(#|$)' EXPERIMENTS/x-video-transcribe/url.txt | head -1 | tr -d '\r\n')
           fi
           : "${MODEL:=base}"
           if [ -z "$URL" ]; then
@@ -60,12 +60,12 @@ jobs:
 
       - name: Run pipeline
         run: |
-          mkdir -p EXPERIMENTS/x-audio-transcribe/out
-          python EXPERIMENTS/x-audio-transcribe/transcribe.py \
+          mkdir -p EXPERIMENTS/x-video-transcribe/out
+          python EXPERIMENTS/x-video-transcribe/transcribe.py \
             "${{ steps.cfg.outputs.url }}" \
-            --out-dir EXPERIMENTS/x-audio-transcribe/out \
+            --out-dir EXPERIMENTS/x-video-transcribe/out \
             --model "${{ steps.cfg.outputs.model }}" \
-            2>&1 | tee EXPERIMENTS/x-audio-transcribe/out/run.log
+            2>&1 | tee EXPERIMENTS/x-video-transcribe/out/run.log
 
       - name: Write job summary
         if: always()
@@ -76,8 +76,8 @@ jobs:
             echo "**URL:** ${{ steps.cfg.outputs.url }}"
             echo "**Model:** ${{ steps.cfg.outputs.model }}"
             echo
-            if [ -f EXPERIMENTS/x-audio-transcribe/out/transcript-clean.txt ]; then
-              cat EXPERIMENTS/x-audio-transcribe/out/transcript-clean.txt
+            if [ -f EXPERIMENTS/x-video-transcribe/out/transcript-clean.txt ]; then
+              cat EXPERIMENTS/x-video-transcribe/out/transcript-clean.txt
             else
               echo '(no transcript — see run.log)'
             fi
@@ -88,7 +88,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: transcript-output
-          path: EXPERIMENTS/x-audio-transcribe/out/
+          path: EXPERIMENTS/x-video-transcribe/out/
 
       - name: Post transcript as GitHub issue
         if: success()
@@ -98,7 +98,7 @@ jobs:
           MODEL: ${{ steps.cfg.outputs.model }}
           RUN_ID: ${{ github.run_id }}
         run: |
-          if [ ! -f EXPERIMENTS/x-audio-transcribe/out/transcript-clean.txt ]; then
+          if [ ! -f EXPERIMENTS/x-video-transcribe/out/transcript-clean.txt ]; then
             echo "No transcript file; skipping issue."
             exit 0
           fi
@@ -109,12 +109,12 @@ jobs:
             echo "**Model:** faster-whisper / ${MODEL}"
             echo "**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${RUN_ID}"
             echo
-            cat EXPERIMENTS/x-audio-transcribe/out/transcript-clean.txt
+            cat EXPERIMENTS/x-video-transcribe/out/transcript-clean.txt
             echo
             echo "<details><summary>Timestamped version</summary>"
             echo
             echo '```'
-            cat EXPERIMENTS/x-audio-transcribe/out/transcript.txt
+            cat EXPERIMENTS/x-video-transcribe/out/transcript.txt
             echo '```'
             echo
             echo "</details>"
