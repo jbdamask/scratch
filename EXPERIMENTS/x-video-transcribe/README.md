@@ -14,10 +14,13 @@ and transcribe it to text.
 
 ## Running it from Claude (the easy way)
 
-This repo ships a Claude Code skill at
-`.claude/skills/x-video-transcribe/SKILL.md`. Claude picks up
-project-level skills automatically when the current working directory is
-this repo.
+This repo ships a Claude Code skill. The file lives at
+[`.claude/skills/x-video-transcribe/SKILL.md`](https://github.com/jbdamask/scratch/blob/main/.claude/skills/x-video-transcribe/SKILL.md)
+— it's hidden under a dot-directory, so tap the link if you can't find
+it browsing the repo on mobile.
+
+Claude picks up project-level skills automatically when the current
+working directory is this repo.
 
 In a Claude Code session rooted in this repo, just say:
 
