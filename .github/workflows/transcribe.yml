@@ -25,6 +25,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   transcribe:
@@ -87,19 +88,34 @@ jobs:
           name: transcript-output
           path: EXPERIMENTS/x-audio-transcribe/out/
 
-      - name: Commit transcript back to branch
+      - name: Post transcript as GitHub issue
         if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          URL: ${{ steps.cfg.outputs.url }}
+          MODEL: ${{ steps.cfg.outputs.model }}
         run: |
-          # Drop the heavy video file before committing.
-          find EXPERIMENTS/x-audio-transcribe/out -maxdepth 1 -type f \
-            ! -name 'transcript.txt' ! -name 'run.log' -delete || true
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add EXPERIMENTS/x-audio-transcribe/out/transcript.txt \
-                  EXPERIMENTS/x-audio-transcribe/out/run.log
-          if git diff --cached --quiet; then
-            echo "Nothing to commit"
+          if [ ! -f EXPERIMENTS/x-audio-transcribe/out/transcript.txt ]; then
+            echo "No transcript file; skipping issue."
             exit 0
           fi
-          git commit -m "Add transcript output from Actions run [skip ci]"
-          git push origin HEAD:${{ github.ref_name }}
+          TITLE="Transcript: ${URL}"
+          BODY_FILE=$(mktemp)
+          {
+            echo "**Source:** ${URL}"
+            echo "**Model:** faster-whisper / ${MODEL}"
+            echo "**Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo '```'
+            cat EXPERIMENTS/x-audio-transcribe/out/transcript.txt
+            echo '```'
+          } > "$BODY_FILE"
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "$TITLE" \
+            --body-file "$BODY_FILE" \
+            --label transcript || \
+          gh issue create \
+            --repo "${{ github.repository }}" \
+            --title "$TITLE" \
+            --body-file "$BODY_FILE"
