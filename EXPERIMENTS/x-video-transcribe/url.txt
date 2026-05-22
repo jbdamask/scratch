@@ -1,4 +1,4 @@
 # One URL per line. Lines beginning with # are ignored.
 # Pushing this file triggers .github/workflows/x-video-transcribe.yml,
 # which transcribes the video and opens a GitHub issue with the result.
-https://x.com/i/status/2057176201782075690
+https://x.com/AnatoliKopadze/status/2057833957014614290/video/1
