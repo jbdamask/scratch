@@ -319,3 +319,8 @@ cython_debug/
 
 !TOOLS/problem-solver/src/lib/
 !TOOLS/problem-solver/src/lib/**
+
+# Allow Claude Code project skills to ship with the repo
+.claude/*
+!.claude/skills/
+!.claude/skills/**
