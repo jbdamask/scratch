@@ -1,6 +1,8 @@
 # Cringelinter Ralph
 Ralph loop for de-cringing markdown documents written by AI. 
 
+![Cringelinter Ralph loop](cringelinter-ralph-loop.jpeg)
+
 ## Dependencies
 - Claude clode
 - cringelinter skill found at https://github.com/jbdamask/john-claude-skills.
