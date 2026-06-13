@@ -1,6 +1,6 @@
 # AWS Deployment Learnings
 
-This document contains hard-won lessons from building AWS apps with coding agents. Reference this when adding or changing AWS components in a project. If you learn a new lesson, generalize it from the current project and add it.
+This document contains hard-won lessons from building AWS apps with coding agents. Reference this when adding or changing AWS components in a project. If you learn a new lesson, generalize it from the current project and add it. Currently 31 lessons.
 
 ---
 
@@ -675,7 +675,93 @@ Before deploying infrastructure changes:
 26. [ ] EventBridge spot interruption rule must target the Lambda ARN, not the function name — use `!GetAtt Function.Arn`
 27. [ ] Spot interruption handler needs the same broad env vars as your server creation Lambda if doing auto-replacement
 28. [ ] When adding new API Gateway resources, deploy api-gateway stack FIRST, then lambdas stack — the lambdas stack imports the resource IDs
-29. [ ] Never rotate CloudFront signing keys with hard cutover (add new + delete old in same invocation) — KeyGroups support multiple keys for two-key overlap; deleting old key immediately invalidates every active signed cookie until both browsers refresh AND auth-Lambda warm containers cycle (~1h disruption per rotation)
+29. [ ] Never rotate CloudFront signing keys with hard cutover
+30. [ ] Every SQS+Lambda worker must be idempotent: check DynamoDB job status at the top of the handler before any side effects; use conditional writes (`ConditionExpression`) for all status transitions so re-deliveries can't overwrite terminal states or re-run expensive work
+31. [ ] Never bind per-invocation identity (request IDs, correlation IDs, log fields) at Lambda module scope — bind them inside the handler function on every call; module-level state persists across warm container invocations (add new + delete old in same invocation) — KeyGroups support multiple keys for two-key overlap; deleting old key immediately invalidates every active signed cookie until both browsers refresh AND auth-Lambda warm containers cycle (~1h disruption per rotation)
+
+---
+
+## SQS + Lambda
+
+### 29. SQS + Lambda Async Job Processing: Idempotency Is Mandatory
+
+**Architecture:** The standard pattern for durable async job processing is: producer writes a job record to DynamoDB (`status: pending`) and enqueues a message containing only the `job_id` to SQS; an SQS event source mapping triggers a Lambda for each message; the Lambda does the work and transitions the DynamoDB record through `pending → processing → done/error`. DynamoDB is the authoritative state mirror — SQS is the delivery mechanism only.
+
+**Problem:** Jobs re-processed multiple times silently. Expensive work (LLM calls, S3 writes, downstream enqueues) re-executed on every re-delivery with no error signal — indistinguishable from normal processing. DynamoDB job status permanently stuck at `processing` despite the work completing. Observed 6+ full LLM re-runs on a single upload job, running for 45+ minutes before manual intervention.
+
+**Root Cause:** SQS guarantees at-least-once delivery — it may deliver the same message more than once even after your Lambda processed it successfully. Sources include Lambda timeouts (message re-appears after visibility timeout expires), duplicate sends from the upstream producer, and SQS's own internal retry mechanics. A worker with no idempotency guard re-executes the full pipeline on every delivery. The specific failure mode: calling `put_item` with `status: processing` unconditionally at the top of the handler overwrites any terminal state a prior run wrote, so each re-delivery erases evidence of prior completions.
+
+**Solution:** Use DynamoDB as the idempotency guard. The full required pattern:
+
+```python
+def process_job(message):
+    job_id = message["job_id"]
+
+    # 1. Check-before-act: fetch current state BEFORE any side effects
+    current = ddb.get_item(Key={"PK": f"VAULT#{vault_id}", "SK": f"JOB#{job_id}"})
+    if current.get("status") in ("proposed", "done", "error"):
+        log.info("job.already_complete", job_id=job_id)
+        return current["proposal_id"]  # idempotent no-op
+
+    # 2. Claim with a conditional write — fail if already claimed or complete
+    try:
+        ddb.put_item(
+            Item={"PK": ..., "SK": ..., "status": "processing", ...},
+            ConditionExpression="attribute_not_exists(PK) OR #s = :pending",
+            ExpressionAttributeNames={"#s": "status"},
+            ExpressionAttributeValues={":pending": {"S": "pending"}},
+        )
+    except ddb.exceptions.ConditionalCheckFailedException:
+        return  # another invocation owns it
+
+    # 3. Do the work
+    proposal_id = run_pipeline(...)
+
+    # 4. Terminal state update — also conditional to prevent overwrite races
+    ddb.update_item(
+        Key=...,
+        UpdateExpression="SET #s = :done, proposal_id = :pid",
+        ConditionExpression="#s = :processing",
+        ...
+    )
+    return proposal_id
+```
+
+**Key rules:**
+- Never use unconditional `put_item` for status updates — it is the canonical failure mode
+- The check-before-act must happen before any LLM calls, S3 writes, or downstream enqueues
+- All status transitions should be conditional; terminal states must be write-protected
+- Set the SQS visibility timeout to at least 6× the Lambda function timeout so a timed-out invocation doesn't re-deliver before a retry can claim the job
+
+---
+
+### 30. Lambda Warm Containers Leak Module-Level State Across Invocations
+
+**Problem:** Structured logs showed the same `run_id` (set from `context.aws_request_id`) across multiple Lambda invocations, making it impossible to tell how many times a job had actually been attempted. Per-invocation identity was silently stale.
+
+**Root Cause:** Lambda reuses warm containers across invocations. Module-level objects — boto3 clients, loggers, engine instances — persist for the lifetime of the container. Any state bound at module initialization (including logger fields set via `.bind()`) carries over into subsequent invocations. If a logger or engine stores per-invocation identity at module scope, every subsequent warm invocation inherits the stale value from the first.
+
+**Solution:** Module level is for clients and config only. Per-request identity must be set inside the handler function on every call:
+
+```python
+# Module level — correct: stateless clients and config only
+_session = boto3.Session()
+_llm = LlmClient(_session, ...)
+_log = JsonLogger(component="my-worker")  # no per-request fields here
+
+def lambda_handler(event, context):
+    for record in event["Records"]:
+        message = json.loads(record["body"])
+        # Handler level — correct: bind per-invocation identity fresh every call
+        log = _log.bind(
+            run_id=context.aws_request_id,   # fresh from context, not cached
+            job_id=message["job_id"],
+        )
+        engine = MyEngine(..., run_id=context.aws_request_id, log=log)
+        engine.process(message)
+```
+
+**Key Insight:** Logger `.bind()` methods that mutate the parent object (rather than returning a new instance) are especially dangerous in Lambda — a single `bind()` call at module init or in a helper will pollute every subsequent invocation's logs. Always verify that `.bind()` returns a new object.
 
 ---
 
