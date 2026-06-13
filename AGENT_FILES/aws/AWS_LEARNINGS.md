@@ -1,6 +1,6 @@
 # AWS Deployment Learnings
 
-This document contains hard-won lessons from building AWS apps with coding agents. Reference this when adding or changing AWS components in a project. If you learn a new lesson, generalize it from the current project and add it. Currently 31 lessons.
+This document contains hard-won lessons from building AWS apps with coding agents. Reference this when adding or changing AWS components in a project. If you learn a new lesson, generalize it from the current project and add it.
 
 ---
 
@@ -675,9 +675,9 @@ Before deploying infrastructure changes:
 26. [ ] EventBridge spot interruption rule must target the Lambda ARN, not the function name — use `!GetAtt Function.Arn`
 27. [ ] Spot interruption handler needs the same broad env vars as your server creation Lambda if doing auto-replacement
 28. [ ] When adding new API Gateway resources, deploy api-gateway stack FIRST, then lambdas stack — the lambdas stack imports the resource IDs
-29. [ ] Never rotate CloudFront signing keys with hard cutover
+29. [ ] Never rotate CloudFront signing keys with hard cutover (add new + delete old in same invocation) — KeyGroups support multiple keys for two-key overlap; deleting old key immediately invalidates every active signed cookie until both browsers refresh AND auth-Lambda warm containers cycle (~1h disruption per rotation)
 30. [ ] Every SQS+Lambda worker must be idempotent: check DynamoDB job status at the top of the handler before any side effects; use conditional writes (`ConditionExpression`) for all status transitions so re-deliveries can't overwrite terminal states or re-run expensive work
-31. [ ] Never bind per-invocation identity (request IDs, correlation IDs, log fields) at Lambda module scope — bind them inside the handler function on every call; module-level state persists across warm container invocations (add new + delete old in same invocation) — KeyGroups support multiple keys for two-key overlap; deleting old key immediately invalidates every active signed cookie until both browsers refresh AND auth-Lambda warm containers cycle (~1h disruption per rotation)
+31. [ ] Never bind per-invocation identity (request IDs, correlation IDs, log fields) at Lambda module scope — bind them inside the handler function on every call; module-level state persists across warm container invocations
 
 ---
 
