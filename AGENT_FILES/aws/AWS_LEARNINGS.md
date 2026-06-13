@@ -1,4 +1,4 @@
-# AWS Deployment Learnings
+# AWS Learnings
 
 This document contains hard-won lessons from building AWS apps with coding agents. Reference this when adding or changing AWS components in a project. If you learn a new lesson, generalize it from the current project and add it.
 
