@@ -12,15 +12,26 @@ Do not assume today's date, always look it up or ask the user
 - Chats are time-stamped, so you can use time as a map to find things.
 - Chat session JSON-L files are sorted chronologically, so you can tail the last part of the JSON-L file to get back up to speed.
 
-## Principles
-These are the design and engineering principles that guide all work on this project. When a tradeoff arises, lean toward these defaults; document any deliberate exception in the PR or plan.
+## Non-Functional Priorities
 
-- **Prioritize intuitive user experience over implementation difficulty.** Always consider the user story when designing features or fixing bugs. If a v1 limitation would surprise or confuse a user (e.g. "you can edit X but not Y in the same paragraph"), pay the implementation cost instead of shipping the wart.
-- **Build modular, extensible code.** Prefer small, single-responsibility modules with clear boundaries over monoliths. New behavior should slot in as an additional module or extension point, not as a special case scattered through unrelated files.
-- **Favor composition over inheritance.** Compose behavior from small pieces (functions, components, helpers) rather than building tall class hierarchies. Mixins and deep inheritance trees are a smell.
-- **Avoid code duplication. Consolidate as opportunities arise.** When the same logic, markup, or styling shows up in two places, extract it into a shared helper, component, or stylesheet. Don't tolerate copy-paste even when "it's just for now."
-- **Create meaningful tests for all new code. Use the Testing Trophy philosophy.** Prioritize integration tests (the largest layer of the trophy) over unit tests; add unit tests where the logic is genuinely isolated; add a small number of end-to-end tests for the highest-value flows; rely on static analysis (typecheck, lint) as the foundation. Avoid trivial tests that just restate the implementation. (Reference: Kent C. Dodds, "The Testing Trophy.")
-- **Maximize user experience testing using the Claude for Chrome extension.** For any change that touches a page a user can see, drive the browser via the `claude-in-chrome` MCP tools (or the `webapp-testing` skill) to exercise the actual flow, confirm renders, check for console errors, and capture evidence. Backend tests and typecheck verify code correctness; the browser verifies feature correctness.
+These are the project's non-functional priorities, **in priority order** (lower
+number wins when they trade off against each other). Weigh every design and
+implementation decision against them.
+
+1. **Low idle cost of application** — When the application is doing no work it
+   should cost next to nothing, so favor scale-to-zero and on-demand resources
+   over always-on capacity.
+2. **Joyful and intuitive user experience** — Every interaction should feel
+   obvious, fast, and pleasant, such that users reach for the application by
+   choice rather than obligation.
+3. **Highly performant** — The application should respond quickly and process
+   work efficiently, keeping perceptible latency low even as data and load grow.
+4. **Reasonable security** — Protect data and access with sensible,
+   proportionate safeguards that fit the application — neither security theater
+   nor negligence.
+5. **Modular and extensible code** — Keep components loosely coupled behind
+   clear boundaries so new features can be added with minimal rework to existing
+   code.
 
 ## Instructions
 ### Python
