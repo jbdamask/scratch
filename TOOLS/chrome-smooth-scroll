@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+#
+# chrome-smooth-scroll — smooth-scroll a Google Chrome tab top-to-bottom
+# (or bottom-to-top) over a configurable duration. Built for screen-recording
+# walkthroughs: start your recording, then run this.
+#
+# Drives Chrome via AppleScript "execute javascript", so it works on whatever
+# tab you point it at without any extension.
+#
+# PDFs: Chrome renders PDFs with a plugin that JavaScript can't scroll. Pass
+# --pdf to rasterize the PDF into one tall HTML page (via poppler) and scroll
+# THAT smoothly instead.
+#
+# ──────────────────────────────────────────────────────────────────────────
+# ONE-TIME SETUP (required once per machine):
+#   Chrome menu bar →  View → Developer → "Allow JavaScript from Apple Events"
+#   (turn it ON). Without this, Chrome refuses scripted JavaScript.
+#   For --pdf you also need poppler:  brew install poppler
+# ──────────────────────────────────────────────────────────────────────────
+#
+# USAGE:
+#   chrome-smooth-scroll [options]
+#
+# OPTIONS:
+#   -d, --duration SECONDS   Scroll duration (default: 17)
+#   -e, --easing MODE        ease | linear            (default: ease)
+#   -w, --wait SECONDS       Wait before starting, e.g. to let a recording
+#                            warm up (default: 0)
+#       --direction DIR      down | up                (default: down)
+#   -m, --match SUBSTRING    Scroll the first tab whose URL contains SUBSTRING.
+#                            Default: the active tab of the frontmost window.
+#       --front              Bring the matched/Chrome window to the front first.
+#   -p, --pdf SOURCE         Render a PDF (URL or local path) to a tall HTML
+#                            page, open it in Chrome, and smooth-scroll it.
+#       --dpi N              Render resolution for --pdf (default: 120).
+#       --width PX           On-screen page width for --pdf (default: 900).
+#   -h, --help               Show this help.
+#
+# EXAMPLES:
+#   chrome-smooth-scroll                       # 17s ease scroll, active tab
+#   chrome-smooth-scroll -d 25 -w 2 --front    # 25s, 2s lead-in, raise window
+#   chrome-smooth-scroll -m nowigetit.us -e linear --direction up
+#   chrome-smooth-scroll --pdf https://example.com/paper.pdf -d 30 -w 2
+
+set -euo pipefail
+
+DURATION=17
+EASING=ease
+WAIT=0
+DIRECTION=down
+MATCH=""
+BRING_FRONT=0
+PDF_SRC=""
+DPI=120
+PAGE_WIDTH=900
+
+die() { echo "error: $*" >&2; exit 1; }
+usage() { sed -n '2,48p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -d|--duration)  DURATION="${2:-}"; shift 2 ;;
+    -e|--easing)    EASING="${2:-}"; shift 2 ;;
+    -w|--wait)      WAIT="${2:-}"; shift 2 ;;
+    --direction)    DIRECTION="${2:-}"; shift 2 ;;
+    -m|--match)     MATCH="${2:-}"; shift 2 ;;
+    --front)        BRING_FRONT=1; shift ;;
+    -p|--pdf)       PDF_SRC="${2:-}"; shift 2 ;;
+    --dpi)          DPI="${2:-}"; shift 2 ;;
+    --width)        PAGE_WIDTH="${2:-}"; shift 2 ;;
+    -h|--help)      usage 0 ;;
+    *)              die "unknown option: $1 (try --help)" ;;
+  esac
+done
+
+# ── validate ───────────────────────────────────────────────────────────────
+[[ "$DURATION" =~ ^[0-9]+(\.[0-9]+)?$ ]] || die "--duration must be a number"
+[[ "$WAIT"     =~ ^[0-9]+(\.[0-9]+)?$ ]] || die "--wait must be a number"
+[[ "$DPI"      =~ ^[0-9]+$ ]]            || die "--dpi must be an integer"
+[[ "$PAGE_WIDTH" =~ ^[0-9]+$ ]]          || die "--width must be an integer"
+case "$EASING"    in ease|linear) ;; *) die "--easing must be 'ease' or 'linear'" ;; esac
+case "$DIRECTION" in down|up)     ;; *) die "--direction must be 'down' or 'up'" ;; esac
+
+# ── PDF mode: rasterize → tall HTML → open in Chrome → target it ─────────────
+if [[ -n "$PDF_SRC" ]]; then
+  command -v pdftoppm >/dev/null || die "--pdf needs poppler.  Install it:  brew install poppler"
+
+  KEY=$(printf '%s' "$PDF_SRC" | shasum | cut -c1-12)
+  WORK="$HOME/.cache/chrome-smooth-scroll/$KEY"
+  mkdir -p "$WORK"
+  PDF_FILE="$WORK/in.pdf"
+
+  if [[ "$PDF_SRC" =~ ^https?:// ]]; then
+    if [[ ! -f "$PDF_FILE" ]]; then
+      echo "Downloading PDF…" >&2
+      curl -fSL "$PDF_SRC" -o "$PDF_FILE" || die "could not download $PDF_SRC"
+    fi
+  else
+    [[ -f "$PDF_SRC" ]] || die "no such file: $PDF_SRC"
+    cp "$PDF_SRC" "$PDF_FILE"
+  fi
+
+  if ! ls "$WORK"/page-*.png >/dev/null 2>&1; then
+    echo "Rendering pages at ${DPI} DPI…" >&2
+    pdftoppm -png -r "$DPI" "$PDF_FILE" "$WORK/page" || die "pdftoppm failed"
+  fi
+
+  # Assume uniform page size (true for the vast majority of PDFs): grab the
+  # first page's pixel dimensions so we can reserve correct layout height
+  # BEFORE the images decode — that keeps the scroll from jumping.
+  FIRST=$(ls -v "$WORK"/page-*.png | head -1)
+  read -r PW PH < <(sips -g pixelWidth -g pixelHeight "$FIRST" 2>/dev/null \
+      | awk '/pixelWidth:/{w=$2}/pixelHeight:/{h=$2}END{print w, h}')
+  [[ -n "${PW:-}" && -n "${PH:-}" ]] || { PW=$DPI; PH=$DPI; }
+
+  HTML="$WORK/index.html"
+  {
+    echo '<!doctype html><html><head><meta charset="utf-8">'
+    echo "<title>$(basename "$PDF_SRC")</title><style>"
+    echo "html,body{margin:0;background:#333;}"
+    echo "body{display:flex;flex-direction:column;align-items:center;gap:12px;padding:12px 0;}"
+    echo "img{width:${PAGE_WIDTH}px;max-width:96vw;height:auto;aspect-ratio:${PW}/${PH};"
+    echo "    box-shadow:0 2px 18px rgba(0,0,0,.5);background:#fff;}"
+    echo "</style></head><body>"
+    for p in $(ls -v "$WORK"/page-*.png); do
+      echo "<img src=\"$(basename "$p")\" width=\"$PW\" height=\"$PH\">"
+    done
+    echo "</body></html>"
+  } > "$HTML"
+
+  echo "Built $(ls "$WORK"/page-*.png | wc -l | tr -d ' ') pages → $HTML" >&2
+  open -a "Google Chrome" "file://$HTML"
+  sleep 1.5                      # let the tab open + first images decode
+  MATCH="$KEY/index.html"
+  BRING_FRONT=1
+fi
+
+# ── seconds → ms for the page animation ──────────────────────────────────────
+DUR_MS=$(awk "BEGIN{printf \"%d\", $DURATION*1000}")
+WAIT_MS=$(awk "BEGIN{printf \"%d\", $WAIT*1000}")
+USE_EASE=$([[ "$EASING" == "ease" ]] && echo true || echo false)
+
+# ── the in-page animation (single quotes only → safe inside AppleScript) ─────
+# requestAnimationFrame → frame-synced & smooth (easeInOutQuad). The scroll
+# height is recomputed every frame so a PDF whose page images are still
+# decoding won't cause the target to jump.
+read -r -d '' JS <<JSEOF || true
+(function(){
+  var el = document.scrollingElement || document.documentElement;
+  el.style.scrollBehavior = 'auto';
+  var down = ('$DIRECTION' === 'down');
+  var dur = $DUR_MS, useEase = $USE_EASE;
+  function maxY(){ return el.scrollHeight - el.clientHeight; }
+  window.scrollTo(0, down ? 0 : maxY());
+  setTimeout(function(){
+    var t0 = performance.now();
+    (function step(now){
+      var p = Math.min((now - t0) / dur, 1);
+      var e = useEase ? (p < 0.5 ? 2*p*p : 1 - Math.pow(-2*p + 2, 2)/2) : p;
+      var m = maxY(), from = down ? 0 : m, to = down ? m : 0;
+      window.scrollTo(0, Math.round(from + (to - from) * e));
+      if (p < 1) requestAnimationFrame(step);
+    })(t0);
+  }, $WAIT_MS);
+  return 'scroll-started max=' + maxY();
+})()
+JSEOF
+
+# ── AppleScript: pick the tab, optionally raise it, run the JS ───────────────
+SCPT=$(mktemp -t chrome-smooth-scroll.XXXXXX).applescript
+trap 'rm -f "$SCPT"' EXIT
+cat >"$SCPT" <<'OSAEOF'
+on run argv
+  set matchStr to item 1 of argv
+  set bringTo  to (item 2 of argv) is "1"
+  set jsCode   to item 3 of argv
+
+  tell application "Google Chrome"
+    if (count of windows) is 0 then error "No Chrome windows are open."
+
+    set theTab to missing value
+    set theWin to missing value
+
+    if matchStr is "" then
+      set theWin to front window
+      set theTab to active tab of theWin
+    else
+      repeat with w in windows
+        set i to 0
+        repeat with t in tabs of w
+          set i to i + 1
+          if (URL of t) contains matchStr then
+            set theTab to t
+            set theWin to w
+            set active tab index of w to i
+            exit repeat
+          end if
+        end repeat
+        if theTab is not missing value then exit repeat
+      end repeat
+    end if
+
+    if theTab is missing value then error "No tab matched: " & matchStr
+
+    if bringTo then
+      set index of theWin to 1
+      activate
+    end if
+
+    execute theTab javascript jsCode
+  end tell
+end run
+OSAEOF
+
+RC=0
+OUT=$(osascript "$SCPT" "$MATCH" "$BRING_FRONT" "$JS" 2>&1) || RC=$?
+
+if [[ $RC -ne 0 ]]; then
+  if [[ "$OUT" == *"JavaScript through AppleScript is turned off"* ]]; then
+    cat >&2 <<'HINT'
+error: Chrome is blocking scripted JavaScript.
+  Enable it once:  Chrome menu bar → View → Developer →
+                   "Allow JavaScript from Apple Events"
+  Then re-run this command.
+HINT
+  else
+    echo "error: ${OUT#*execution error: }" >&2
+  fi
+  exit "$RC"
+fi
